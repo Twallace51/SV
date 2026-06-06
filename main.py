@@ -1,4 +1,7 @@
 import sys
+import logging
+import logging.handlers
+from pathlib import Path
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QDialog, QLabel, QLineEdit,
     QPushButton, QVBoxLayout, QFormLayout, QMessageBox, QMenuBar, QMenu
@@ -6,6 +9,38 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QMouseEvent, QWheelEvent
+
+
+def setup_logging() -> logging.Logger:
+    log_dir = Path(__file__).parent / "logs"
+    log_dir.mkdir(exist_ok=True)
+
+    logger = logging.getLogger("app")
+    logger.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter(
+        fmt="%(asctime)s [%(levelname)-8s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    # Rotating file handler – keeps last 5 × 1 MB log files
+    file_handler = logging.handlers.RotatingFileHandler(
+        log_dir / "app.log", maxBytes=1_000_000, backupCount=5, encoding="utf-8"
+    )
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(formatter)
+
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    return logger
+
+
+log = setup_logging()
 
 
 class LoginDialog(QDialog):
@@ -38,15 +73,18 @@ class LoginDialog(QDialog):
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.RightButton:
             self._right_btn_held = True
+            log.debug("Login dialog: right mouse button pressed")
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         if event.button() == Qt.RightButton:
             self._right_btn_held = False
+            log.debug("Login dialog: right mouse button released")
         super().mouseReleaseEvent(event)
 
     def wheelEvent(self, event: QWheelEvent):
         if self._right_btn_held:
+            log.info("Login: admin shortcut used (right-click + scroll)")
             self.accept()
             return
         super().wheelEvent(event)
@@ -55,10 +93,13 @@ class LoginDialog(QDialog):
         username = self.username_edit.text().strip()
         password = self.password_edit.text()
 
+        log.info("Login attempt for user: %s", username)
         # Replace this with real authentication logic
         if username == "admin" and password == "password":
+            log.info("Login successful for user: %s", username)
             self.accept()
         else:
+            log.warning("Login failed for user: %s", username)
             QMessageBox.warning(self, "Login Failed", "Invalid username or password.")
             self.password_edit.clear()
             self.password_edit.setFocus()
@@ -114,28 +155,37 @@ class MainWindow(QMainWindow):
     # --- Menu action handlers ---
 
     def on_new(self):
+        log.info("Menu: File > New")
         QMessageBox.information(self, "New", "New action triggered.")
 
     def on_open(self):
+        log.info("Menu: File > Open")
         QMessageBox.information(self, "Open", "Open action triggered.")
 
     def on_preferences(self):
+        log.info("Menu: Edit > Preferences")
         QMessageBox.information(self, "Preferences", "Preferences action triggered.")
 
     def on_about(self):
+        log.info("Menu: Help > About")
         QMessageBox.about(self, "About", "Generic Main Menu Application\nPySide6")
 
 
 def main():
+    log.info("Application starting")
     app = QApplication(sys.argv)
 
     login = LoginDialog()
     if login.exec() != QDialog.Accepted:
+        log.info("Login cancelled – application exiting")
         sys.exit(0)
 
+    log.info("Login accepted – opening main window")
     window = MainWindow()
     window.show()
-    sys.exit(app.exec())
+    exit_code = app.exec()
+    log.info("Application exiting with code %d", exit_code)
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":
