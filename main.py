@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt, QLockFile, QStandardPaths
-from PySide6.QtGui import QMouseEvent, QWheelEvent
+from PySide6.QtGui import QMouseEvent, QWheelEvent, QShowEvent
 
 from __init__ import __version__
 
@@ -169,10 +169,22 @@ class MainWindow(QMainWindow):
     def __init__(self, username: str):
         """Initialize the main window and include version/user in title."""
         super().__init__()
-        self.setWindowTitle(f"Main Menu - v{__version__} - {username}")
+        self._username = username
+        self._apply_window_title()
         self.resize(800, 600)
         self._build_menu_bar()
         self._build_central()
+
+    def _apply_window_title(self):
+        """Apply the current title text to the native window."""
+        self.setWindowTitle(
+            f"Main Menu - Project version: {__version__} - Current login: {self._username}"
+        )
+
+    def showEvent(self, event: QShowEvent):
+        """Reapply title on show to keep native title bar in sync."""
+        self._apply_window_title()
+        super().showEvent(event)
 
     def _build_menu_bar(self):
         """Create the menu bar and connect actions to handlers."""
