@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QPushButton, QVBoxLayout, QFormLayout, QMessageBox, QMenuBar, QMenu
 )
 from PySide6.QtGui import QAction
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QLockFile, QStandardPaths
 from PySide6.QtGui import QMouseEvent, QWheelEvent
 
 from __init__ import __version__
@@ -43,6 +43,17 @@ def setup_logging() -> logging.Logger:
 
 
 log = setup_logging()
+
+
+def acquire_single_instance_lock() -> QLockFile | None:
+    temp_dir = Path(QStandardPaths.writableLocation(QStandardPaths.TempLocation))
+    lock_file_path = temp_dir / "template_app.lock"
+
+    lock = QLockFile(str(lock_file_path))
+    lock.setStaleLockTime(0)
+    if not lock.lock():
+        return None
+    return lock
 
 
 class LoginDialog(QDialog):
@@ -184,6 +195,12 @@ class MainWindow(QMainWindow):
 def main():
     log.info("Application starting")
     app = QApplication(sys.argv)
+
+    instance_lock = acquire_single_instance_lock()
+    if instance_lock is None:
+        log.warning("Application already running; exiting duplicate instance")
+        QMessageBox.warning(None, "Already Running", "This application is already running.")
+        sys.exit(1)
 
     login = LoginDialog()
     if login.exec() != QDialog.Accepted:
