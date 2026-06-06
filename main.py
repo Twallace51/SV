@@ -7,7 +7,8 @@ import logging.handlers
 from pathlib import Path
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QDialog, QLabel, QLineEdit,
-    QPushButton, QVBoxLayout, QFormLayout, QMessageBox, QMenuBar, QMenu
+    QPushButton, QVBoxLayout, QFormLayout, QMessageBox, QMenuBar, QMenu,
+    QHBoxLayout
 )
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt, QLockFile, QStandardPaths
@@ -85,8 +86,18 @@ class LoginDialog(QDialog):
         self.password_edit.setPlaceholderText("Enter password")
         self.password_edit.setEchoMode(QLineEdit.Password)
 
+        self.password_toggle_btn = QPushButton("Show")
+        self.password_toggle_btn.setCheckable(True)
+        self.password_toggle_btn.setFixedWidth(60)
+        self.password_toggle_btn.clicked.connect(self.toggle_password_visibility)
+
+        password_layout = QHBoxLayout()
+        password_layout.setContentsMargins(0, 0, 0, 0)
+        password_layout.addWidget(self.password_edit)
+        password_layout.addWidget(self.password_toggle_btn)
+
         form.addRow("Username:", self.username_edit)
-        form.addRow("Password:", self.password_edit)
+        form.addRow("Password:", password_layout)
         layout.addLayout(form)
 
         self.login_btn = QPushButton("Login")
@@ -141,6 +152,15 @@ class LoginDialog(QDialog):
             QMessageBox.warning(self, "Login Failed", "Invalid username or password.")
             self.password_edit.clear()
             self.password_edit.setFocus()
+
+    def toggle_password_visibility(self, checked: bool):
+        """Toggle password field visibility between masked and plain text."""
+        if checked:
+            self.password_edit.setEchoMode(QLineEdit.Normal)
+            self.password_toggle_btn.setText("Hide")
+        else:
+            self.password_edit.setEchoMode(QLineEdit.Password)
+            self.password_toggle_btn.setText("Show")
 
 
 class MainWindow(QMainWindow):
