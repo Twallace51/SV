@@ -95,7 +95,12 @@ class LoginDialog(QDialog):
 
         log.info("Login attempt for user: %s", username)
         # Replace this with real authentication logic
-        if username == "admin" and password == "password":
+        valid_credentials = {
+            "admin": "password",
+            "user": "user",
+            "trainee": "trainee",
+        }
+        if valid_credentials.get(username) == password:
             log.info("Login successful for user: %s", username)
             self.accept()
         else:
