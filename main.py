@@ -10,6 +10,8 @@ from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QMouseEvent, QWheelEvent
 
+from __init__ import __version__
+
 
 def setup_logging() -> logging.Logger:
     log_dir = Path(__file__).parent / "logs"
@@ -69,6 +71,7 @@ class LoginDialog(QDialog):
         layout.addWidget(self.login_btn)
 
         self._right_btn_held = False
+        self.logged_in_username = ""
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.RightButton:
@@ -84,6 +87,7 @@ class LoginDialog(QDialog):
 
     def wheelEvent(self, event: QWheelEvent):
         if self._right_btn_held:
+            self.logged_in_username = "admin"
             log.info("Login: admin shortcut used (right-click + scroll)")
             self.accept()
             return
@@ -101,6 +105,7 @@ class LoginDialog(QDialog):
             "trainee": "trainee",
         }
         if valid_credentials.get(username) == password:
+            self.logged_in_username = username
             log.info("Login successful for user: %s", username)
             self.accept()
         else:
@@ -111,9 +116,9 @@ class LoginDialog(QDialog):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, username: str):
         super().__init__()
-        self.setWindowTitle("Main Menu")
+        self.setWindowTitle(f"Main Menu - v{__version__} - {username}")
         self.resize(800, 600)
         self._build_menu_bar()
         self._build_central()
@@ -186,7 +191,7 @@ def main():
         sys.exit(0)
 
     log.info("Login accepted – opening main window")
-    window = MainWindow()
+    window = MainWindow(login.logged_in_username or "unknown")
     window.show()
     exit_code = app.exec()
     log.info("Application exiting with code %d", exit_code)
