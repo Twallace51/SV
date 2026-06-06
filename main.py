@@ -1,3 +1,5 @@
+"""Main application module for login and menu-based PySide6 UI."""
+
 import sys
 import os
 import logging
@@ -15,6 +17,7 @@ from __init__ import __version__
 
 
 def setup_logging() -> logging.Logger:
+    """Configure and return the application logger."""
     log_dir = Path(__file__).parent / "logs"
     log_dir.mkdir(exist_ok=True)
 
@@ -47,10 +50,12 @@ log = setup_logging()
 
 
 def clear_terminal() -> None:
+    """Clear the terminal screen before app startup logs are printed."""
     os.system("cls" if os.name == "nt" else "clear")
 
 
 def acquire_single_instance_lock() -> QLockFile | None:
+    """Acquire and return an instance lock, or None if already running."""
     temp_dir = Path(QStandardPaths.writableLocation(QStandardPaths.TempLocation))
     lock_file_path = temp_dir / "template_app.lock"
 
@@ -62,7 +67,10 @@ def acquire_single_instance_lock() -> QLockFile | None:
 
 
 class LoginDialog(QDialog):
+    """Login dialog that validates credentials and tracks current user."""
+
     def __init__(self, parent=None):
+        """Initialize login UI controls and interaction state."""
         super().__init__(parent)
         self.setWindowTitle("Login")
         self.setFixedSize(300, 160)
@@ -90,30 +98,34 @@ class LoginDialog(QDialog):
         self.logged_in_username = ""
 
     def mousePressEvent(self, event: QMouseEvent):
+        """Track right-button state for the scroll-based admin shortcut."""
         if event.button() == Qt.RightButton:
             self._right_btn_held = True
-            log.debug("Login dialog: right mouse button pressed")
+            #log.debug("Login dialog: right mouse button pressed")
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
+        """Clear right-button tracking when the button is released."""
         if event.button() == Qt.RightButton:
             self._right_btn_held = False
-            log.debug("Login dialog: right mouse button released")
+            #.debug("Login dialog: right mouse button released")
         super().mouseReleaseEvent(event)
 
     def wheelEvent(self, event: QWheelEvent):
+        """Accept login as admin when right-click is held while scrolling."""
         if self._right_btn_held:
             self.logged_in_username = "admin"
-            log.info("Login: admin shortcut used (right-click + scroll)")
+            #log.info("Login: admin shortcut used (right-click + scroll)")
             self.accept()
             return
         super().wheelEvent(event)
 
     def handle_login(self):
+        """Validate entered credentials and accept or reject login attempt."""
         username = self.username_edit.text().strip()
         password = self.password_edit.text()
 
-        log.info("Login attempt for user: %s", username)
+        #log.info("Login attempt for user: %s", username)
         # Replace this with real authentication logic
         valid_credentials = {
             "admin": "password",
@@ -122,17 +134,20 @@ class LoginDialog(QDialog):
         }
         if valid_credentials.get(username) == password:
             self.logged_in_username = username
-            log.info("Login successful for user: %s", username)
+            #log.info("Login successful for user: %s", username)
             self.accept()
         else:
-            log.warning("Login failed for user: %s", username)
+            #log.warning("Login failed for user: %s", username)
             QMessageBox.warning(self, "Login Failed", "Invalid username or password.")
             self.password_edit.clear()
             self.password_edit.setFocus()
 
 
 class MainWindow(QMainWindow):
+    """Primary application window shown after successful login."""
+
     def __init__(self, username: str):
+        """Initialize the main window and include version/user in title."""
         super().__init__()
         self.setWindowTitle(f"Main Menu - v{__version__} - {username}")
         self.resize(800, 600)
@@ -140,6 +155,7 @@ class MainWindow(QMainWindow):
         self._build_central()
 
     def _build_menu_bar(self):
+        """Create the menu bar and connect actions to handlers."""
         menu_bar = self.menuBar()
 
         # File menu
@@ -174,6 +190,7 @@ class MainWindow(QMainWindow):
         help_menu.addAction(about_action)
 
     def _build_central(self):
+        """Create and attach the central welcome label widget."""
         label = QLabel("Welcome!", self)
         label.setAlignment(Qt.AlignCenter)
         self.setCentralWidget(label)
@@ -181,43 +198,48 @@ class MainWindow(QMainWindow):
     # --- Menu action handlers ---
 
     def on_new(self):
+        """Handle the File > New menu action."""
         log.info("Menu: File > New")
         QMessageBox.information(self, "New", "New action triggered.")
 
     def on_open(self):
+        """Handle the File > Open menu action."""
         log.info("Menu: File > Open")
         QMessageBox.information(self, "Open", "Open action triggered.")
 
     def on_preferences(self):
+        """Handle the Edit > Preferences menu action."""
         log.info("Menu: Edit > Preferences")
         QMessageBox.information(self, "Preferences", "Preferences action triggered.")
 
     def on_about(self):
+        """Display application About information."""
         log.info("Menu: Help > About")
         QMessageBox.about(self, "About", "Generic Main Menu Application\nPySide6")
 
 
 def main():
+    """Run application startup, login flow, and event loop."""
     clear_terminal()
-    log.info("Application starting")
+    #log.info("Application starting")
     app = QApplication(sys.argv)
 
     instance_lock = acquire_single_instance_lock()
     if instance_lock is None:
-        log.warning("Application already running; exiting duplicate instance")
+        #log.warning("Application already running; exiting duplicate instance")
         QMessageBox.warning(None, "Already Running", "This application is already running.")
         sys.exit(1)
 
     login = LoginDialog()
     if login.exec() != QDialog.Accepted:
-        log.info("Login cancelled – application exiting")
+        #log.info("Login cancelled – application exiting")
         sys.exit(0)
 
-    log.info("Login accepted – opening main window")
+    #log.info("Login accepted – opening main window")
     window = MainWindow(login.logged_in_username or "unknown")
     window.show()
     exit_code = app.exec()
-    log.info("Application exiting with code %d", exit_code)
+    #log.info("Application exiting with code %d", exit_code)
     sys.exit(exit_code)
 
 
