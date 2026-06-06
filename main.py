@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QMouseEvent, QWheelEvent
 
 
 class LoginDialog(QDialog):
@@ -31,6 +32,24 @@ class LoginDialog(QDialog):
         self.login_btn.setDefault(True)
         self.login_btn.clicked.connect(self.handle_login)
         layout.addWidget(self.login_btn)
+
+        self._right_btn_held = False
+
+    def mousePressEvent(self, event: QMouseEvent):
+        if event.button() == Qt.RightButton:
+            self._right_btn_held = True
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        if event.button() == Qt.RightButton:
+            self._right_btn_held = False
+        super().mouseReleaseEvent(event)
+
+    def wheelEvent(self, event: QWheelEvent):
+        if self._right_btn_held:
+            self.accept()
+            return
+        super().wheelEvent(event)
 
     def handle_login(self):
         username = self.username_edit.text().strip()
