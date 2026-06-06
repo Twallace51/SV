@@ -1,4 +1,5 @@
 import sys
+import os
 import logging
 import logging.handlers
 from pathlib import Path
@@ -43,6 +44,10 @@ def setup_logging() -> logging.Logger:
 
 
 log = setup_logging()
+
+
+def clear_terminal() -> None:
+    os.system("cls" if os.name == "nt" else "clear")
 
 
 def acquire_single_instance_lock() -> QLockFile | None:
@@ -193,6 +198,7 @@ class MainWindow(QMainWindow):
 
 
 def main():
+    clear_terminal()
     log.info("Application starting")
     app = QApplication(sys.argv)
 
