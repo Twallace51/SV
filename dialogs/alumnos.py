@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QFormLayout, QMessageBox, QHBoxLayout,
     QDialogButtonBox, QTableWidget, QTableWidgetItem,
     QDateEdit, QComboBox, QDoubleSpinBox, QHeaderView,
+    QAbstractSpinBox,
 )
 
 from __init__ import get_active_db_path
@@ -45,6 +46,7 @@ class NuevoAlumnoDialog(QDialog):
         self.pension.setRange(0, 99999)
         self.pension.setDecimals(2)
         self.pension.setPrefix("Bs ")
+        self.pension.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
 
         self.grado = QComboBox()
         try:
