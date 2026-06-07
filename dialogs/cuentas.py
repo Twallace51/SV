@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import QDate
 
-from __init__ import DB_PATH
+from __init__ import get_active_db_path
 
 # endregion
 
@@ -37,7 +37,7 @@ class NuevoCuentaDialog(QDialog):
         self.alumno = QComboBox()
         self._alumno_ids: list[int] = []
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(get_active_db_path())
             for aid, nombres, paterno in conn.execute(
                 "SELECT id, nombres, paterno FROM alumnos ORDER BY paterno, nombres"
             ).fetchall():
@@ -82,7 +82,7 @@ class NuevoCuentaDialog(QDialog):
             QMessageBox.warning(self, "Validación", "No hay alumnos registrados.")
             return
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(get_active_db_path())
             cur = conn.execute(
                 "INSERT INTO ctas (id_alumno, debito, credito, aclaracion, fecha, factura)"
                 " VALUES (?, ?, ?, ?, ?, ?)",
@@ -114,7 +114,7 @@ class EditCuentaDialog(QDialog):
 
         self.alumno = QComboBox()
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(get_active_db_path())
             for aid, nombres, paterno in conn.execute(
                 "SELECT id, nombres, paterno FROM alumnos ORDER BY paterno, nombres"
             ).fetchall():
@@ -174,7 +174,7 @@ class EditCuentaDialog(QDialog):
             QMessageBox.warning(self, "Validación", "No hay alumnos registrados.")
             return
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(get_active_db_path())
             conn.execute(
                 "UPDATE ctas SET id_alumno=?, debito=?, credito=?, aclaracion=?,"
                 " fecha=?, factura=? WHERE id=?",
@@ -238,7 +238,7 @@ class BuscarCuentaDialog(QDialog):
     def _load(self, text: str):
         like = f"%{text}%"
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(get_active_db_path())
             rows = conn.execute(
                 "SELECT c.id, a.paterno || ', ' || a.nombres,"
                 " c.debito, c.credito, c.aclaracion, c.fecha, c.factura"

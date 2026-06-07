@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QLabel, QDialog
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from windows.main_window import MainWindow
-from __init__ import VERSION
+from __init__ import VERSION, DB_PATH, get_active_db_path, set_active_db_path, reset_active_db_path
 # endregion
 
 @pytest.fixture
@@ -161,3 +161,51 @@ class TestMainWindowTitleUpdate:
         finally:
             win1.close()
             win2.close()
+
+
+class TestTraineeDatabaseSession:
+    def test_trainee_login_creates_and_uses_temp_database(self, qapp, tmp_path, monkeypatch):
+        source_db = tmp_path / "SV.db"
+        source_db.write_text("db", encoding="utf-8")
+        copied_paths = {}
+        active_paths = []
+
+        def fake_copy2(src, dst):
+            copied_paths["src"] = Path(src)
+            copied_paths["dst"] = Path(dst)
+            Path(dst).write_text("db", encoding="utf-8")
+            return dst
+
+        monkeypatch.setattr("windows.main_window.DB_PATH", source_db)
+        monkeypatch.setattr("windows.main_window.shutil.copy2", fake_copy2)
+        monkeypatch.setattr(
+            "windows.main_window.set_active_db_path",
+            lambda p: active_paths.append(Path(p)),
+        )
+
+        win = MainWindow("trainee")
+        try:
+            assert copied_paths["src"] == source_db
+            assert copied_paths["dst"].exists()
+            assert active_paths == [copied_paths["dst"]]
+            assert "Modo Entrenamiento DB Temporal" in win.windowTitle()
+        finally:
+            win.close()
+
+    def test_cleanup_removes_temp_database_and_restores_default(self, qapp, tmp_path):
+        reset_active_db_path()
+        win = MainWindow("user")
+        temp_db = tmp_path / "session_temp.db"
+        temp_db.write_text("db", encoding="utf-8")
+
+        try:
+            set_active_db_path(temp_db)
+            win._trainee_temp_db_path = temp_db
+
+            win._cleanup_trainee_temp_database()
+
+            assert not temp_db.exists()
+            assert get_active_db_path() == DB_PATH
+        finally:
+            win.close()
+            reset_active_db_path()

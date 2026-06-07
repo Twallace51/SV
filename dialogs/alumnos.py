@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QDateEdit, QComboBox, QDoubleSpinBox, QHeaderView,
 )
 
-from __init__ import DB_PATH
+from __init__ import get_active_db_path
 
 # endregion
 
@@ -48,7 +48,7 @@ class NuevoAlumnoDialog(QDialog):
 
         self.grado = QComboBox()
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(get_active_db_path())
             for gid, gname in conn.execute("SELECT id, grado FROM grados ORDER BY grado").fetchall():
                 self.grado.addItem(gname, gid)
             conn.close()
@@ -77,7 +77,7 @@ class NuevoAlumnoDialog(QDialog):
             QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
             return
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(get_active_db_path())
             cur = conn.execute(
                 "INSERT INTO alumnos (nombres, paterno, materno, cumpleanos, rude, Carnet, id_grado, pension)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -122,7 +122,7 @@ class EditAlumnoDialog(QDialog):
 
         self.grado = QComboBox()
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(get_active_db_path())
             for gid, gname in conn.execute("SELECT id, grado FROM grados ORDER BY grado").fetchall():
                 self.grado.addItem(gname, gid)
             row = conn.execute(
@@ -170,7 +170,7 @@ class EditAlumnoDialog(QDialog):
             QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
             return
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(get_active_db_path())
             conn.execute(
                 "UPDATE alumnos SET nombres=?, paterno=?, materno=?, cumpleanos=?,"
                 " rude=?, Carnet=?, id_grado=?, pension=? WHERE id=?",
@@ -234,7 +234,7 @@ class BuscarAlumnoDialog(QDialog):
     def _load(self, text: str):
         like = f"%{text}%"
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(get_active_db_path())
             rows = conn.execute(
                 "SELECT a.id, a.nombres, a.paterno, a.materno, a.rude, a.Carnet,"
                 " g.grado, a.pension"

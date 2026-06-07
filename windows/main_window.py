@@ -4,6 +4,7 @@
 
 import logging
 import shutil
+import tempfile
 from pathlib import Path
 from datetime import datetime
 
@@ -11,10 +12,16 @@ from PySide6.QtWidgets import (
     QMainWindow, QLabel, QDialog,
     QVBoxLayout, QTextEdit, QDialogButtonBox, QMessageBox,
 )
-from PySide6.QtGui import QAction, QShowEvent
+from PySide6.QtGui import QAction, QShowEvent, QCloseEvent
 from PySide6.QtCore import Qt
 
-from __init__ import PROJECT_NAME, VERSION, DB_PATH
+from __init__ import (
+    PROJECT_NAME,
+    VERSION,
+    DB_PATH,
+    set_active_db_path,
+    reset_active_db_path,
+)
 from utils import show_training_mode_notice
 from dialogs.login import LoginDialog
 from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
@@ -33,22 +40,84 @@ class MainWindow(QMainWindow):
         """Initialize the main window and include version/user in title."""
         super().__init__()
         self._username = username
+        self._trainee_temp_db_path: Path | None = None
         self._apply_window_title()
         self.resize(800, 600)
         self._build_menu_bar()
         self._build_central()
+        self._configure_session_database(self._username)
+        self._apply_window_title()
         self._apply_session_theme()
 
     def _apply_window_title(self):
         """Apply the current title text to the native window."""
-        self.setWindowTitle(
-            f"{PROJECT_NAME} - Versión: {VERSION} - Usuario: {self._username}"
-        )
+        title = f"{PROJECT_NAME} - Versión: {VERSION} - Usuario: {self._username}"
+        if self._trainee_temp_db_path is not None:
+            title += " - Modo Entrenamiento DB Temporal"
+        self.setWindowTitle(title)
 
     def showEvent(self, event: QShowEvent):
         """Reapply title on show to keep native title bar in sync."""
         self._apply_window_title()
         super().showEvent(event)
+
+    def closeEvent(self, event: QCloseEvent):
+        """Ensure temporary trainee session artifacts are cleaned up on close."""
+        self._clear_training_mode_notice()
+        self._cleanup_trainee_temp_database()
+        super().closeEvent(event)
+
+    def _configure_session_database(self, username: str):
+        """Select default DB or a temporary trainee DB for the current session."""
+        self._cleanup_trainee_temp_database()
+
+        if username.strip().lower() != "trainee":
+            reset_active_db_path()
+            return
+
+        source_db = Path(DB_PATH)
+        if not source_db.exists():
+            reset_active_db_path()
+            QMessageBox.warning(
+                self,
+                "Base de Datos",
+                f"No se encontró la base de datos principal en:\n{source_db}",
+            )
+            return
+
+        session_dir = Path(tempfile.gettempdir()) / "template_sv_sessions"
+        session_dir.mkdir(exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        temp_db = session_dir / f"{source_db.stem}_trainee_{timestamp}{source_db.suffix}"
+
+        try:
+            shutil.copy2(source_db, temp_db)
+            set_active_db_path(temp_db)
+            self._trainee_temp_db_path = temp_db
+            log.info("Base temporal de trainee creada: %s", temp_db)
+        except OSError as exc:
+            reset_active_db_path()
+            log.exception("No se pudo crear base temporal para trainee")
+            QMessageBox.critical(
+                self,
+                "Base de Datos",
+                f"No se pudo iniciar sesión temporal de trainee.\n\nDetalle: {exc}",
+            )
+
+    def _cleanup_trainee_temp_database(self):
+        """Remove trainee temporary DB and restore default DB path."""
+        temp_db = self._trainee_temp_db_path
+        self._trainee_temp_db_path = None
+        reset_active_db_path()
+
+        if temp_db is None:
+            return
+
+        try:
+            temp_db.unlink(missing_ok=True)
+            log.info("Base temporal de trainee eliminada: %s", temp_db)
+        except OSError:
+            log.exception("No se pudo eliminar base temporal de trainee: %s", temp_db)
 
     def _build_menu_bar(self):
         """Create the menu bar and connect actions to handlers."""
@@ -147,6 +216,7 @@ class MainWindow(QMainWindow):
     def _start_user_session(self, username: str):
         """Apply session state for a newly authenticated user."""
         self._username = username or "unknown"
+        self._configure_session_database(self._username)
         self._apply_window_title()
         self._apply_session_theme()
         self._clear_training_mode_notice()
@@ -205,6 +275,7 @@ class MainWindow(QMainWindow):
     def on_logout(self):
         """Handle the Navegación > Cerrar sesión menu action."""
         self._clear_training_mode_notice()
+        self._cleanup_trainee_temp_database()
         self.hide()
 
         # Use a top-level dialog during logout so it cannot be blocked by a hidden parent.

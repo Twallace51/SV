@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox, QTableWidget, QTableWidgetItem, QHeaderView,
 )
 
-from __init__ import DB_PATH
+from __init__ import get_active_db_path
 
 # endregion
 
@@ -63,7 +63,7 @@ class NuevoParienteDialog(QDialog):
             QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
             return
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(get_active_db_path())
             cur = conn.execute(
                 "INSERT INTO adultos (a_nombres, a_paterno, a_materno, cell1, cell2, email, a_carnet, NIT)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -103,7 +103,7 @@ class EditParienteDialog(QDialog):
         self.nit = QLineEdit()
 
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(get_active_db_path())
             row = conn.execute(
                 "SELECT a_nombres, a_paterno, a_materno, cell1, cell2, email, a_carnet, NIT"
                 " FROM adultos WHERE id = ?", (self._id,)
@@ -144,7 +144,7 @@ class EditParienteDialog(QDialog):
             QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
             return
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(get_active_db_path())
             conn.execute(
                 "UPDATE adultos SET a_nombres=?, a_paterno=?, a_materno=?,"
                 " cell1=?, cell2=?, email=?, a_carnet=?, NIT=? WHERE id=?",
@@ -208,7 +208,7 @@ class BuscarParienteDialog(QDialog):
     def _load(self, text: str):
         like = f"%{text}%"
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(get_active_db_path())
             rows = conn.execute(
                 "SELECT id, a_nombres, a_paterno, a_materno, cell1, cell2, email, a_carnet, NIT"
                 " FROM adultos"

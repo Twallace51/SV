@@ -6,3 +6,21 @@ PROJECT_NAME = "Generic Main Menu template"
 VERSION = "0.0"
 
 DB_PATH = Path(__file__).parent / "SV.db"
+_ACTIVE_DB_PATH = DB_PATH
+
+
+def get_active_db_path() -> Path:
+	"""Return the database path currently active for this app session."""
+	return _ACTIVE_DB_PATH
+
+
+def set_active_db_path(path: Path) -> None:
+	"""Set the database path to use for subsequent DB operations."""
+	global _ACTIVE_DB_PATH
+	_ACTIVE_DB_PATH = Path(path)
+
+
+def reset_active_db_path() -> None:
+	"""Reset database path selection back to the default production DB."""
+	global _ACTIVE_DB_PATH
+	_ACTIVE_DB_PATH = DB_PATH
