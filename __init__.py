@@ -1,8 +1,8 @@
-"""Package metadata for the template application."""
+"""Package metadata for this application."""
 
 from pathlib import Path
 
-PROJECT_NAME = "Generic Main Menu template"
+PROJECT_NAME = "Sendas de Vida Menu"
 VERSION = "0.0"
 
 DB_PATH = Path(__file__).parent / "SV.db"
