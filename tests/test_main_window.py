@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QLabel, QDialog
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from main import MainWindow
@@ -79,13 +79,50 @@ class TestMainWindowMenuBar:
         action_texts = [a.text() for a in window.navigation_menu.actions() if not a.isSeparator()]
         assert any("Exit" in t for t in action_texts)
 
-    def test_logout_action_closes_window(self, window):
+    def test_logout_action_reopens_login_dialog_and_updates_user(self, window, monkeypatch):
+        shown = []
+        hidden = []
         closed = []
-        original_close = window.close
-        window.close = lambda: closed.append(True) or original_close()
+
+        class FakeLoginDialog:
+            def __init__(self, parent=None):
+                self.parent = parent
+                self.logged_in_username = "admin"
+
+            def exec(self):
+                return QDialog.Accepted
+
+        monkeypatch.setattr("main.LoginDialog", FakeLoginDialog)
+        monkeypatch.setattr(window, "show", lambda: shown.append(True))
+        monkeypatch.setattr(window, "hide", lambda: hidden.append(True))
+        monkeypatch.setattr(window, "close", lambda: closed.append(True))
 
         window.logout_action.trigger()
 
+        assert hidden == [True]
+        assert shown == [True]
+        assert closed == []
+        assert "admin" in window.windowTitle()
+
+    def test_logout_action_closes_window_when_relogin_cancelled(self, window, monkeypatch):
+        hidden = []
+        closed = []
+
+        class FakeLoginDialog:
+            def __init__(self, parent=None):
+                self.parent = parent
+                self.logged_in_username = ""
+
+            def exec(self):
+                return QDialog.Rejected
+
+        monkeypatch.setattr("main.LoginDialog", FakeLoginDialog)
+        monkeypatch.setattr(window, "hide", lambda: hidden.append(True))
+        monkeypatch.setattr(window, "close", lambda: closed.append(True))
+
+        window.logout_action.trigger()
+
+        assert hidden == [True]
         assert closed == [True]
 
 

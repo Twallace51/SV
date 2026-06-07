@@ -329,6 +329,22 @@ class MainWindow(QMainWindow):
         else:
             central_widget.setStyleSheet("")
 
+    def _clear_training_mode_notice(self):
+        """Close and forget any visible training mode notice."""
+        notice = getattr(self, "training_mode_notice", None)
+        if notice is not None:
+            notice.close()
+            self.training_mode_notice = None
+
+    def _start_user_session(self, username: str):
+        """Apply session state for a newly authenticated user."""
+        self._username = username or "unknown"
+        self._apply_window_title()
+        self._apply_session_theme()
+        self._clear_training_mode_notice()
+        if self._username.strip().lower() == "trainee":
+            self.training_mode_notice = show_training_mode_notice(self)
+
     # --- Menu action handlers ---
 
     def on_new(self):
@@ -349,7 +365,15 @@ class MainWindow(QMainWindow):
     def on_logout(self):
         """Handle the Navigation > Logout menu action."""
         log.info("Menu: Navigation > Logout")
-        self.close()
+        self._clear_training_mode_notice()
+        self.hide()
+
+        login = LoginDialog(self)
+        if login.exec() == QDialog.Accepted:
+            self._start_user_session(login.logged_in_username)
+            self.show()
+        else:
+            self.close()
 
     def on_about(self):
         """Display application About information."""
