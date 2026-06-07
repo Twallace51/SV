@@ -20,7 +20,7 @@ from windows.main_window import MainWindow
 
 # endregion
 
-def main():
+def main() -> int:
     """Run application startup, login flow, and event loop."""
 
     # region - stratup checks
@@ -38,7 +38,7 @@ def main():
     instance_lock = acquire_single_instance_lock()
     if instance_lock is None:
         QMessageBox.warning(None, "Ya en ejecución", "La aplicación ya está en ejecución.")
-        sys.exit(1)
+        return 1
 
     # endregion
 
@@ -46,7 +46,8 @@ def main():
 
     login = LoginDialog()
     if login.exec() != QDialog.Accepted:
-        sys.exit(0)
+        app.quit()
+        return 0
 
     window = MainWindow(login.logged_in_username or "unknown")
     window.show()
@@ -55,8 +56,7 @@ def main():
 
     # endregion
 
-    exit_code = app.exec()
-    sys.exit(exit_code)
+    return app.exec()
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
