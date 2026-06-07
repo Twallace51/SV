@@ -1,6 +1,7 @@
 """Tests for LoginDialog."""
 
 # region - imports
+
 import sys
 from pathlib import Path
 
@@ -10,6 +11,8 @@ from PySide6.QtCore import Qt
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from main import LoginDialog
+from __init__ import __project_name__, __version__
+
 # endregion
 
 @pytest.fixture
@@ -20,10 +23,10 @@ def dialog(qapp):
 
 class TestLoginDialogInit:
     def test_window_title(self, dialog):
-        assert dialog.windowTitle() == "Generic Main Menu template - Version: 0.0"
+        assert dialog.windowTitle() == f"{__project_name__} - Version: {__version__}"
 
     def test_title_label(self, dialog):
-        assert dialog.title_label.text() == "Generic Main Menu template - Version: 0.0\nLogin Dialog"
+        assert dialog.title_label.text() == f"{__project_name__} - Version: {__version__}\nLogin Dialog"
 
     def test_fixed_size(self, dialog):
         assert dialog.width() == 500

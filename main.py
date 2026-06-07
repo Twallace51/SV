@@ -37,11 +37,9 @@ except ModuleNotFoundError as exc:
         sys.exit(1)
     raise
 
-from __init__ import __version__
+from __init__ import __project_name__, __version__
 
 # endregion
-
-PROJECT_NAME = f"Generic Main Menu template - Version: {__version__}"
 
 def setup_logging() -> logging.Logger:
     """Configure and return the application logger."""
@@ -109,7 +107,7 @@ def check_pytest_available() -> None:
 def show_training_mode_notice(parent: QMainWindow) -> QMessageBox:
     """Show the trainee session notice and auto-close it after 15 seconds."""
     message_box = QMessageBox(parent)
-    message_box.setWindowTitle(f"{PROJECT_NAME} - Training Mode")
+    message_box.setWindowTitle(f"{__project_name__} - Training Mode")
     message_box.setIcon(QMessageBox.Information)
     message_box.setText(
         "Feel free to explore the application\n"
@@ -118,7 +116,7 @@ def show_training_mode_notice(parent: QMainWindow) -> QMessageBox:
     message_box.setStandardButtons(QMessageBox.Close)
     message_box.setDefaultButton(QMessageBox.Close)
     message_box.show()
-    QTimer.singleShot(1000000, message_box.close)
+    QTimer.singleShot(8000, message_box.close)
     return message_box
 
 def clear_terminal() -> None:
@@ -141,13 +139,13 @@ class LoginDialog(QDialog):
     def __init__(self, parent=None):
         """Initialize login UI controls and interaction state."""
         super().__init__(parent)
-        self.setWindowTitle(PROJECT_NAME)
+        self.setWindowTitle(f"{__project_name__} - Version:  {__version__}")
         self.setFixedSize(500, 160)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout(self)
 
-        self.title_label = QLabel(f"{PROJECT_NAME}\nLogin Dialog", self)
+        self.title_label = QLabel(f"{__project_name__}\nLogin Dialog", self)
         self.title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.title_label)
 
@@ -261,7 +259,7 @@ class MainWindow(QMainWindow):
     def _apply_window_title(self):
         """Apply the current title text to the native window."""
         self.setWindowTitle(
-            f"{PROJECT_NAME} - Current login: {self._username}"
+            f"{__project_name__} - Current login: {self._username}"
         )
 
     def showEvent(self, event: QShowEvent):
