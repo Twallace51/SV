@@ -64,7 +64,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent):
         """Return to login on close; only exit when relogin is cancelled."""
-        if not self._allow_close:
+        if not self._allow_close and self.isVisible():
             event.ignore()
             if self._relogin_or_close_app():
                 return
@@ -145,16 +145,6 @@ class MainWindow(QMainWindow):
 
         # Archivo menu
         self.file_menu = menu_bar.addMenu("&Archivo")
-        new_action = QAction("&Nuevo", self)
-        new_action.setShortcut("Ctrl+N")
-        new_action.triggered.connect(self.on_new)
-        self.file_menu.addAction(new_action)
-
-        open_action = QAction("&Abrir", self)
-        open_action.setShortcut("Ctrl+O")
-        open_action.triggered.connect(self.on_open)
-        self.file_menu.addAction(open_action)
-
         backup_action = QAction("Crear &Backup de Base de Datos", self)
         backup_action.triggered.connect(self.on_backup_database)
         self.file_menu.addAction(backup_action)

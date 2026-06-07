@@ -56,13 +56,13 @@ class TestMainWindowMenuBar:
         titles = [a.text() for a in window.menuBar().actions()]
         assert any("yuda" in t for t in titles)
 
-    def test_file_menu_has_new_action(self, window):
+    def test_file_menu_does_not_have_new_action(self, window):
         action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
-        assert any("Nuevo" in t for t in action_texts)
+        assert all("Nuevo" not in t for t in action_texts)
 
-    def test_file_menu_has_open_action(self, window):
+    def test_file_menu_does_not_have_open_action(self, window):
         action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
-        assert any("Abrir" in t for t in action_texts)
+        assert all("Abrir" not in t for t in action_texts)
 
     def test_file_menu_has_backup_action(self, window):
         action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
