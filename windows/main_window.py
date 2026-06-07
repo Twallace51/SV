@@ -3,7 +3,9 @@
 # region - imports
 
 import logging
+import shutil
 from pathlib import Path
+from datetime import datetime
 
 from PySide6.QtWidgets import (
     QMainWindow, QLabel, QDialog,
@@ -12,7 +14,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QAction, QShowEvent
 from PySide6.QtCore import Qt
 
-from __init__ import PROJECT_NAME, VERSION
+from __init__ import PROJECT_NAME, VERSION, DB_PATH
 from utils import show_training_mode_notice
 from dialogs.login import LoginDialog
 from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
@@ -74,6 +76,10 @@ class MainWindow(QMainWindow):
         open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self.on_open)
         self.file_menu.addAction(open_action)
+
+        backup_action = QAction("Crear &Backup de Base de Datos", self)
+        backup_action.triggered.connect(self.on_backup_database)
+        self.file_menu.addAction(backup_action)
 
         # Editar menu
         self.edit_menu = menu_bar.addMenu("&Editar")
@@ -157,6 +163,40 @@ class MainWindow(QMainWindow):
     def on_open(self):
         """Handle the Archivo > Abrir menu action."""
         QMessageBox.information(self, "Abrir", "Acción Abrir activada.")
+
+    def on_backup_database(self):
+        """Handle the Archivo > Crear Backup de Base de Datos action."""
+        db_path = Path(DB_PATH)
+        if not db_path.exists():
+            QMessageBox.warning(
+                self,
+                "Backup",
+                f"No se encontró la base de datos en:\n{db_path}",
+            )
+            return
+
+        backup_dir = db_path.parent / "backups"
+        backup_dir.mkdir(exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_file = backup_dir / f"{db_path.stem}_backup_{timestamp}{db_path.suffix}"
+
+        try:
+            shutil.copy2(db_path, backup_file)
+        except OSError as exc:
+            log.exception("Error al crear backup de base de datos")
+            QMessageBox.critical(
+                self,
+                "Backup",
+                f"No se pudo crear el backup.\n\nDetalle: {exc}",
+            )
+            return
+
+        QMessageBox.information(
+            self,
+            "Backup",
+            f"Backup creado correctamente:\n{backup_file}",
+        )
 
     def on_preferences(self):
         """Handle the Editar > Preferencias menu action."""

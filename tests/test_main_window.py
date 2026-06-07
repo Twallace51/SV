@@ -64,6 +64,10 @@ class TestMainWindowMenuBar:
         action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
         assert any("Abrir" in t for t in action_texts)
 
+    def test_file_menu_has_backup_action(self, window):
+        action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
+        assert any("Backup" in t for t in action_texts)
+
     def test_file_menu_does_not_have_exit_action(self, window):
         action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
         assert all("Salir" not in t for t in action_texts)
