@@ -166,7 +166,12 @@ class EditAlumnoDialog(QDialog):
                 self.cumpleanos.setDate(d)
             self.rude.setText(row[4] or "")
             self.carnet.setText(row[5] or "")
-            idx = self.grado.findData(row[6])
+            grado_id = row[6]
+            try:
+                grado_id = int(str(grado_id).strip()) if grado_id is not None else None
+            except (TypeError, ValueError):
+                grado_id = None
+            idx = self.grado.findData(grado_id)
             if idx >= 0:
                 self.grado.setCurrentIndex(idx)
             self.pension.setValue(row[7] or 0)
@@ -266,7 +271,13 @@ class BuscarAlumnoDialog(QDialog):
             query = (
                 "SELECT a.id, a.nombres, a.paterno, a.materno, a.rude, a.Carnet,"
                 " g.grado, a.pension, a.id_grado"
-                " FROM alumnos a LEFT JOIN grados g ON a.id_grado = g.id"
+                " FROM alumnos a"
+                " LEFT JOIN grados g ON g.id = CASE"
+                "   WHEN a.id_grado IS NULL THEN NULL"
+                "   WHEN TRIM(CAST(a.id_grado AS TEXT)) = '' THEN NULL"
+                "   WHEN LOWER(TRIM(CAST(a.id_grado AS TEXT))) IN ('null', 'none') THEN NULL"
+                "   ELSE CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER)"
+                " END"
                 " WHERE (a.nombres LIKE ? OR a.paterno LIKE ? OR a.materno LIKE ?)"
             )
             params = [like, like, like]
@@ -287,6 +298,10 @@ class BuscarAlumnoDialog(QDialog):
         self.table.setRowCount(len(rows))
         for r, row in enumerate(rows):
             grado_sort_key = row[8] if len(row) > 8 else None
+            try:
+                grado_sort_key = int(str(grado_sort_key).strip()) if grado_sort_key is not None else None
+            except (TypeError, ValueError):
+                grado_sort_key = None
             for c, val in enumerate(row[:8]):
                 text = "" if val is None else str(val)
                 if c in (0, 6):
