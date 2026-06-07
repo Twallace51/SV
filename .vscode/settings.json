@@ -1,5 +1,6 @@
 {
     "git.confirmSync": false,
     "git.enableSmartCommit": true,
-    "git.postCommitCommand": "none"
+    "git.postCommitCommand": "none",
+    "python.defaultInterpreterPath": "C:\\Users\\tw\\AppData\\Local\\Microsoft\\WindowsApps\\python3.14.exe"
 }

@@ -7,6 +7,7 @@ import os
 import json
 import logging
 import logging.handlers
+import sqlite3
 from pathlib import Path
 from importlib import metadata
 from urllib.error import URLError
@@ -17,7 +18,9 @@ try:
     from PySide6.QtWidgets import (
         QApplication, QMainWindow, QDialog, QLabel, QLineEdit,
         QPushButton, QVBoxLayout, QFormLayout, QMessageBox, QMenuBar, QMenu,
-        QHBoxLayout, QTextEdit, QDialogButtonBox
+        QHBoxLayout, QTextEdit, QDialogButtonBox,
+        QTableWidget, QTableWidgetItem, QDateEdit, QComboBox,
+        QDoubleSpinBox, QHeaderView
     )
     from PySide6.QtGui import QAction
     from PySide6.QtCore import Qt, QLockFile, QStandardPaths, QTimer
@@ -38,6 +41,8 @@ except ModuleNotFoundError as exc:
     raise
 
 from __init__ import PROJECT_NAME, VERSION
+
+DB_PATH = Path(__file__).parent / "SV.db"
 
 # endregion
 
@@ -134,6 +139,385 @@ def acquire_single_instance_lock() -> QLockFile | None:
     if not lock.tryLock(0):
         return None
     return lock
+# ---------------------------------------------------------------------------
+# Alumnos dialogs
+# ---------------------------------------------------------------------------
+
+class NuevoAlumnoDialog(QDialog):
+    """Form dialog to insert a new alumno into SV.db."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Alumnos - Nuevo")
+        self.setMinimumWidth(420)
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+
+        self.nombres = QLineEdit()
+        self.paterno = QLineEdit()
+        self.materno = QLineEdit()
+        self.cumpleanos = QDateEdit()
+        self.cumpleanos.setCalendarPopup(True)
+        self.cumpleanos.setDisplayFormat("yyyy-MM-dd")
+        self.rude = QLineEdit()
+        self.carnet = QLineEdit()
+        self.pension = QDoubleSpinBox()
+        self.pension.setRange(0, 99999)
+        self.pension.setDecimals(2)
+        self.pension.setPrefix("Bs ")
+
+        self.grado = QComboBox()
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            for gid, gname in conn.execute("SELECT id, grado FROM grados ORDER BY grado").fetchall():
+                self.grado.addItem(gname, gid)
+            conn.close()
+        except Exception:
+            pass
+
+        form.addRow("Nombres *:", self.nombres)
+        form.addRow("Paterno *:", self.paterno)
+        form.addRow("Materno:", self.materno)
+        form.addRow("Cumpleaños:", self.cumpleanos)
+        form.addRow("RUDE:", self.rude)
+        form.addRow("Carnet:", self.carnet)
+        form.addRow("Grado:", self.grado)
+        form.addRow("Pensión:", self.pension)
+        layout.addLayout(form)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=self)
+        buttons.accepted.connect(self._save)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _save(self):
+        nombres = self.nombres.text().strip()
+        paterno = self.paterno.text().strip()
+        if not nombres or not paterno:
+            QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
+            return
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.execute(
+                "INSERT INTO alumnos (nombres, paterno, materno, cumpleanos, rude, Carnet, id_grado, pension)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (nombres, paterno, self.materno.text().strip(),
+                 self.cumpleanos.date().toString("yyyy-MM-dd"),
+                 self.rude.text().strip(), self.carnet.text().strip(),
+                 self.grado.currentData(), self.pension.value()),
+            )
+            conn.commit()
+            conn.close()
+            QMessageBox.information(self, "Guardado", f"Alumno '{nombres} {paterno}' guardado.")
+            self.accept()
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
+
+
+class BuscarAlumnoDialog(QDialog):
+    """Search dialog for alumnos."""
+
+    _HEADERS = ["ID", "Nombres", "Paterno", "Materno", "RUDE", "Carnet", "Grado", "Pensión"]
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Alumnos - Buscar")
+        self.resize(760, 420)
+        layout = QVBoxLayout(self)
+
+        search_row = QHBoxLayout()
+        search_row.addWidget(QLabel("Buscar:"))
+        self.search_edit = QLineEdit()
+        self.search_edit.setPlaceholderText("Nombres o apellidos…")
+        self.search_edit.textChanged.connect(self._load)
+        search_row.addWidget(self.search_edit)
+        layout.addLayout(search_row)
+
+        self.table = QTableWidget(0, len(self._HEADERS))
+        self.table.setHorizontalHeaderLabels(self._HEADERS)
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        layout.addWidget(self.table)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+        self._load("")
+
+    def _load(self, text: str):
+        like = f"%{text}%"
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            rows = conn.execute(
+                "SELECT a.id, a.nombres, a.paterno, a.materno, a.rude, a.Carnet,"
+                " g.grado, a.pension"
+                " FROM alumnos a LEFT JOIN grados g ON a.id_grado = g.id"
+                " WHERE a.nombres LIKE ? OR a.paterno LIKE ? OR a.materno LIKE ?"
+                " ORDER BY a.paterno, a.nombres",
+                (like, like, like),
+            ).fetchall()
+            conn.close()
+        except Exception:
+            rows = []
+        self.table.setRowCount(len(rows))
+        for r, row in enumerate(rows):
+            for c, val in enumerate(row):
+                self.table.setItem(r, c, QTableWidgetItem("" if val is None else str(val)))
+
+
+# ---------------------------------------------------------------------------
+# Parientes dialogs
+# ---------------------------------------------------------------------------
+
+class NuevoParienteDialog(QDialog):
+    """Form dialog to insert a new pariente (adulto) into SV.db."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Parientes - Nuevo")
+        self.setMinimumWidth(420)
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+
+        self.nombres = QLineEdit()
+        self.paterno = QLineEdit()
+        self.materno = QLineEdit()
+        self.cell1 = QLineEdit()
+        self.cell2 = QLineEdit()
+        self.email = QLineEdit()
+        self.carnet = QLineEdit()
+        self.nit = QLineEdit()
+
+        form.addRow("Nombres *:", self.nombres)
+        form.addRow("Paterno *:", self.paterno)
+        form.addRow("Materno:", self.materno)
+        form.addRow("Celular 1:", self.cell1)
+        form.addRow("Celular 2:", self.cell2)
+        form.addRow("Email:", self.email)
+        form.addRow("Carnet:", self.carnet)
+        form.addRow("NIT:", self.nit)
+        layout.addLayout(form)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=self)
+        buttons.accepted.connect(self._save)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _save(self):
+        nombres = self.nombres.text().strip()
+        paterno = self.paterno.text().strip()
+        if not nombres or not paterno:
+            QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
+            return
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.execute(
+                "INSERT INTO adultos (a_nombres, a_paterno, a_materno, cell1, cell2, email, a_carnet, NIT)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (nombres, paterno, self.materno.text().strip(),
+                 self.cell1.text().strip(), self.cell2.text().strip(),
+                 self.email.text().strip(), self.carnet.text().strip(),
+                 self.nit.text().strip()),
+            )
+            conn.commit()
+            conn.close()
+            QMessageBox.information(self, "Guardado", f"Pariente '{nombres} {paterno}' guardado.")
+            self.accept()
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
+
+
+class BuscarParienteDialog(QDialog):
+    """Search dialog for parientes (adultos)."""
+
+    _HEADERS = ["ID", "Nombres", "Paterno", "Materno", "Celular 1", "Celular 2", "Email", "Carnet", "NIT"]
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Parientes - Buscar")
+        self.resize(820, 380)
+        layout = QVBoxLayout(self)
+
+        search_row = QHBoxLayout()
+        search_row.addWidget(QLabel("Buscar:"))
+        self.search_edit = QLineEdit()
+        self.search_edit.setPlaceholderText("Nombres o apellidos…")
+        self.search_edit.textChanged.connect(self._load)
+        search_row.addWidget(self.search_edit)
+        layout.addLayout(search_row)
+
+        self.table = QTableWidget(0, len(self._HEADERS))
+        self.table.setHorizontalHeaderLabels(self._HEADERS)
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        layout.addWidget(self.table)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+        self._load("")
+
+    def _load(self, text: str):
+        like = f"%{text}%"
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            rows = conn.execute(
+                "SELECT id, a_nombres, a_paterno, a_materno, cell1, cell2, email, a_carnet, NIT"
+                " FROM adultos"
+                " WHERE a_nombres LIKE ? OR a_paterno LIKE ? OR a_materno LIKE ?"
+                " ORDER BY a_paterno, a_nombres",
+                (like, like, like),
+            ).fetchall()
+            conn.close()
+        except Exception:
+            rows = []
+        self.table.setRowCount(len(rows))
+        for r, row in enumerate(rows):
+            for c, val in enumerate(row):
+                self.table.setItem(r, c, QTableWidgetItem("" if val is None else str(val)))
+
+
+# ---------------------------------------------------------------------------
+# Cuentas dialogs
+# ---------------------------------------------------------------------------
+
+class NuevoCuentaDialog(QDialog):
+    """Form dialog to insert a new cuenta into SV.db."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Cuentas - Nuevo")
+        self.setMinimumWidth(440)
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+
+        self.alumno = QComboBox()
+        self._alumno_ids: list[int] = []
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            for aid, nombres, paterno in conn.execute(
+                "SELECT id, nombres, paterno FROM alumnos ORDER BY paterno, nombres"
+            ).fetchall():
+                self.alumno.addItem(f"{paterno}, {nombres}", aid)
+                self._alumno_ids.append(aid)
+            conn.close()
+        except Exception:
+            pass
+
+        self.debito = QDoubleSpinBox()
+        self.debito.setRange(0, 999999)
+        self.debito.setDecimals(2)
+        self.debito.setPrefix("Bs ")
+
+        self.credito = QDoubleSpinBox()
+        self.credito.setRange(0, 999999)
+        self.credito.setDecimals(2)
+        self.credito.setPrefix("Bs ")
+
+        self.aclaracion = QLineEdit()
+        self.fecha = QDateEdit()
+        self.fecha.setCalendarPopup(True)
+        self.fecha.setDisplayFormat("yyyy-MM-dd")
+        from PySide6.QtCore import QDate
+        self.fecha.setDate(QDate.currentDate())
+        self.factura = QLineEdit()
+
+        form.addRow("Alumno *:", self.alumno)
+        form.addRow("Débito:", self.debito)
+        form.addRow("Crédito:", self.credito)
+        form.addRow("Aclaración:", self.aclaracion)
+        form.addRow("Fecha:", self.fecha)
+        form.addRow("Factura:", self.factura)
+        layout.addLayout(form)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=self)
+        buttons.accepted.connect(self._save)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _save(self):
+        if self.alumno.count() == 0:
+            QMessageBox.warning(self, "Validación", "No hay alumnos registrados.")
+            return
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.execute(
+                "INSERT INTO ctas (id_alumno, debito, credito, aclaracion, fecha, factura)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
+                (self.alumno.currentData(), self.debito.value(), self.credito.value(),
+                 self.aclaracion.text().strip(),
+                 self.fecha.date().toString("yyyy-MM-dd"),
+                 self.factura.text().strip()),
+            )
+            conn.commit()
+            conn.close()
+            QMessageBox.information(self, "Guardado", "Cuenta guardada.")
+            self.accept()
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
+
+
+class BuscarCuentaDialog(QDialog):
+    """Search dialog for cuentas."""
+
+    _HEADERS = ["ID", "Alumno", "Débito", "Crédito", "Aclaración", "Fecha", "Factura"]
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Cuentas - Buscar")
+        self.resize(800, 400)
+        layout = QVBoxLayout(self)
+
+        search_row = QHBoxLayout()
+        search_row.addWidget(QLabel("Alumno:"))
+        self.search_edit = QLineEdit()
+        self.search_edit.setPlaceholderText("Nombre o apellido del alumno…")
+        self.search_edit.textChanged.connect(self._load)
+        search_row.addWidget(self.search_edit)
+        layout.addLayout(search_row)
+
+        self.table = QTableWidget(0, len(self._HEADERS))
+        self.table.setHorizontalHeaderLabels(self._HEADERS)
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        layout.addWidget(self.table)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+        self._load("")
+
+    def _load(self, text: str):
+        like = f"%{text}%"
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            rows = conn.execute(
+                "SELECT c.id, a.paterno || ', ' || a.nombres,"
+                " c.debito, c.credito, c.aclaracion, c.fecha, c.factura"
+                " FROM ctas c JOIN alumnos a ON c.id_alumno = a.id"
+                " WHERE a.nombres LIKE ? OR a.paterno LIKE ?"
+                " ORDER BY c.fecha DESC",
+                (like, like),
+            ).fetchall()
+            conn.close()
+        except Exception:
+            rows = []
+        self.table.setRowCount(len(rows))
+        for r, row in enumerate(rows):
+            for c, val in enumerate(row):
+                self.table.setItem(r, c, QTableWidgetItem("" if val is None else str(val)))
+
+
+# ---------------------------------------------------------------------------
+# Login dialog
+# ---------------------------------------------------------------------------
+
 class LoginDialog(QDialog):
     """Login dialog that validates credentials and tracks current user."""
 
@@ -304,6 +688,33 @@ class MainWindow(QMainWindow):
         preferences_action.triggered.connect(self.on_preferences)
         self.edit_menu.addAction(preferences_action)
 
+        # Alumnos menu
+        self.alumnos_menu = menu_bar.addMenu("&Alumnos")
+        alumnos_nuevo_action = QAction("&Nuevo", self)
+        alumnos_nuevo_action.triggered.connect(self.on_alumnos_nuevo)
+        self.alumnos_menu.addAction(alumnos_nuevo_action)
+        alumnos_buscar_action = QAction("&Buscar", self)
+        alumnos_buscar_action.triggered.connect(self.on_alumnos_buscar)
+        self.alumnos_menu.addAction(alumnos_buscar_action)
+
+        # Parientes menu
+        self.parientes_menu = menu_bar.addMenu("&Parientes")
+        parientes_nuevo_action = QAction("&Nuevo", self)
+        parientes_nuevo_action.triggered.connect(self.on_parientes_nuevo)
+        self.parientes_menu.addAction(parientes_nuevo_action)
+        parientes_buscar_action = QAction("&Buscar", self)
+        parientes_buscar_action.triggered.connect(self.on_parientes_buscar)
+        self.parientes_menu.addAction(parientes_buscar_action)
+
+        # Cuentas menu
+        self.cuentas_menu = menu_bar.addMenu("&Cuentas")
+        cuentas_nuevo_action = QAction("&Nuevo", self)
+        cuentas_nuevo_action.triggered.connect(self.on_cuentas_nuevo)
+        self.cuentas_menu.addAction(cuentas_nuevo_action)
+        cuentas_buscar_action = QAction("&Buscar", self)
+        cuentas_buscar_action.triggered.connect(self.on_cuentas_buscar)
+        self.cuentas_menu.addAction(cuentas_buscar_action)
+
         # Help menu
         self.help_menu = menu_bar.addMenu("&Help")
         about_action = QAction("&About", self)
@@ -373,6 +784,36 @@ class MainWindow(QMainWindow):
             self.show()
         else:
             self.close()
+
+    def on_alumnos_nuevo(self):
+        """Handle the Alumnos > Nuevo menu action."""
+        log.info("Menu: Alumnos > Nuevo")
+        NuevoAlumnoDialog(self).exec()
+
+    def on_alumnos_buscar(self):
+        """Handle the Alumnos > Buscar menu action."""
+        log.info("Menu: Alumnos > Buscar")
+        BuscarAlumnoDialog(self).exec()
+
+    def on_parientes_nuevo(self):
+        """Handle the Parientes > Nuevo menu action."""
+        log.info("Menu: Parientes > Nuevo")
+        NuevoParienteDialog(self).exec()
+
+    def on_parientes_buscar(self):
+        """Handle the Parientes > Buscar menu action."""
+        log.info("Menu: Parientes > Buscar")
+        BuscarParienteDialog(self).exec()
+
+    def on_cuentas_nuevo(self):
+        """Handle the Cuentas > Nuevo menu action."""
+        log.info("Menu: Cuentas > Nuevo")
+        NuevoCuentaDialog(self).exec()
+
+    def on_cuentas_buscar(self):
+        """Handle the Cuentas > Buscar menu action."""
+        log.info("Menu: Cuentas > Buscar")
+        BuscarCuentaDialog(self).exec()
 
     def on_about(self):
         """Display application About information."""

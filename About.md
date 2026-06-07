@@ -23,14 +23,16 @@ pyTest
 
 ## Usage:
 
+Use this folder as a template for projects - example database management
+
 ### General
 
-- remove any preexisting .git and .venv folders,  prior to optional reinstalling
+- remove any preexisting .venv folders,  if used, cannot be copied from  one place to another and must be reinstalled
 
 - How to make changes to menu_window menubar
   Describe the menu structure directly — plain English works well, example
 
-    Add a 'Tools' menu between 'Edit' and 'Help', with actions 'Run (Ctrl+R)' and 'Settings'
+    In mainmenu menubar, add a 'Tools' menu between 'Edit' and 'Help', with actions 'Run (Ctrl+R)' and 'Settings'
 
 ### Database
 
