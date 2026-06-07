@@ -238,6 +238,7 @@ class BuscarAlumnoDialog(QDialog):
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.setSortingEnabled(True)
         layout.addWidget(self.table)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
@@ -261,10 +262,12 @@ class BuscarAlumnoDialog(QDialog):
             conn.close()
         except Exception:
             rows = []
+        self.table.setSortingEnabled(False)
         self.table.setRowCount(len(rows))
         for r, row in enumerate(rows):
             for c, val in enumerate(row):
                 self.table.setItem(r, c, QTableWidgetItem("" if val is None else str(val)))
+        self.table.setSortingEnabled(True)
 
 
 # ---------------------------------------------------------------------------
@@ -353,6 +356,7 @@ class BuscarParienteDialog(QDialog):
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.setSortingEnabled(True)
         layout.addWidget(self.table)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
@@ -375,10 +379,12 @@ class BuscarParienteDialog(QDialog):
             conn.close()
         except Exception:
             rows = []
+        self.table.setSortingEnabled(False)
         self.table.setRowCount(len(rows))
         for r, row in enumerate(rows):
             for c, val in enumerate(row):
                 self.table.setItem(r, c, QTableWidgetItem("" if val is None else str(val)))
+        self.table.setSortingEnabled(True)
 
 
 # ---------------------------------------------------------------------------
@@ -485,6 +491,7 @@ class BuscarCuentaDialog(QDialog):
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.setSortingEnabled(True)
         layout.addWidget(self.table)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
@@ -508,10 +515,12 @@ class BuscarCuentaDialog(QDialog):
             conn.close()
         except Exception:
             rows = []
+        self.table.setSortingEnabled(False)
         self.table.setRowCount(len(rows))
         for r, row in enumerate(rows):
             for c, val in enumerate(row):
                 self.table.setItem(r, c, QTableWidgetItem("" if val is None else str(val)))
+        self.table.setSortingEnabled(True)
 
 
 # ---------------------------------------------------------------------------
