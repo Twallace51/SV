@@ -289,7 +289,7 @@ class BuscarAlumnoDialog(QDialog):
             grado_sort_key = row[8] if len(row) > 8 else None
             for c, val in enumerate(row[:8]):
                 text = "" if val is None else str(val)
-                if c == 0:
+                if c in (0, 6):
                     item = NumericTableWidgetItem(text)
                 else:
                     item = QTableWidgetItem(text)
