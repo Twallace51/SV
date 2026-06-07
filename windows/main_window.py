@@ -34,6 +34,9 @@ except (ModuleNotFoundError, ImportError):
     project_root = Path(__file__).resolve().parent.parent
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
+    # A first failed import can cache windows/__init__.py as "__init__".
+    # Remove it so the fallback import resolves against project_root.
+    sys.modules.pop("__init__", None)
     from __init__ import (
         PROJECT_NAME,
         VERSION,
