@@ -214,6 +214,97 @@ class NuevoAlumnoDialog(QDialog):
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
 
 
+class EditAlumnoDialog(QDialog):
+    """Edit form pre-populated with an existing alumno record."""
+
+    def __init__(self, record_id: int, parent=None):
+        super().__init__(parent)
+        self._id = record_id
+        self.setWindowTitle("Alumnos - Editar")
+        self.setMinimumWidth(420)
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+
+        self.nombres = QLineEdit()
+        self.paterno = QLineEdit()
+        self.materno = QLineEdit()
+        self.cumpleanos = QDateEdit()
+        self.cumpleanos.setCalendarPopup(True)
+        self.cumpleanos.setDisplayFormat("yyyy-MM-dd")
+        self.rude = QLineEdit()
+        self.carnet = QLineEdit()
+        self.pension = QDoubleSpinBox()
+        self.pension.setRange(0, 99999)
+        self.pension.setDecimals(2)
+        self.pension.setPrefix("Bs ")
+
+        self.grado = QComboBox()
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            for gid, gname in conn.execute("SELECT id, grado FROM grados ORDER BY grado").fetchall():
+                self.grado.addItem(gname, gid)
+            row = conn.execute(
+                "SELECT nombres, paterno, materno, cumpleanos, rude, Carnet, id_grado, pension"
+                " FROM alumnos WHERE id = ?", (self._id,)
+            ).fetchone()
+            conn.close()
+        except Exception:
+            row = None
+
+        if row:
+            self.nombres.setText(row[0] or "")
+            self.paterno.setText(row[1] or "")
+            self.materno.setText(row[2] or "")
+            from PySide6.QtCore import QDate
+            d = QDate.fromString(row[3] or "", "yyyy-MM-dd")
+            if d.isValid():
+                self.cumpleanos.setDate(d)
+            self.rude.setText(row[4] or "")
+            self.carnet.setText(row[5] or "")
+            idx = self.grado.findData(row[6])
+            if idx >= 0:
+                self.grado.setCurrentIndex(idx)
+            self.pension.setValue(row[7] or 0)
+
+        form.addRow("Nombres *:", self.nombres)
+        form.addRow("Paterno *:", self.paterno)
+        form.addRow("Materno:", self.materno)
+        form.addRow("Cumpleaños:", self.cumpleanos)
+        form.addRow("RUDE:", self.rude)
+        form.addRow("Carnet:", self.carnet)
+        form.addRow("Grado:", self.grado)
+        form.addRow("Pensión:", self.pension)
+        layout.addLayout(form)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=self)
+        buttons.accepted.connect(self._save)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _save(self):
+        nombres = self.nombres.text().strip()
+        paterno = self.paterno.text().strip()
+        if not nombres or not paterno:
+            QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
+            return
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.execute(
+                "UPDATE alumnos SET nombres=?, paterno=?, materno=?, cumpleanos=?,"
+                " rude=?, Carnet=?, id_grado=?, pension=? WHERE id=?",
+                (nombres, paterno, self.materno.text().strip(),
+                 self.cumpleanos.date().toString("yyyy-MM-dd"),
+                 self.rude.text().strip(), self.carnet.text().strip(),
+                 self.grado.currentData(), self.pension.value(), self._id),
+            )
+            conn.commit()
+            conn.close()
+            QMessageBox.information(self, "Guardado", f"Alumno '{nombres} {paterno}' actualizado.")
+            self.accept()
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
+
+
 class BuscarAlumnoDialog(QDialog):
     """Search dialog for alumnos."""
 
@@ -239,6 +330,7 @@ class BuscarAlumnoDialog(QDialog):
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setSortingEnabled(True)
+        self.table.cellDoubleClicked.connect(self._on_double_click)
         layout.addWidget(self.table)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
@@ -246,6 +338,14 @@ class BuscarAlumnoDialog(QDialog):
         layout.addWidget(buttons)
 
         self._load("")
+
+    def _on_double_click(self, row: int, _col: int):
+        id_item = self.table.item(row, 0)
+        if id_item is None:
+            return
+        dlg = EditAlumnoDialog(int(id_item.text()), self)
+        if dlg.exec() == QDialog.Accepted:
+            self._load(self.search_edit.text())
 
     def _load(self, text: str):
         like = f"%{text}%"
@@ -332,6 +432,85 @@ class NuevoParienteDialog(QDialog):
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
 
 
+class EditParienteDialog(QDialog):
+    """Edit form pre-populated with an existing pariente record."""
+
+    def __init__(self, record_id: int, parent=None):
+        super().__init__(parent)
+        self._id = record_id
+        self.setWindowTitle("Parientes - Editar")
+        self.setMinimumWidth(420)
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+
+        self.nombres = QLineEdit()
+        self.paterno = QLineEdit()
+        self.materno = QLineEdit()
+        self.cell1 = QLineEdit()
+        self.cell2 = QLineEdit()
+        self.email = QLineEdit()
+        self.carnet = QLineEdit()
+        self.nit = QLineEdit()
+
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            row = conn.execute(
+                "SELECT a_nombres, a_paterno, a_materno, cell1, cell2, email, a_carnet, NIT"
+                " FROM adultos WHERE id = ?", (self._id,)
+            ).fetchone()
+            conn.close()
+        except Exception:
+            row = None
+
+        if row:
+            self.nombres.setText(row[0] or "")
+            self.paterno.setText(row[1] or "")
+            self.materno.setText(row[2] or "")
+            self.cell1.setText(row[3] or "")
+            self.cell2.setText(row[4] or "")
+            self.email.setText(row[5] or "")
+            self.carnet.setText(row[6] or "")
+            self.nit.setText(row[7] or "")
+
+        form.addRow("Nombres *:", self.nombres)
+        form.addRow("Paterno *:", self.paterno)
+        form.addRow("Materno:", self.materno)
+        form.addRow("Celular 1:", self.cell1)
+        form.addRow("Celular 2:", self.cell2)
+        form.addRow("Email:", self.email)
+        form.addRow("Carnet:", self.carnet)
+        form.addRow("NIT:", self.nit)
+        layout.addLayout(form)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=self)
+        buttons.accepted.connect(self._save)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _save(self):
+        nombres = self.nombres.text().strip()
+        paterno = self.paterno.text().strip()
+        if not nombres or not paterno:
+            QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
+            return
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.execute(
+                "UPDATE adultos SET a_nombres=?, a_paterno=?, a_materno=?,"
+                " cell1=?, cell2=?, email=?, a_carnet=?, NIT=? WHERE id=?",
+                (nombres, paterno, self.materno.text().strip(),
+                 self.cell1.text().strip(), self.cell2.text().strip(),
+                 self.email.text().strip(), self.carnet.text().strip(),
+                 self.nit.text().strip(), self._id),
+            )
+            conn.commit()
+            conn.close()
+            QMessageBox.information(self, "Guardado", f"Pariente '{nombres} {paterno}' actualizado.")
+            self.accept()
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
+
+
 class BuscarParienteDialog(QDialog):
     """Search dialog for parientes (adultos)."""
 
@@ -357,6 +536,7 @@ class BuscarParienteDialog(QDialog):
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setSortingEnabled(True)
+        self.table.cellDoubleClicked.connect(self._on_double_click)
         layout.addWidget(self.table)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
@@ -364,6 +544,14 @@ class BuscarParienteDialog(QDialog):
         layout.addWidget(buttons)
 
         self._load("")
+
+    def _on_double_click(self, row: int, _col: int):
+        id_item = self.table.item(row, 0)
+        if id_item is None:
+            return
+        dlg = EditParienteDialog(int(id_item.text()), self)
+        if dlg.exec() == QDialog.Accepted:
+            self._load(self.search_edit.text())
 
     def _load(self, text: str):
         like = f"%{text}%"
@@ -467,6 +655,97 @@ class NuevoCuentaDialog(QDialog):
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
 
 
+class EditCuentaDialog(QDialog):
+    """Edit form pre-populated with an existing cuenta record."""
+
+    def __init__(self, record_id: int, parent=None):
+        super().__init__(parent)
+        self._id = record_id
+        self.setWindowTitle("Cuentas - Editar")
+        self.setMinimumWidth(440)
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+
+        self.alumno = QComboBox()
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            for aid, nombres, paterno in conn.execute(
+                "SELECT id, nombres, paterno FROM alumnos ORDER BY paterno, nombres"
+            ).fetchall():
+                self.alumno.addItem(f"{paterno}, {nombres}", aid)
+            row = conn.execute(
+                "SELECT id_alumno, debito, credito, aclaracion, fecha, factura"
+                " FROM ctas WHERE id = ?", (self._id,)
+            ).fetchone()
+            conn.close()
+        except Exception:
+            row = None
+
+        self.debito = QDoubleSpinBox()
+        self.debito.setRange(0, 999999)
+        self.debito.setDecimals(2)
+        self.debito.setPrefix("Bs ")
+
+        self.credito = QDoubleSpinBox()
+        self.credito.setRange(0, 999999)
+        self.credito.setDecimals(2)
+        self.credito.setPrefix("Bs ")
+
+        self.aclaracion = QLineEdit()
+        self.fecha = QDateEdit()
+        self.fecha.setCalendarPopup(True)
+        self.fecha.setDisplayFormat("yyyy-MM-dd")
+        from PySide6.QtCore import QDate
+        self.fecha.setDate(QDate.currentDate())
+        self.factura = QLineEdit()
+
+        if row:
+            idx = self.alumno.findData(row[0])
+            if idx >= 0:
+                self.alumno.setCurrentIndex(idx)
+            self.debito.setValue(row[1] or 0)
+            self.credito.setValue(row[2] or 0)
+            self.aclaracion.setText(row[3] or "")
+            d = QDate.fromString(row[4] or "", "yyyy-MM-dd")
+            if d.isValid():
+                self.fecha.setDate(d)
+            self.factura.setText(row[5] or "")
+
+        form.addRow("Alumno *:", self.alumno)
+        form.addRow("Débito:", self.debito)
+        form.addRow("Crédito:", self.credito)
+        form.addRow("Aclaración:", self.aclaracion)
+        form.addRow("Fecha:", self.fecha)
+        form.addRow("Factura:", self.factura)
+        layout.addLayout(form)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=self)
+        buttons.accepted.connect(self._save)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _save(self):
+        if self.alumno.count() == 0:
+            QMessageBox.warning(self, "Validación", "No hay alumnos registrados.")
+            return
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.execute(
+                "UPDATE ctas SET id_alumno=?, debito=?, credito=?, aclaracion=?,"
+                " fecha=?, factura=? WHERE id=?",
+                (self.alumno.currentData(), self.debito.value(), self.credito.value(),
+                 self.aclaracion.text().strip(),
+                 self.fecha.date().toString("yyyy-MM-dd"),
+                 self.factura.text().strip(), self._id),
+            )
+            conn.commit()
+            conn.close()
+            QMessageBox.information(self, "Guardado", "Cuenta actualizada.")
+            self.accept()
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
+
+
 class BuscarCuentaDialog(QDialog):
     """Search dialog for cuentas."""
 
@@ -492,6 +771,7 @@ class BuscarCuentaDialog(QDialog):
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setSortingEnabled(True)
+        self.table.cellDoubleClicked.connect(self._on_double_click)
         layout.addWidget(self.table)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
@@ -499,6 +779,14 @@ class BuscarCuentaDialog(QDialog):
         layout.addWidget(buttons)
 
         self._load("")
+
+    def _on_double_click(self, row: int, _col: int):
+        id_item = self.table.item(row, 0)
+        if id_item is None:
+            return
+        dlg = EditCuentaDialog(int(id_item.text()), self)
+        if dlg.exec() == QDialog.Accepted:
+            self._load(self.search_edit.text())
 
     def _load(self, text: str):
         like = f"%{text}%"
