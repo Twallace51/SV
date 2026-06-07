@@ -1,0 +1,233 @@
+"""Main application window."""
+
+# region - imports
+
+import logging
+from pathlib import Path
+
+from PySide6.QtWidgets import (
+    QMainWindow, QLabel, QDialog,
+    QVBoxLayout, QTextEdit, QDialogButtonBox, QMessageBox,
+)
+from PySide6.QtGui import QAction, QShowEvent
+from PySide6.QtCore import Qt
+
+from __init__ import PROJECT_NAME, VERSION
+from utils import show_training_mode_notice
+from dialogs.login import LoginDialog
+from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
+from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
+from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
+
+# endregion
+
+log = logging.getLogger("app")
+
+
+class MainWindow(QMainWindow):
+    """Primary application window shown after successful login."""
+
+    def __init__(self, username: str):
+        """Initialize the main window and include version/user in title."""
+        super().__init__()
+        self._username = username
+        self._apply_window_title()
+        self.resize(800, 600)
+        self._build_menu_bar()
+        self._build_central()
+        self._apply_session_theme()
+
+    def _apply_window_title(self):
+        """Apply the current title text to the native window."""
+        self.setWindowTitle(
+            f"{PROJECT_NAME} - Versión: {VERSION} - Usuario: {self._username}"
+        )
+
+    def showEvent(self, event: QShowEvent):
+        """Reapply title on show to keep native title bar in sync."""
+        self._apply_window_title()
+        super().showEvent(event)
+
+    def _build_menu_bar(self):
+        """Create the menu bar and connect actions to handlers."""
+        menu_bar = self.menuBar()
+
+        # Navegación menu
+        self.navigation_menu = menu_bar.addMenu("&Navegación")
+        self.logout_action = QAction("&Cerrar sesión", self)
+        self.logout_action.triggered.connect(self.on_logout)
+        self.navigation_menu.addAction(self.logout_action)
+
+        self.exit_action = QAction("&Salir", self)
+        self.exit_action.setShortcut("Ctrl+Q")
+        self.exit_action.triggered.connect(self.close)
+        self.navigation_menu.addAction(self.exit_action)
+
+        # Archivo menu
+        self.file_menu = menu_bar.addMenu("&Archivo")
+        new_action = QAction("&Nuevo", self)
+        new_action.setShortcut("Ctrl+N")
+        new_action.triggered.connect(self.on_new)
+        self.file_menu.addAction(new_action)
+
+        open_action = QAction("&Abrir", self)
+        open_action.setShortcut("Ctrl+O")
+        open_action.triggered.connect(self.on_open)
+        self.file_menu.addAction(open_action)
+
+        # Editar menu
+        self.edit_menu = menu_bar.addMenu("&Editar")
+        preferences_action = QAction("&Preferencias", self)
+        preferences_action.triggered.connect(self.on_preferences)
+        self.edit_menu.addAction(preferences_action)
+
+        # Alumnos menu
+        self.alumnos_menu = menu_bar.addMenu("&Alumnos")
+        alumnos_nuevo_action = QAction("&Nuevo", self)
+        alumnos_nuevo_action.triggered.connect(self.on_alumnos_nuevo)
+        self.alumnos_menu.addAction(alumnos_nuevo_action)
+        alumnos_buscar_action = QAction("&Buscar", self)
+        alumnos_buscar_action.triggered.connect(self.on_alumnos_buscar)
+        self.alumnos_menu.addAction(alumnos_buscar_action)
+
+        # Parientes menu
+        self.parientes_menu = menu_bar.addMenu("&Parientes")
+        parientes_nuevo_action = QAction("&Nuevo", self)
+        parientes_nuevo_action.triggered.connect(self.on_parientes_nuevo)
+        self.parientes_menu.addAction(parientes_nuevo_action)
+        parientes_buscar_action = QAction("&Buscar", self)
+        parientes_buscar_action.triggered.connect(self.on_parientes_buscar)
+        self.parientes_menu.addAction(parientes_buscar_action)
+
+        # Cuentas menu
+        self.cuentas_menu = menu_bar.addMenu("&Cuentas")
+        cuentas_nuevo_action = QAction("&Nuevo", self)
+        cuentas_nuevo_action.triggered.connect(self.on_cuentas_nuevo)
+        self.cuentas_menu.addAction(cuentas_nuevo_action)
+        cuentas_buscar_action = QAction("&Buscar", self)
+        cuentas_buscar_action.triggered.connect(self.on_cuentas_buscar)
+        self.cuentas_menu.addAction(cuentas_buscar_action)
+
+        # Ayuda menu
+        self.help_menu = menu_bar.addMenu("A&yuda")
+        about_action = QAction("&Acerca de", self)
+        about_action.triggered.connect(self.on_about)
+        self.help_menu.addAction(about_action)
+
+    def _build_central(self):
+        """Create and attach the central welcome label widget."""
+        label = QLabel("¡Bienvenido!", self)
+        label.setAlignment(Qt.AlignCenter)
+        self.setCentralWidget(label)
+
+    def _apply_session_theme(self):
+        """Apply a trainee-only background tint for the current session."""
+        central_widget = self.centralWidget()
+        if central_widget is None:
+            return
+
+        if self._username.strip().lower() == "trainee":
+            central_widget.setStyleSheet("background-color: #ffd6d6;")
+        else:
+            central_widget.setStyleSheet("")
+
+    def _clear_training_mode_notice(self):
+        """Close and forget any visible training mode notice."""
+        notice = getattr(self, "training_mode_notice", None)
+        if notice is not None:
+            notice.close()
+            self.training_mode_notice = None
+
+    def _start_user_session(self, username: str):
+        """Apply session state for a newly authenticated user."""
+        self._username = username or "unknown"
+        self._apply_window_title()
+        self._apply_session_theme()
+        self._clear_training_mode_notice()
+        if self._username.strip().lower() == "trainee":
+            self.training_mode_notice = show_training_mode_notice(self)
+
+    # --- Menu action handlers ---
+
+    def on_new(self):
+        """Handle the Archivo > Nuevo menu action."""
+        log.info("Menú: Archivo > Nuevo")
+        QMessageBox.information(self, "Nuevo", "Acción Nuevo activada.")
+
+    def on_open(self):
+        """Handle the Archivo > Abrir menu action."""
+        QMessageBox.information(self, "Abrir", "Acción Abrir activada.")
+
+    def on_preferences(self):
+        """Handle the Editar > Preferencias menu action."""
+        QMessageBox.information(self, "Preferencias", "Acción Preferencias activada.")
+
+    def on_logout(self):
+        """Handle the Navegación > Cerrar sesión menu action."""
+        self._clear_training_mode_notice()
+        self.hide()
+
+        # Use a top-level dialog during logout so it cannot be blocked by a hidden parent.
+        login = LoginDialog()
+        if login.exec() == QDialog.Accepted:
+            self._start_user_session(login.logged_in_username)
+            self.show()
+        else:
+            self.close()
+
+    def on_alumnos_nuevo(self):
+        """Handle the Alumnos > Nuevo menu action."""
+        log.info("Menú: Alumnos > Nuevo")
+        NuevoAlumnoDialog(self).exec()
+
+    def on_alumnos_buscar(self):
+        """Handle the Alumnos > Buscar menu action."""
+        log.info("Menú: Alumnos > Buscar")
+        BuscarAlumnoDialog(self).exec()
+
+    def on_parientes_nuevo(self):
+        """Handle the Parientes > Nuevo menu action."""
+        log.info("Menú: Parientes > Nuevo")
+        NuevoParienteDialog(self).exec()
+
+    def on_parientes_buscar(self):
+        """Handle the Parientes > Buscar menu action."""
+        log.info("Menú: Parientes > Buscar")
+        BuscarParienteDialog(self).exec()
+
+    def on_cuentas_nuevo(self):
+        """Handle the Cuentas > Nuevo menu action."""
+        log.info("Menú: Cuentas > Nuevo")
+        NuevoCuentaDialog(self).exec()
+
+    def on_cuentas_buscar(self):
+        """Handle the Cuentas > Buscar menu action."""
+        log.info("Menú: Cuentas > Buscar")
+        BuscarCuentaDialog(self).exec()
+
+    def on_about(self):
+        """Display application About information."""
+        log.info("Menú: Ayuda > Acerca de")
+        about_path = Path(__file__).parent.parent / "About.md"
+        about_text = (
+            about_path.read_text(encoding="utf-8")
+            if about_path.exists()
+            else "# Acerca de\n\nNo se encontró About.md."
+        )
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Acerca de")
+        dialog.resize(640, 520)
+
+        layout = QVBoxLayout(dialog)
+
+        viewer = QTextEdit(dialog)
+        viewer.setReadOnly(True)
+        viewer.setMarkdown(about_text)
+        layout.addWidget(viewer)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=dialog)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.exec()

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from main import setup_logging, acquire_single_instance_lock
+from utils import setup_logging, acquire_single_instance_lock
 # endregion
 
 

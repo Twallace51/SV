@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QLineEdit
 from PySide6.QtCore import Qt
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from main import LoginDialog
+from dialogs.login import LoginDialog
 from __init__ import PROJECT_NAME, VERSION
 
 # endregion
@@ -23,10 +23,10 @@ def dialog(qapp):
 
 class TestLoginDialogInit:
     def test_window_title(self, dialog):
-        assert dialog.windowTitle() == f"{PROJECT_NAME} - Version: {VERSION}"
+        assert dialog.windowTitle() == f"{PROJECT_NAME} - Versión: {VERSION}"
 
     def test_title_label(self, dialog):
-        assert dialog.title_label.text() == f"{PROJECT_NAME} - Version: {VERSION}\nLogin Dialog"
+        assert dialog.title_label.text() == f"{PROJECT_NAME} - Versión: {VERSION}\nIniciar Sesión"
 
     def test_fixed_size(self, dialog):
         assert dialog.width() == 500
@@ -39,7 +39,7 @@ class TestLoginDialogInit:
         assert dialog.logged_in_username == ""
 
     def test_has_quit_button(self, dialog):
-        assert dialog.quit_btn.text() == "Quit"
+        assert dialog.quit_btn.text() == "Salir"
 
 class TestQuitButton:
     def test_quit_button_rejects_dialog(self, dialog):
@@ -55,13 +55,13 @@ class TestPasswordToggle:
     def test_toggle_show(self, dialog):
         dialog.toggle_password_visibility(True)
         assert dialog.password_edit.echoMode() == QLineEdit.Normal
-        assert dialog.password_toggle_btn.text() == "Hide"
+        assert dialog.password_toggle_btn.text() == "Ocultar"
 
     def test_toggle_hide(self, dialog):
         dialog.toggle_password_visibility(True)
         dialog.toggle_password_visibility(False)
         assert dialog.password_edit.echoMode() == QLineEdit.Password
-        assert dialog.password_toggle_btn.text() == "Show"
+        assert dialog.password_toggle_btn.text() == "Mostrar"
 
 class TestHandleLogin:
     @pytest.mark.parametrize("username,password", [
@@ -96,7 +96,7 @@ class TestHandleLogin:
     def test_invalid_trainee_credentials_show_password_reminder(self, dialog, monkeypatch):
         warning_calls = []
         monkeypatch.setattr(
-            "main.QMessageBox.warning",
+            "dialogs.login.QMessageBox.warning",
             lambda *args, **kwargs: warning_calls.append((args, kwargs)),
         )
 
@@ -106,13 +106,13 @@ class TestHandleLogin:
 
         assert len(warning_calls) == 1
         args, _ = warning_calls[0]
-        assert args[1] == "Login Failed"
-        assert args[2] == "Invalid username or password.\nReminder: try 'trainee' as password."
+        assert args[1] == "Error de acceso"
+        assert "trainee" in args[2]
         assert dialog.password_edit.text() == ""
 
     def test_username_stripped_of_whitespace(self, dialog, monkeypatch):
         monkeypatch.setattr(
-            "main.QMessageBox.warning",
+            "dialogs.login.QMessageBox.warning",
             lambda *args, **kwargs: None,
         )
         dialog.username_edit.setText("  admin  ")

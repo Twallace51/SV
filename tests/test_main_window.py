@@ -8,7 +8,7 @@ import pytest
 from PySide6.QtWidgets import QLabel, QDialog
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from main import MainWindow
+from windows.main_window import MainWindow
 from __init__ import VERSION
 # endregion
 
@@ -31,50 +31,50 @@ class TestMainWindowInit:
     def test_central_widget_is_label(self, window):
         central = window.centralWidget()
         assert isinstance(central, QLabel)
-        assert central.text() == "Welcome!"
+        assert central.text() == "¡Bienvenido!"
 class TestMainWindowMenuBar:
     def test_menu_bar_exists(self, window):
         assert window.menuBar() is not None
 
     def test_navigation_menu_comes_before_file_menu(self, window):
         titles = [action.text().replace("&", "") for action in window.menuBar().actions()]
-        assert titles.index("Navigation") < titles.index("File")
+        assert titles.index("Navegación") < titles.index("Archivo")
 
     def test_file_menu_present(self, window):
         titles = [a.text() for a in window.menuBar().actions()]
-        assert any("File" in t for t in titles)
+        assert any("Archivo" in t for t in titles)
 
     def test_edit_menu_present(self, window):
         titles = [a.text() for a in window.menuBar().actions()]
-        assert any("Edit" in t for t in titles)
+        assert any("Editar" in t for t in titles)
 
     def test_navigation_menu_present(self, window):
         titles = [a.text() for a in window.menuBar().actions()]
-        assert any("Navigation" in t for t in titles)
+        assert any("Navegación" in t for t in titles)
 
     def test_help_menu_present(self, window):
         titles = [a.text() for a in window.menuBar().actions()]
-        assert any("Help" in t for t in titles)
+        assert any("yuda" in t for t in titles)
 
     def test_file_menu_has_new_action(self, window):
         action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
-        assert any("New" in t for t in action_texts)
+        assert any("Nuevo" in t for t in action_texts)
 
     def test_file_menu_has_open_action(self, window):
         action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
-        assert any("Open" in t for t in action_texts)
+        assert any("Abrir" in t for t in action_texts)
 
     def test_file_menu_does_not_have_exit_action(self, window):
         action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
-        assert all("Exit" not in t for t in action_texts)
+        assert all("Salir" not in t for t in action_texts)
 
     def test_navigation_menu_has_logout_action(self, window):
         action_texts = [a.text() for a in window.navigation_menu.actions() if not a.isSeparator()]
-        assert any("Logout" in t for t in action_texts)
+        assert any("Cerrar sesión" in t for t in action_texts)
 
     def test_navigation_menu_has_exit_action(self, window):
         action_texts = [a.text() for a in window.navigation_menu.actions() if not a.isSeparator()]
-        assert any("Exit" in t for t in action_texts)
+        assert any("Salir" in t for t in action_texts)
 
     def test_logout_action_reopens_login_dialog_and_updates_user(self, window, monkeypatch):
         shown = []
@@ -89,7 +89,7 @@ class TestMainWindowMenuBar:
             def exec(self):
                 return QDialog.Accepted
 
-        monkeypatch.setattr("main.LoginDialog", FakeLoginDialog)
+        monkeypatch.setattr("windows.main_window.LoginDialog", FakeLoginDialog)
         monkeypatch.setattr(window, "show", lambda: shown.append(True))
         monkeypatch.setattr(window, "hide", lambda: hidden.append(True))
         monkeypatch.setattr(window, "close", lambda: closed.append(True))
@@ -113,7 +113,7 @@ class TestMainWindowMenuBar:
             def exec(self):
                 return QDialog.Rejected
 
-        monkeypatch.setattr("main.LoginDialog", FakeLoginDialog)
+        monkeypatch.setattr("windows.main_window.LoginDialog", FakeLoginDialog)
         monkeypatch.setattr(window, "hide", lambda: hidden.append(True))
         monkeypatch.setattr(window, "close", lambda: closed.append(True))
 
@@ -133,7 +133,7 @@ class TestMainWindowMenuBar:
             def exec(self):
                 return QDialog.Accepted
 
-        monkeypatch.setattr("main.LoginDialog", FakeLoginDialog)
+        monkeypatch.setattr("windows.main_window.LoginDialog", FakeLoginDialog)
         monkeypatch.setattr(window, "show", lambda: None)
         monkeypatch.setattr(window, "hide", lambda: None)
         monkeypatch.setattr(window, "close", lambda: None)
