@@ -1,5 +1,7 @@
 """Main application module for login and menu-based PySide6 UI."""
 
+# region - imports
+
 import sys
 import os
 import json
@@ -37,9 +39,9 @@ except ModuleNotFoundError as exc:
 
 from __init__ import __version__
 
+# endregion
 
 PROJECT_NAME = f"Generic Main Menu template - Version: {__version__}"
-
 
 def setup_logging() -> logging.Logger:
     """Configure and return the application logger."""
@@ -72,7 +74,6 @@ def setup_logging() -> logging.Logger:
 
 log = setup_logging()
 
-
 def check_latest_pip_available() -> None:
     """Verify that pip is installed and report whether it is current."""
     try:
@@ -101,11 +102,9 @@ def check_latest_pip_available() -> None:
         ...
         #log.info("pip %s is up to date.", installed_version)
 
-
 def check_pytest_available() -> None:
     """Confirm that pytest is installed and report its version."""
     #log.info("pytest %s is available.", pytest.__version__)
-
 
 def show_training_mode_notice(parent: QMainWindow) -> QMessageBox:
     """Show the trainee session notice and auto-close it after 15 seconds."""
@@ -136,7 +135,6 @@ def acquire_single_instance_lock() -> QLockFile | None:
     if not lock.lock():
         return None
     return lock
-
 class LoginDialog(QDialog):
     """Login dialog that validates credentials and tracks current user."""
 
@@ -247,8 +245,6 @@ class LoginDialog(QDialog):
         else:
             self.password_edit.setEchoMode(QLineEdit.Password)
             self.password_toggle_btn.setText("Show")
-
-
 class MainWindow(QMainWindow):
     """Primary application window shown after successful login."""
 
@@ -402,7 +398,6 @@ class MainWindow(QMainWindow):
 
         dialog.exec()
 
-
 def main():
     """Run application startup, login flow, and event loop."""
     clear_terminal()
@@ -430,7 +425,6 @@ def main():
     exit_code = app.exec()
     #log.info("Application exiting with code %d", exit_code)
     sys.exit(exit_code)
-
 
 if __name__ == "__main__":
     main()

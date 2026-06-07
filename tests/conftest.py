@@ -1,8 +1,10 @@
 """Shared pytest fixtures for the test suite."""
 
+# region - imports
 import sys
 import pytest
 from PySide6.QtWidgets import QApplication
+# endregion
 
 
 @pytest.fixture(scope="session")

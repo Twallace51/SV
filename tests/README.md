@@ -48,4 +48,5 @@ pytest tests/test_login_dialog.py::TestHandleLogin::test_valid_credentials_set_u
     QT_QPA_PLATFORM=offscreen pytest tests/ -v
     ```
 
-- The `acquire_single_instance_lock` tests acquire and release a real lock file in the system temp directory; they are run serially by pytest and clean up after themselves.
+- The `acquire_single_instance_lock` tests acquire and release a real lock file in the system temp directory;  
+  they are run serially by pytest and clean up after themselves.

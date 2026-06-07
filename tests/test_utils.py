@@ -1,5 +1,6 @@
 """Tests for utility functions: setup_logging and acquire_single_instance_lock."""
 
+# region - imports
 import sys
 import logging
 from pathlib import Path
@@ -8,6 +9,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from main import setup_logging, acquire_single_instance_lock
+# endregion
 
 
 class TestSetupLogging:

@@ -2,6 +2,7 @@
 
 ## Using modules:
 PySide6
+pyTest
 
 ## Features:
 
@@ -23,7 +24,7 @@ Usage:
 
 General
 
-Making changes to menu_window menubar
+How to make changes to menu_window menubar
 Describe the menu structure directly — plain English works well, example
 
     Add a 'Tools' menu between 'Edit' and 'Help', with actions 'Run (Ctrl+R)' and 'Settings'

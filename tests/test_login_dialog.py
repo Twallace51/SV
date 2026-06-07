@@ -1,5 +1,6 @@
 """Tests for LoginDialog."""
 
+# region - imports
 import sys
 from pathlib import Path
 
@@ -9,14 +10,13 @@ from PySide6.QtCore import Qt
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from main import LoginDialog
-
+# endregion
 
 @pytest.fixture
 def dialog(qapp):
     dlg = LoginDialog()
     yield dlg
     dlg.close()
-
 
 class TestLoginDialogInit:
     def test_window_title(self, dialog):
@@ -38,7 +38,6 @@ class TestLoginDialogInit:
     def test_has_quit_button(self, dialog):
         assert dialog.quit_btn.text() == "Quit"
 
-
 class TestQuitButton:
     def test_quit_button_rejects_dialog(self, dialog):
         rejected = []
@@ -48,7 +47,6 @@ class TestQuitButton:
         dialog.quit_btn.click()
 
         assert rejected == [True]
-
 
 class TestPasswordToggle:
     def test_toggle_show(self, dialog):
@@ -61,7 +59,6 @@ class TestPasswordToggle:
         dialog.toggle_password_visibility(False)
         assert dialog.password_edit.echoMode() == QLineEdit.Password
         assert dialog.password_toggle_btn.text() == "Show"
-
 
 class TestHandleLogin:
     @pytest.mark.parametrize("username,password", [
@@ -122,7 +119,6 @@ class TestHandleLogin:
         dialog.accept = lambda: accepted.append(True) or original_accept()
         dialog.handle_login()
         assert dialog.logged_in_username == "admin"
-
 
 class TestRightClickScrollShortcut:
     def test_right_btn_held_flag_set_on_press(self, dialog):

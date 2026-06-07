@@ -1,5 +1,6 @@
 """Tests for MainWindow."""
 
+# region - imports
 import sys
 from pathlib import Path
 
@@ -9,15 +10,13 @@ from PySide6.QtWidgets import QLabel, QDialog
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from main import MainWindow
 from __init__ import __version__
-
+# endregion
 
 @pytest.fixture
 def window(qapp):
     win = MainWindow("testuser")
     yield win
     win.close()
-
-
 class TestMainWindowInit:
     def test_window_title_contains_version(self, window):
         assert __version__ in window.windowTitle()
@@ -33,8 +32,6 @@ class TestMainWindowInit:
         central = window.centralWidget()
         assert isinstance(central, QLabel)
         assert central.text() == "Welcome!"
-
-
 class TestMainWindowMenuBar:
     def test_menu_bar_exists(self, window):
         assert window.menuBar() is not None
@@ -124,8 +121,6 @@ class TestMainWindowMenuBar:
 
         assert hidden == [True]
         assert closed == [True]
-
-
 class TestMainWindowTitleUpdate:
     def test_title_reflects_constructor_username(self, qapp):
         win = MainWindow("alice")
