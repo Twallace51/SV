@@ -130,7 +130,8 @@ def acquire_single_instance_lock() -> QLockFile | None:
 
     lock = QLockFile(str(lock_file_path))
     lock.setStaleLockTime(0)
-    if not lock.lock():
+    # Non-blocking lock attempt keeps startup responsive if another instance owns the lock.
+    if not lock.tryLock(0):
         return None
     return lock
 class LoginDialog(QDialog):
@@ -365,7 +366,8 @@ class MainWindow(QMainWindow):
         self._clear_training_mode_notice()
         self.hide()
 
-        login = LoginDialog(self)
+        # Use a top-level dialog during logout so it cannot be blocked by a hidden parent.
+        login = LoginDialog()
         if login.exec() == QDialog.Accepted:
             self._start_user_session(login.logged_in_username)
             self.show()

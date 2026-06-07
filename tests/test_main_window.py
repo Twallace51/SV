@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QLabel, QDialog
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from main import MainWindow
-from __init__ import __version__
+from __init__ import VERSION
 # endregion
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def window(qapp):
     win.close()
 class TestMainWindowInit:
     def test_window_title_contains_version(self, window):
-        assert __version__ in window.windowTitle()
+        assert VERSION in window.windowTitle()
 
     def test_window_title_contains_username(self, window):
         assert "testuser" in window.windowTitle()
@@ -121,6 +121,26 @@ class TestMainWindowMenuBar:
 
         assert hidden == [True]
         assert closed == [True]
+
+    def test_logout_relogin_dialog_created_without_parent(self, window, monkeypatch):
+        created_parents = []
+
+        class FakeLoginDialog:
+            def __init__(self, parent=None):
+                created_parents.append(parent)
+                self.logged_in_username = "admin"
+
+            def exec(self):
+                return QDialog.Accepted
+
+        monkeypatch.setattr("main.LoginDialog", FakeLoginDialog)
+        monkeypatch.setattr(window, "show", lambda: None)
+        monkeypatch.setattr(window, "hide", lambda: None)
+        monkeypatch.setattr(window, "close", lambda: None)
+
+        window.logout_action.trigger()
+
+        assert created_parents == [None]
 class TestMainWindowTitleUpdate:
     def test_title_reflects_constructor_username(self, qapp):
         win = MainWindow("alice")
