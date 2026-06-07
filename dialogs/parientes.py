@@ -22,6 +22,18 @@ log = logging.getLogger("app")
 current_adulto_id: int | None = None
 
 
+class NumericTableWidgetItem(QTableWidgetItem):
+    """Table item that compares by integer value for proper numeric sorting."""
+
+    def __lt__(self, other):
+        if isinstance(other, QTableWidgetItem):
+            try:
+                return int(self.text()) < int(other.text())
+            except (TypeError, ValueError):
+                pass
+        return super().__lt__(other)
+
+
 class NuevoParienteDialog(QDialog):
     """Form dialog to insert a new pariente (adulto) into SV.db."""
 
@@ -223,5 +235,7 @@ class BuscarParienteDialog(QDialog):
         self.table.setRowCount(len(rows))
         for r, row in enumerate(rows):
             for c, val in enumerate(row):
-                self.table.setItem(r, c, QTableWidgetItem("" if val is None else str(val)))
+                text = "" if val is None else str(val)
+                item = NumericTableWidgetItem(text) if c == 0 else QTableWidgetItem(text)
+                self.table.setItem(r, c, item)
         self.table.setSortingEnabled(True)

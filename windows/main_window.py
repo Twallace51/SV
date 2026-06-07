@@ -54,7 +54,6 @@ except (ModuleNotFoundError, ImportError):
 
 log = logging.getLogger("app")
 
-
 class MainWindow(QMainWindow):
     """Primary application window shown after successful login."""
 
@@ -364,7 +363,6 @@ class MainWindow(QMainWindow):
         layout.addWidget(buttons)
 
         dialog.exec()
-
 
 if __name__ == "__main__":
     project_root = Path(__file__).resolve().parent.parent
