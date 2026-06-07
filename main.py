@@ -46,14 +46,11 @@ def setup_logging() -> logging.Logger:
     logger.addHandler(console_handler)
     return logger
 
-
 log = setup_logging()
-
 
 def clear_terminal() -> None:
     """Clear the terminal screen before app startup logs are printed."""
     os.system("cls" if os.name == "nt" else "clear")
-
 
 def acquire_single_instance_lock() -> QLockFile | None:
     """Acquire and return an instance lock, or None if already running."""
@@ -65,7 +62,6 @@ def acquire_single_instance_lock() -> QLockFile | None:
     if not lock.lock():
         return None
     return lock
-
 
 class LoginDialog(QDialog):
     """Login dialog that validates credentials and tracks current user."""
@@ -81,7 +77,7 @@ class LoginDialog(QDialog):
         form = QFormLayout()
 
         self.username_edit = QLineEdit()
-        self.username_edit.setPlaceholderText("Enter username")
+        self.username_edit.setPlaceholderText("Enter: admin, user or trainee")
         self.password_edit = QLineEdit()
         self.password_edit.setPlaceholderText("Enter password")
         self.password_edit.setEchoMode(QLineEdit.Password)
@@ -139,7 +135,7 @@ class LoginDialog(QDialog):
         #log.info("Login attempt for user: %s", username)
         # Replace this with real authentication logic
         valid_credentials = {
-            "admin": "password",
+            "admin": "admin",
             "user": "user",
             "trainee": "trainee",
         }
