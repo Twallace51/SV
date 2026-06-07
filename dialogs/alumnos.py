@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QDateEdit, QComboBox, QDoubleSpinBox, QHeaderView,
     QAbstractSpinBox, QCheckBox,
 )
+from PySide6.QtCore import Qt
 
 from __init__ import get_active_db_path
 
@@ -28,6 +29,14 @@ class NumericTableWidgetItem(QTableWidgetItem):
     """Table item that compares by integer value for proper numeric sorting."""
 
     def __lt__(self, other):
+        if isinstance(other, QTableWidgetItem):
+            left_key = self.data(Qt.ItemDataRole.UserRole)
+            right_key = other.data(Qt.ItemDataRole.UserRole)
+            if left_key is not None and right_key is not None:
+                try:
+                    return int(left_key) < int(right_key)
+                except (TypeError, ValueError):
+                    return str(left_key) < str(right_key)
         if isinstance(other, QTableWidgetItem):
             try:
                 return int(self.text()) < int(other.text())
@@ -256,7 +265,7 @@ class BuscarAlumnoDialog(QDialog):
             conn = sqlite3.connect(get_active_db_path())
             query = (
                 "SELECT a.id, a.nombres, a.paterno, a.materno, a.rude, a.Carnet,"
-                " g.grado, a.pension"
+                " g.grado, a.pension, a.id_grado"
                 " FROM alumnos a LEFT JOIN grados g ON a.id_grado = g.id"
                 " WHERE (a.nombres LIKE ? OR a.paterno LIKE ? OR a.materno LIKE ?)"
             )
@@ -277,8 +286,14 @@ class BuscarAlumnoDialog(QDialog):
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(rows))
         for r, row in enumerate(rows):
-            for c, val in enumerate(row):
+            grado_sort_key = row[8] if len(row) > 8 else None
+            for c, val in enumerate(row[:8]):
                 text = "" if val is None else str(val)
-                item = NumericTableWidgetItem(text) if c == 0 else QTableWidgetItem(text)
+                if c == 0:
+                    item = NumericTableWidgetItem(text)
+                else:
+                    item = QTableWidgetItem(text)
+                if c == 6:
+                    item.setData(Qt.ItemDataRole.UserRole, 0 if grado_sort_key is None else grado_sort_key)
                 self.table.setItem(r, c, item)
         self.table.setSortingEnabled(True)
