@@ -11,6 +11,7 @@ from urllib.error import URLError
 from urllib.request import urlopen
 
 try:
+    import pytest
     from PySide6.QtWidgets import (
         QApplication, QMainWindow, QDialog, QLabel, QLineEdit,
         QPushButton, QVBoxLayout, QFormLayout, QMessageBox, QMenuBar, QMenu,
@@ -20,6 +21,12 @@ try:
     from PySide6.QtCore import Qt, QLockFile, QStandardPaths
     from PySide6.QtGui import QMouseEvent, QWheelEvent, QShowEvent
 except ModuleNotFoundError as exc:
+    if exc.name == "pytest":
+        sys.stderr.write(
+            "Missing required test dependency: pytest\n"
+            "Install it with: python -m pip install pytest\n"
+        )
+        sys.exit(1)
     if exc.name == "PySide6":
         sys.stderr.write(
             "Missing required dependency: PySide6\n"
@@ -89,6 +96,11 @@ def check_latest_pip_available() -> None:
         )
     else:
         log.info("pip %s is up to date.", installed_version)
+
+
+def check_pytest_available() -> None:
+    """Confirm that pytest is installed and report its version."""
+    log.info("pytest %s is available.", pytest.__version__)
 
 def clear_terminal() -> None:
     """Clear the terminal screen before app startup logs are printed."""
@@ -326,6 +338,7 @@ def main():
     """Run application startup, login flow, and event loop."""
     clear_terminal()
     check_latest_pip_available()
+    check_pytest_available()
     #log.info("Application starting")
     app = QApplication(sys.argv)
 
