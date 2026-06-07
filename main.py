@@ -212,6 +212,7 @@ class MainWindow(QMainWindow):
         self.resize(800, 600)
         self._build_menu_bar()
         self._build_central()
+        self._apply_session_theme()
 
     def _apply_window_title(self):
         """Apply the current title text to the native window."""
@@ -264,6 +265,17 @@ class MainWindow(QMainWindow):
         label = QLabel("Welcome!", self)
         label.setAlignment(Qt.AlignCenter)
         self.setCentralWidget(label)
+
+    def _apply_session_theme(self):
+        """Apply a trainee-only background tint for the current session."""
+        central_widget = self.centralWidget()
+        if central_widget is None:
+            return
+
+        if self._username.strip().lower() == "trainee":
+            central_widget.setStyleSheet("background-color: #ffd6d6;")
+        else:
+            central_widget.setStyleSheet("")
 
     # --- Menu action handlers ---
 
