@@ -2,9 +2,13 @@
 
 import sys
 import os
+import json
 import logging
 import logging.handlers
 from pathlib import Path
+from importlib import metadata
+from urllib.error import URLError
+from urllib.request import urlopen
 
 try:
     from PySide6.QtWidgets import (
@@ -57,6 +61,34 @@ def setup_logging() -> logging.Logger:
     return logger
 
 log = setup_logging()
+
+
+def check_latest_pip_available() -> None:
+    """Verify that pip is installed and report whether it is current."""
+    try:
+        installed_version = metadata.version("pip")
+    except metadata.PackageNotFoundError:
+        sys.stderr.write(
+            "Missing required dependency manager: pip\n"
+            "Repair it with: python -m ensurepip --upgrade\n"
+        )
+        sys.exit(1)
+
+    try:
+        with urlopen("https://pypi.org/pypi/pip/json", timeout=3) as response:
+            latest_version = json.load(response)["info"]["version"]
+    except (OSError, URLError, TimeoutError, ValueError, KeyError) as exc:
+        log.warning("Could not verify the latest pip version: %s", exc)
+        return
+
+    if installed_version != latest_version:
+        log.info(
+            "pip %s is installed; latest available is %s.",
+            installed_version,
+            latest_version,
+        )
+    else:
+        log.info("pip %s is up to date.", installed_version)
 
 def clear_terminal() -> None:
     """Clear the terminal screen before app startup logs are printed."""
@@ -281,6 +313,7 @@ class MainWindow(QMainWindow):
 def main():
     """Run application startup, login flow, and event loop."""
     clear_terminal()
+    check_latest_pip_available()
     #log.info("Application starting")
     app = QApplication(sys.argv)
 
