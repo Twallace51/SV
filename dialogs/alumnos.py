@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QFormLayout, QMessageBox, QHBoxLayout,
     QDialogButtonBox, QTableWidget, QTableWidgetItem,
     QDateEdit, QComboBox, QDoubleSpinBox, QHeaderView,
-    QAbstractSpinBox,
+    QAbstractSpinBox, QCheckBox,
 )
 
 from __init__ import get_active_db_path
@@ -208,6 +208,11 @@ class BuscarAlumnoDialog(QDialog):
         self.search_edit.setPlaceholderText("Nombres o apellidos…")
         self.search_edit.textChanged.connect(self._load)
         search_row.addWidget(self.search_edit)
+
+        self.show_all_checkbox = QCheckBox("Todos")
+        self.show_all_checkbox.setToolTip("Desactive para mostrar solo inscritos")
+        self.show_all_checkbox.toggled.connect(lambda _checked: self._load(self.search_edit.text()))
+        search_row.addWidget(self.show_all_checkbox)
         layout.addLayout(search_row)
 
         self.table = QTableWidget(0, len(self._HEADERS))
@@ -237,14 +242,18 @@ class BuscarAlumnoDialog(QDialog):
         like = f"%{text}%"
         try:
             conn = sqlite3.connect(get_active_db_path())
-            rows = conn.execute(
+            query = (
                 "SELECT a.id, a.nombres, a.paterno, a.materno, a.rude, a.Carnet,"
                 " g.grado, a.pension"
                 " FROM alumnos a LEFT JOIN grados g ON a.id_grado = g.id"
-                " WHERE a.nombres LIKE ? OR a.paterno LIKE ? OR a.materno LIKE ?"
-                " ORDER BY a.paterno, a.nombres",
-                (like, like, like),
-            ).fetchall()
+                " WHERE (a.nombres LIKE ? OR a.paterno LIKE ? OR a.materno LIKE ?)"
+            )
+            params = [like, like, like]
+            if not self.show_all_checkbox.isChecked():
+                query += " AND COALESCE(a.id_grado, 0) > 0"
+            query += " ORDER BY a.paterno, a.nombres"
+
+            rows = conn.execute(query, params).fetchall()
             conn.close()
         except Exception:
             rows = []
