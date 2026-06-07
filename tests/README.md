@@ -43,7 +43,9 @@ pytest tests/test_login_dialog.py::TestHandleLogin::test_valid_credentials_set_u
 
 - A headless display (e.g. `Xvfb` on Linux) is required when running in a CI environment without a GUI.  
   Set `QT_QPA_PLATFORM=offscreen` to avoid needing a real display:
-  ```
-  QT_QPA_PLATFORM=offscreen pytest tests/ -v
-  ```
+
+    ```
+    QT_QPA_PLATFORM=offscreen pytest tests/ -v
+    ```
+
 - The `acquire_single_instance_lock` tests acquire and release a real lock file in the system temp directory; they are run serially by pytest and clean up after themselves.

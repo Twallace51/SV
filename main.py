@@ -242,35 +242,35 @@ class MainWindow(QMainWindow):
         menu_bar = self.menuBar()
 
         # File menu
-        file_menu = menu_bar.addMenu("&File")
+        self.file_menu = menu_bar.addMenu("&File")
         new_action = QAction("&New", self)
         new_action.setShortcut("Ctrl+N")
         new_action.triggered.connect(self.on_new)
-        file_menu.addAction(new_action)
+        self.file_menu.addAction(new_action)
 
         open_action = QAction("&Open", self)
         open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self.on_open)
-        file_menu.addAction(open_action)
+        self.file_menu.addAction(open_action)
 
-        file_menu.addSeparator()
+        self.file_menu.addSeparator()
 
         exit_action = QAction("E&xit", self)
         exit_action.setShortcut("Ctrl+Q")
         exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
+        self.file_menu.addAction(exit_action)
 
         # Edit menu
-        edit_menu = menu_bar.addMenu("&Edit")
+        self.edit_menu = menu_bar.addMenu("&Edit")
         preferences_action = QAction("&Preferences", self)
         preferences_action.triggered.connect(self.on_preferences)
-        edit_menu.addAction(preferences_action)
+        self.edit_menu.addAction(preferences_action)
 
         # Help menu
-        help_menu = menu_bar.addMenu("&Help")
+        self.help_menu = menu_bar.addMenu("&Help")
         about_action = QAction("&About", self)
         about_action.triggered.connect(self.on_about)
-        help_menu.addAction(about_action)
+        self.help_menu.addAction(about_action)
 
     def _build_central(self):
         """Create and attach the central welcome label widget."""

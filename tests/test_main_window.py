@@ -52,24 +52,15 @@ class TestMainWindowMenuBar:
         assert any("Help" in t for t in titles)
 
     def test_file_menu_has_new_action(self, window):
-        file_menu = next(
-            a.menu() for a in window.menuBar().actions() if "File" in a.text()
-        )
-        action_texts = [a.text() for a in file_menu.actions() if not a.isSeparator()]
+        action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
         assert any("New" in t for t in action_texts)
 
     def test_file_menu_has_open_action(self, window):
-        file_menu = next(
-            a.menu() for a in window.menuBar().actions() if "File" in a.text()
-        )
-        action_texts = [a.text() for a in file_menu.actions() if not a.isSeparator()]
+        action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
         assert any("Open" in t for t in action_texts)
 
     def test_file_menu_has_exit_action(self, window):
-        file_menu = next(
-            a.menu() for a in window.menuBar().actions() if "File" in a.text()
-        )
-        action_texts = [a.text() for a in file_menu.actions() if not a.isSeparator()]
+        action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
         assert any("Exit" in t for t in action_texts)
 
 
