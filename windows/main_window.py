@@ -149,12 +149,6 @@ class MainWindow(QMainWindow):
         backup_action.triggered.connect(self.on_backup_database)
         self.file_menu.addAction(backup_action)
 
-        # Editar menu
-        self.edit_menu = menu_bar.addMenu("&Editar")
-        preferences_action = QAction("&Preferencias", self)
-        preferences_action.triggered.connect(self.on_preferences)
-        self.edit_menu.addAction(preferences_action)
-
         # Alumnos menu
         self.alumnos_menu = menu_bar.addMenu("&Alumnos")
         alumnos_nuevo_action = QAction("&Nuevo", self)

@@ -44,9 +44,9 @@ class TestMainWindowMenuBar:
         titles = [a.text() for a in window.menuBar().actions()]
         assert any("Archivo" in t for t in titles)
 
-    def test_edit_menu_present(self, window):
+    def test_edit_menu_not_present(self, window):
         titles = [a.text() for a in window.menuBar().actions()]
-        assert any("Editar" in t for t in titles)
+        assert all("Editar" not in t for t in titles)
 
     def test_navigation_menu_present(self, window):
         titles = [a.text() for a in window.menuBar().actions()]
