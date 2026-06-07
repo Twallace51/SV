@@ -112,11 +112,11 @@ def check_pytest_available() -> None:
 def show_training_mode_notice(parent: QMainWindow) -> QMessageBox:
     """Show the trainee session notice and auto-close it after 15 seconds."""
     message_box = QMessageBox(parent)
-    message_box.setWindowTitle(f"{PROJECT_NAME} - Training Mode")
+    message_box.setWindowTitle(f"{PROJECT_NAME} - Modo Entrenamiento")
     message_box.setIcon(QMessageBox.Information)
     message_box.setText(
-        "Feel free to explore the application\n"
-        "Any changes, data input or errors will be discarded when session ends."
+        "Puede explorar la aplicación libremente.\n"
+        "Cualquier cambio, entrada de datos o error será descartado al terminar la sesión."
     )
     message_box.setStandardButtons(QMessageBox.Close)
     message_box.setDefaultButton(QMessageBox.Close)
@@ -524,14 +524,14 @@ class LoginDialog(QDialog):
     def __init__(self, parent=None):
         """Initialize login UI controls and interaction state."""
         super().__init__(parent)
-        self.setWindowTitle(f"{PROJECT_NAME} - Version: {VERSION}")
+        self.setWindowTitle(f"{PROJECT_NAME} - Versión: {VERSION}")
         self.setFixedSize(500, 160)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout(self)
 
         self.title_label = QLabel(
-            f"{PROJECT_NAME} - Version: {VERSION}\nLogin Dialog",
+            f"{PROJECT_NAME} - Versión: {VERSION}\nIniciar Sesión",
             self,
         )
         self.title_label.setAlignment(Qt.AlignCenter)
@@ -540,12 +540,12 @@ class LoginDialog(QDialog):
         form = QFormLayout()
 
         self.username_edit = QLineEdit()
-        self.username_edit.setPlaceholderText("Enter: admin, user or trainee")
+        self.username_edit.setPlaceholderText("Ingrese: admin, user o trainee")
         self.password_edit = QLineEdit()
-        self.password_edit.setPlaceholderText("Enter password")
+        self.password_edit.setPlaceholderText("Ingrese contraseña")
         self.password_edit.setEchoMode(QLineEdit.Password)
 
-        self.password_toggle_btn = QPushButton("Show")
+        self.password_toggle_btn = QPushButton("Mostrar")
         self.password_toggle_btn.setCheckable(True)
         self.password_toggle_btn.setFixedWidth(60)
         self.password_toggle_btn.clicked.connect(self.toggle_password_visibility)
@@ -555,18 +555,18 @@ class LoginDialog(QDialog):
         password_layout.addWidget(self.password_edit)
         password_layout.addWidget(self.password_toggle_btn)
 
-        form.addRow("Username:", self.username_edit)
-        form.addRow("Password:", password_layout)
+        form.addRow("Usuario:", self.username_edit)
+        form.addRow("Contraseña:", password_layout)
         layout.addLayout(form)
 
         button_layout = QHBoxLayout()
 
-        self.login_btn = QPushButton("Login")
+        self.login_btn = QPushButton("Ingresar")
         self.login_btn.setDefault(True)
         self.login_btn.clicked.connect(self.handle_login)
         button_layout.addWidget(self.login_btn)
 
-        self.quit_btn = QPushButton("Quit")
+        self.quit_btn = QPushButton("Salir")
         self.quit_btn.clicked.connect(self.reject)
         button_layout.addWidget(self.quit_btn)
 
@@ -616,10 +616,10 @@ class LoginDialog(QDialog):
             self.accept()
         else:
             #log.warning("Login failed for user: %s", username)
-            message = "Invalid username or password."
+            message = "Usuario o contraseña incorrectos."
             if username.lower() == "trainee":
-                message += "\nReminder: try 'trainee' as password."
-            QMessageBox.warning(self, "Login Failed", message)
+                message += "\nRecuerda: usa 'trainee' como contraseña."
+            QMessageBox.warning(self, "Error de acceso", message)
             self.password_edit.clear()
             self.password_edit.setFocus()
 
@@ -627,10 +627,10 @@ class LoginDialog(QDialog):
         """Toggle password field visibility between masked and plain text."""
         if checked:
             self.password_edit.setEchoMode(QLineEdit.Normal)
-            self.password_toggle_btn.setText("Hide")
+            self.password_toggle_btn.setText("Ocultar")
         else:
             self.password_edit.setEchoMode(QLineEdit.Password)
-            self.password_toggle_btn.setText("Show")
+            self.password_toggle_btn.setText("Mostrar")
 class MainWindow(QMainWindow):
     """Primary application window shown after successful login."""
 
@@ -647,7 +647,7 @@ class MainWindow(QMainWindow):
     def _apply_window_title(self):
         """Apply the current title text to the native window."""
         self.setWindowTitle(
-            f"{PROJECT_NAME} - Version: {VERSION} - Current login: {self._username}"
+            f"{PROJECT_NAME} - Versión: {VERSION} - Usuario: {self._username}"
         )
 
     def showEvent(self, event: QShowEvent):
@@ -659,32 +659,32 @@ class MainWindow(QMainWindow):
         """Create the menu bar and connect actions to handlers."""
         menu_bar = self.menuBar()
 
-        # Navigation menu
-        self.navigation_menu = menu_bar.addMenu("&Navigation")
-        self.logout_action = QAction("&Logout", self)
+        # Navegación menu
+        self.navigation_menu = menu_bar.addMenu("&Navegación")
+        self.logout_action = QAction("&Cerrar sesión", self)
         self.logout_action.triggered.connect(self.on_logout)
         self.navigation_menu.addAction(self.logout_action)
 
-        self.exit_action = QAction("&Exit", self)
+        self.exit_action = QAction("&Salir", self)
         self.exit_action.setShortcut("Ctrl+Q")
         self.exit_action.triggered.connect(self.close)
         self.navigation_menu.addAction(self.exit_action)
 
-        # File menu
-        self.file_menu = menu_bar.addMenu("&File")
-        new_action = QAction("&New", self)
+        # Archivo menu
+        self.file_menu = menu_bar.addMenu("&Archivo")
+        new_action = QAction("&Nuevo", self)
         new_action.setShortcut("Ctrl+N")
         new_action.triggered.connect(self.on_new)
         self.file_menu.addAction(new_action)
 
-        open_action = QAction("&Open", self)
+        open_action = QAction("&Abrir", self)
         open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self.on_open)
         self.file_menu.addAction(open_action)
 
-        # Edit menu
-        self.edit_menu = menu_bar.addMenu("&Edit")
-        preferences_action = QAction("&Preferences", self)
+        # Editar menu
+        self.edit_menu = menu_bar.addMenu("&Editar")
+        preferences_action = QAction("&Preferencias", self)
         preferences_action.triggered.connect(self.on_preferences)
         self.edit_menu.addAction(preferences_action)
 
@@ -715,15 +715,15 @@ class MainWindow(QMainWindow):
         cuentas_buscar_action.triggered.connect(self.on_cuentas_buscar)
         self.cuentas_menu.addAction(cuentas_buscar_action)
 
-        # Help menu
-        self.help_menu = menu_bar.addMenu("&Help")
-        about_action = QAction("&About", self)
+        # Ayuda menu
+        self.help_menu = menu_bar.addMenu("A&yuda")
+        about_action = QAction("&Acerca de", self)
         about_action.triggered.connect(self.on_about)
         self.help_menu.addAction(about_action)
 
     def _build_central(self):
         """Create and attach the central welcome label widget."""
-        label = QLabel("Welcome!", self)
+        label = QLabel("¡Bienvenido!", self)
         label.setAlignment(Qt.AlignCenter)
         self.setCentralWidget(label)
 
@@ -757,19 +757,19 @@ class MainWindow(QMainWindow):
     # --- Menu action handlers ---
 
     def on_new(self):
-        """Handle the File > New menu action."""
-        log.info("Menu: File > New")
-        QMessageBox.information(self, "New", "New action triggered.")
+        """Handle the Archivo > Nuevo menu action."""
+        log.info("Menú: Archivo > Nuevo")
+        QMessageBox.information(self, "Nuevo", "Acción Nuevo activada.")
 
     def on_open(self):
-        """Handle the File > Open menu action."""
-        #log.info("Menu: File > Open")
-        QMessageBox.information(self, "Open", "Open action triggered.")
+        """Handle the Archivo > Abrir menu action."""
+        #log.info("Menú: Archivo > Abrir")
+        QMessageBox.information(self, "Abrir", "Acción Abrir activada.")
 
     def on_preferences(self):
-        """Handle the Edit > Preferences menu action."""
-        #log.info("Menu: Edit > Preferences")
-        QMessageBox.information(self, "Preferences", "Preferences action triggered.")
+        """Handle the Editar > Preferencias menu action."""
+        #log.info("Menú: Editar > Preferencias")
+        QMessageBox.information(self, "Preferencias", "Acción Preferencias activada.")
 
     def on_logout(self):
         """Handle the Navigation > Logout menu action."""
@@ -822,11 +822,11 @@ class MainWindow(QMainWindow):
         about_text = (
             about_path.read_text(encoding="utf-8")
             if about_path.exists()
-            else "# About\n\nAbout.md was not found."
+            else "# Acerca de\n\nNo se encontró About.md."
         )
 
         dialog = QDialog(self)
-        dialog.setWindowTitle("About")
+        dialog.setWindowTitle("Acerca de")
         dialog.resize(640, 520)
 
         layout = QVBoxLayout(dialog)
@@ -853,7 +853,7 @@ def main():
     instance_lock = acquire_single_instance_lock()
     if instance_lock is None:
         #log.warning("Application already running; exiting duplicate instance")
-        QMessageBox.warning(None, "Already Running", "This application is already running.")
+        QMessageBox.warning(None, "Ya en ejecución", "La aplicación ya está en ejecución.")
         sys.exit(1)
 
     login = LoginDialog()
