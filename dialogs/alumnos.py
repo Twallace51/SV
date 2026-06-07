@@ -25,6 +25,23 @@ log = logging.getLogger("app")
 current_alumno_id: int | None = None
 
 
+def _normalize_grado_id(value):
+    """Normalize grade IDs so combo data and alumno id_grado compare consistently."""
+    if value is None:
+        return None
+
+    text = str(value).strip()
+    if not text:
+        return None
+    if text.lower() in {"null", "none"}:
+        return None
+
+    try:
+        return int(text)
+    except (TypeError, ValueError):
+        return text
+
+
 class NumericTableWidgetItem(QTableWidgetItem):
     """Table item that compares by integer value for proper numeric sorting."""
 
@@ -73,7 +90,7 @@ class NuevoAlumnoDialog(QDialog):
         try:
             conn = sqlite3.connect(get_active_db_path())
             for gid, gname in conn.execute("SELECT id, grado FROM grados ORDER BY grado").fetchall():
-                self.grado.addItem(gname, gid)
+                self.grado.addItem(gname, _normalize_grado_id(gid))
             conn.close()
         except Exception:
             pass
@@ -147,7 +164,7 @@ class EditAlumnoDialog(QDialog):
         try:
             conn = sqlite3.connect(get_active_db_path())
             for gid, gname in conn.execute("SELECT id, grado FROM grados ORDER BY grado").fetchall():
-                self.grado.addItem(gname, gid)
+                self.grado.addItem(gname, _normalize_grado_id(gid))
             row = conn.execute(
                 "SELECT nombres, paterno, materno, cumpleanos, rude, Carnet, id_grado, pension"
                 " FROM alumnos WHERE id = ?", (self._id,)
@@ -166,11 +183,7 @@ class EditAlumnoDialog(QDialog):
                 self.cumpleanos.setDate(d)
             self.rude.setText(row[4] or "")
             self.carnet.setText(row[5] or "")
-            grado_id = row[6]
-            try:
-                grado_id = int(str(grado_id).strip()) if grado_id is not None else None
-            except (TypeError, ValueError):
-                grado_id = None
+            grado_id = _normalize_grado_id(row[6])
             idx = self.grado.findData(grado_id)
             if idx >= 0:
                 self.grado.setCurrentIndex(idx)
