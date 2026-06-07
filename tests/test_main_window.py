@@ -39,6 +39,10 @@ class TestMainWindowMenuBar:
     def test_menu_bar_exists(self, window):
         assert window.menuBar() is not None
 
+    def test_navigation_menu_comes_before_file_menu(self, window):
+        titles = [action.text().replace("&", "") for action in window.menuBar().actions()]
+        assert titles.index("Navigation") < titles.index("File")
+
     def test_file_menu_present(self, window):
         titles = [a.text() for a in window.menuBar().actions()]
         assert any("File" in t for t in titles)
@@ -74,6 +78,15 @@ class TestMainWindowMenuBar:
     def test_navigation_menu_has_exit_action(self, window):
         action_texts = [a.text() for a in window.navigation_menu.actions() if not a.isSeparator()]
         assert any("Exit" in t for t in action_texts)
+
+    def test_logout_action_closes_window(self, window):
+        closed = []
+        original_close = window.close
+        window.close = lambda: closed.append(True) or original_close()
+
+        window.logout_action.trigger()
+
+        assert closed == [True]
 
 
 class TestMainWindowTitleUpdate:

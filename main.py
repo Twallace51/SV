@@ -277,6 +277,17 @@ class MainWindow(QMainWindow):
         """Create the menu bar and connect actions to handlers."""
         menu_bar = self.menuBar()
 
+        # Navigation menu
+        self.navigation_menu = menu_bar.addMenu("&Navigation")
+        self.logout_action = QAction("&Logout", self)
+        self.logout_action.triggered.connect(self.on_logout)
+        self.navigation_menu.addAction(self.logout_action)
+
+        self.exit_action = QAction("&Exit", self)
+        self.exit_action.setShortcut("Ctrl+Q")
+        self.exit_action.triggered.connect(self.close)
+        self.navigation_menu.addAction(self.exit_action)
+
         # File menu
         self.file_menu = menu_bar.addMenu("&File")
         new_action = QAction("&New", self)
@@ -294,17 +305,6 @@ class MainWindow(QMainWindow):
         preferences_action = QAction("&Preferences", self)
         preferences_action.triggered.connect(self.on_preferences)
         self.edit_menu.addAction(preferences_action)
-
-        # Navigation menu
-        self.navigation_menu = menu_bar.addMenu("&Navigation")
-        logout_action = QAction("&Logout", self)
-        logout_action.triggered.connect(self.on_logout)
-        self.navigation_menu.addAction(logout_action)
-
-        exit_action = QAction("&Exit", self)
-        exit_action.setShortcut("Ctrl+Q")
-        exit_action.triggered.connect(self.close)
-        self.navigation_menu.addAction(exit_action)
 
         # Help menu
         self.help_menu = menu_bar.addMenu("&Help")
@@ -349,7 +349,7 @@ class MainWindow(QMainWindow):
     def on_logout(self):
         """Handle the Navigation > Logout menu action."""
         log.info("Menu: Navigation > Logout")
-        QMessageBox.information(self, "Logout", "Logout action triggered.")
+        self.close()
 
     def on_about(self):
         """Display application About information."""
