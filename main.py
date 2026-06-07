@@ -8,7 +8,7 @@ from pathlib import Path
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QDialog, QLabel, QLineEdit,
     QPushButton, QVBoxLayout, QFormLayout, QMessageBox, QMenuBar, QMenu,
-    QHBoxLayout
+    QHBoxLayout, QTextEdit, QDialogButtonBox
 )
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt, QLockFile, QStandardPaths
@@ -243,7 +243,29 @@ class MainWindow(QMainWindow):
     def on_about(self):
         """Display application About information."""
         log.info("Menu: Help > About")
-        QMessageBox.about(self, "About", "Generic Main Menu Application\nPySide6")
+        about_path = Path(__file__).with_name("About.md")
+        about_text = (
+            about_path.read_text(encoding="utf-8")
+            if about_path.exists()
+            else "# About\n\nAbout.md was not found."
+        )
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("About")
+        dialog.resize(640, 520)
+
+        layout = QVBoxLayout(dialog)
+
+        viewer = QTextEdit(dialog)
+        viewer.setReadOnly(True)
+        viewer.setMarkdown(about_text)
+        layout.addWidget(viewer)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=dialog)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.exec()
 
 
 def main():

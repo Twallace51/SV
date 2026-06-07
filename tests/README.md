@@ -4,12 +4,12 @@ Unit tests for the generic_template application, written with [pytest](https://d
 
 ## Structure
 
-| File | What it covers |
-|------|---------------|
-| `conftest.py` | Session-scoped `QApplication` fixture shared across all test modules |
-| `test_utils.py` | `setup_logging()` and `acquire_single_instance_lock()` |
+| File                   | What it covers                                                                                           |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| `conftest.py`          | Session-scoped `QApplication` fixture shared across all test modules                                     |
+| `test_utils.py`        | `setup_logging()` and `acquire_single_instance_lock()`                                                   |
 | `test_login_dialog.py` | `LoginDialog` — initialisation, password visibility toggle, credential validation, mouse-event shortcuts |
-| `test_main_window.py` | `MainWindow` — title bar, default size, central widget, menu bar actions |
+| `test_main_window.py`  | `MainWindow` — title bar, default size, central widget, menu bar actions                                 |
 
 ## Requirements
 
