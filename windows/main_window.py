@@ -5,6 +5,7 @@
 import logging
 import shutil
 import tempfile
+import sys
 from pathlib import Path
 from datetime import datetime
 
@@ -15,18 +16,36 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QAction, QShowEvent, QCloseEvent
 from PySide6.QtCore import Qt
 
-from __init__ import (
-    PROJECT_NAME,
-    VERSION,
-    DB_PATH,
-    set_active_db_path,
-    reset_active_db_path,
-)
-from utils import show_training_mode_notice
-from dialogs.login import LoginDialog
-from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
-from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
-from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
+try:
+    from __init__ import (
+        PROJECT_NAME,
+        VERSION,
+        DB_PATH,
+        set_active_db_path,
+        reset_active_db_path,
+    )
+    from utils import show_training_mode_notice
+    from dialogs.login import LoginDialog
+    from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
+    from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
+    from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
+except ModuleNotFoundError:
+    # Support running this file directly from the windows/ directory.
+    project_root = Path(__file__).resolve().parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    from __init__ import (
+        PROJECT_NAME,
+        VERSION,
+        DB_PATH,
+        set_active_db_path,
+        reset_active_db_path,
+    )
+    from utils import show_training_mode_notice
+    from dialogs.login import LoginDialog
+    from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
+    from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
+    from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
 
 # endregion
 
@@ -342,3 +361,13 @@ class MainWindow(QMainWindow):
         layout.addWidget(buttons)
 
         dialog.exec()
+
+
+if __name__ == "__main__":
+    project_root = Path(__file__).resolve().parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    from main import main as run_main
+
+    run_main()
