@@ -20,10 +20,10 @@ def dialog(qapp):
 
 class TestLoginDialogInit:
     def test_window_title(self, dialog):
-        assert dialog.windowTitle() == "Login"
+        assert dialog.windowTitle() == "Generic Main Menu template - Version: 0.0  Login"
 
     def test_fixed_size(self, dialog):
-        assert dialog.width() == 300
+        assert dialog.width() == 500
         assert dialog.height() == 160
 
     def test_password_echo_mode_default(self, dialog):
@@ -31,6 +31,20 @@ class TestLoginDialogInit:
 
     def test_logged_in_username_initially_empty(self, dialog):
         assert dialog.logged_in_username == ""
+
+    def test_has_quit_button(self, dialog):
+        assert dialog.quit_btn.text() == "Quit"
+
+
+class TestQuitButton:
+    def test_quit_button_rejects_dialog(self, dialog):
+        rejected = []
+        original_reject = dialog.reject
+        dialog.reject = lambda: rejected.append(True) or original_reject()
+
+        dialog.quit_btn.click()
+
+        assert rejected == [True]
 
 
 class TestPasswordToggle:

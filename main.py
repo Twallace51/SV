@@ -38,6 +38,9 @@ except ModuleNotFoundError as exc:
 from __init__ import __version__
 
 
+PROJECT_NAME = f"Generic Main Menu template - Version: {__version__}"
+
+
 def setup_logging() -> logging.Logger:
     """Configure and return the application logger."""
     log_dir = Path(__file__).parent / "logs"
@@ -93,9 +96,10 @@ def check_latest_pip_available() -> None:
             "pip %s is installed; latest available is %s.",
             installed_version,
             latest_version,
-        )
+            )
     else:
-        log.info("pip %s is up to date.", installed_version)
+        ...
+        #log.info("pip %s is up to date.", installed_version)
 
 
 def check_pytest_available() -> None:
@@ -106,15 +110,16 @@ def check_pytest_available() -> None:
 def show_training_mode_notice(parent: QMainWindow) -> QMessageBox:
     """Show the trainee session notice and auto-close it after 15 seconds."""
     message_box = QMessageBox(parent)
-    message_box.setWindowTitle("Training Mode")
+    message_box.setWindowTitle(f"{PROJECT_NAME} - Training Mode")
     message_box.setIcon(QMessageBox.Information)
     message_box.setText(
-        "Training mode:\n\n"
+        "Feel free to explore the application\n"
         "Any changes, data input or errors will be discarded when session ends."
     )
-    message_box.setStandardButtons(QMessageBox.NoButton)
+    message_box.setStandardButtons(QMessageBox.Close)
+    message_box.setDefaultButton(QMessageBox.Close)
     message_box.show()
-    QTimer.singleShot(15_000, message_box.close)
+    QTimer.singleShot(1000000, message_box.close)
     return message_box
 
 def clear_terminal() -> None:
@@ -138,8 +143,8 @@ class LoginDialog(QDialog):
     def __init__(self, parent=None):
         """Initialize login UI controls and interaction state."""
         super().__init__(parent)
-        self.setWindowTitle("Login")
-        self.setFixedSize(300, 160)
+        self.setWindowTitle(f"{PROJECT_NAME}  Login")
+        self.setFixedSize(500, 160)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout(self)
@@ -165,10 +170,18 @@ class LoginDialog(QDialog):
         form.addRow("Password:", password_layout)
         layout.addLayout(form)
 
+        button_layout = QHBoxLayout()
+
         self.login_btn = QPushButton("Login")
         self.login_btn.setDefault(True)
         self.login_btn.clicked.connect(self.handle_login)
-        layout.addWidget(self.login_btn)
+        button_layout.addWidget(self.login_btn)
+
+        self.quit_btn = QPushButton("Quit")
+        self.quit_btn.clicked.connect(self.reject)
+        button_layout.addWidget(self.quit_btn)
+
+        layout.addLayout(button_layout)
 
         self._right_btn_held = False
         self.logged_in_username = ""
@@ -244,7 +257,7 @@ class MainWindow(QMainWindow):
     def _apply_window_title(self):
         """Apply the current title text to the native window."""
         self.setWindowTitle(
-            f"Main Menu - Project version: {__version__} - Current login: {self._username}"
+            f"{PROJECT_NAME} - Current login: {self._username}"
         )
 
     def showEvent(self, event: QShowEvent):
