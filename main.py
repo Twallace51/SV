@@ -5,14 +5,24 @@ import os
 import logging
 import logging.handlers
 from pathlib import Path
-from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QDialog, QLabel, QLineEdit,
-    QPushButton, QVBoxLayout, QFormLayout, QMessageBox, QMenuBar, QMenu,
-    QHBoxLayout, QTextEdit, QDialogButtonBox
-)
-from PySide6.QtGui import QAction
-from PySide6.QtCore import Qt, QLockFile, QStandardPaths
-from PySide6.QtGui import QMouseEvent, QWheelEvent, QShowEvent
+
+try:
+    from PySide6.QtWidgets import (
+        QApplication, QMainWindow, QDialog, QLabel, QLineEdit,
+        QPushButton, QVBoxLayout, QFormLayout, QMessageBox, QMenuBar, QMenu,
+        QHBoxLayout, QTextEdit, QDialogButtonBox
+    )
+    from PySide6.QtGui import QAction
+    from PySide6.QtCore import Qt, QLockFile, QStandardPaths
+    from PySide6.QtGui import QMouseEvent, QWheelEvent, QShowEvent
+except ModuleNotFoundError as exc:
+    if exc.name == "PySide6":
+        sys.stderr.write(
+            "Missing required dependency: PySide6\n"
+            "Install it with: python -m pip install PySide6\n"
+        )
+        sys.exit(1)
+    raise
 
 from __init__ import __version__
 
