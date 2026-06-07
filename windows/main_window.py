@@ -63,6 +63,7 @@ class MainWindow(QMainWindow):
         self._username = username
         self._trainee_temp_db_path: Path | None = None
         self._allow_close = False
+        self._handling_close_flow = False
         self._apply_window_title()
         self.resize(800, 600)
         self._build_menu_bar()
@@ -86,11 +87,19 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event: QCloseEvent):
         """Return to login on close; only exit when relogin is cancelled."""
         if not self._allow_close and self.isVisible():
-            event.ignore()
-            if self._relogin_or_close_app():
+            if self._handling_close_flow:
+                event.ignore()
                 return
-            self._allow_close = True
-            self.close()
+
+            self._handling_close_flow = True
+            try:
+                event.ignore()
+                if self._relogin_or_close_app():
+                    return
+                self._allow_close = True
+                self.close()
+            finally:
+                self._handling_close_flow = False
             return
 
         self._clear_training_mode_notice()
