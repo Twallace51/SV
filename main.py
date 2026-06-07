@@ -93,7 +93,7 @@ def check_latest_pip_available() -> None:
 
     if installed_version != latest_version:
         log.info(
-            "pip %s is installed; latest available is %s.",
+            "pip %s is installed; but latest available is %s.",
             installed_version,
             latest_version,
             )
@@ -104,7 +104,7 @@ def check_latest_pip_available() -> None:
 
 def check_pytest_available() -> None:
     """Confirm that pytest is installed and report its version."""
-    log.info("pytest %s is available.", pytest.__version__)
+    #log.info("pytest %s is available.", pytest.__version__)
 
 
 def show_training_mode_notice(parent: QMainWindow) -> QMessageBox:
@@ -354,17 +354,17 @@ class MainWindow(QMainWindow):
 
     def on_open(self):
         """Handle the File > Open menu action."""
-        log.info("Menu: File > Open")
+        #log.info("Menu: File > Open")
         QMessageBox.information(self, "Open", "Open action triggered.")
 
     def on_preferences(self):
         """Handle the Edit > Preferences menu action."""
-        log.info("Menu: Edit > Preferences")
+        #log.info("Menu: Edit > Preferences")
         QMessageBox.information(self, "Preferences", "Preferences action triggered.")
 
     def on_logout(self):
         """Handle the Navigation > Logout menu action."""
-        log.info("Menu: Navigation > Logout")
+        #log.info("Menu: Navigation > Logout")
         self._clear_training_mode_notice()
         self.hide()
 
