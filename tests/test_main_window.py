@@ -47,6 +47,10 @@ class TestMainWindowMenuBar:
         titles = [a.text() for a in window.menuBar().actions()]
         assert any("Edit" in t for t in titles)
 
+    def test_navigation_menu_present(self, window):
+        titles = [a.text() for a in window.menuBar().actions()]
+        assert any("Navigation" in t for t in titles)
+
     def test_help_menu_present(self, window):
         titles = [a.text() for a in window.menuBar().actions()]
         assert any("Help" in t for t in titles)
@@ -59,8 +63,16 @@ class TestMainWindowMenuBar:
         action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
         assert any("Open" in t for t in action_texts)
 
-    def test_file_menu_has_exit_action(self, window):
+    def test_file_menu_does_not_have_exit_action(self, window):
         action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
+        assert all("Exit" not in t for t in action_texts)
+
+    def test_navigation_menu_has_logout_action(self, window):
+        action_texts = [a.text() for a in window.navigation_menu.actions() if not a.isSeparator()]
+        assert any("Logout" in t for t in action_texts)
+
+    def test_navigation_menu_has_exit_action(self, window):
+        action_texts = [a.text() for a in window.navigation_menu.actions() if not a.isSeparator()]
         assert any("Exit" in t for t in action_texts)
 
 

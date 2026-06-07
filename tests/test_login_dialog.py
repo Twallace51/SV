@@ -20,7 +20,10 @@ def dialog(qapp):
 
 class TestLoginDialogInit:
     def test_window_title(self, dialog):
-        assert dialog.windowTitle() == "Generic Main Menu template - Version: 0.0  Login"
+        assert dialog.windowTitle() == "Generic Main Menu template - Version: 0.0"
+
+    def test_title_label(self, dialog):
+        assert dialog.title_label.text() == "Generic Main Menu template - Version: 0.0\nLogin Dialog"
 
     def test_fixed_size(self, dialog):
         assert dialog.width() == 500
@@ -89,6 +92,23 @@ class TestHandleLogin:
         assert dlg.password_edit.text() == ""
         assert dlg.logged_in_username == ""
         dlg.close()
+
+    def test_invalid_trainee_credentials_show_password_reminder(self, dialog, monkeypatch):
+        warning_calls = []
+        monkeypatch.setattr(
+            "main.QMessageBox.warning",
+            lambda *args, **kwargs: warning_calls.append((args, kwargs)),
+        )
+
+        dialog.username_edit.setText("trainee")
+        dialog.password_edit.setText("wrong")
+        dialog.handle_login()
+
+        assert len(warning_calls) == 1
+        args, _ = warning_calls[0]
+        assert args[1] == "Login Failed"
+        assert args[2] == "Invalid username or password.\nReminder: try 'trainee' as password."
+        assert dialog.password_edit.text() == ""
 
     def test_username_stripped_of_whitespace(self, dialog, monkeypatch):
         monkeypatch.setattr(

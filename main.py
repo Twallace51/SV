@@ -143,11 +143,16 @@ class LoginDialog(QDialog):
     def __init__(self, parent=None):
         """Initialize login UI controls and interaction state."""
         super().__init__(parent)
-        self.setWindowTitle(f"{PROJECT_NAME}  Login")
+        self.setWindowTitle(PROJECT_NAME)
         self.setFixedSize(500, 160)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout(self)
+
+        self.title_label = QLabel(f"{PROJECT_NAME}\nLogin Dialog", self)
+        self.title_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.title_label)
+
         form = QFormLayout()
 
         self.username_edit = QLineEdit()
@@ -227,7 +232,10 @@ class LoginDialog(QDialog):
             self.accept()
         else:
             #log.warning("Login failed for user: %s", username)
-            QMessageBox.warning(self, "Login Failed", "Invalid username or password.")
+            message = "Invalid username or password."
+            if username.lower() == "trainee":
+                message += "\nReminder: try 'trainee' as password."
+            QMessageBox.warning(self, "Login Failed", message)
             self.password_edit.clear()
             self.password_edit.setFocus()
 
@@ -281,18 +289,22 @@ class MainWindow(QMainWindow):
         open_action.triggered.connect(self.on_open)
         self.file_menu.addAction(open_action)
 
-        self.file_menu.addSeparator()
-
-        exit_action = QAction("&Exit", self)
-        exit_action.setShortcut("Ctrl+Q")
-        exit_action.triggered.connect(self.close)
-        self.file_menu.addAction(exit_action)
-
         # Edit menu
         self.edit_menu = menu_bar.addMenu("&Edit")
         preferences_action = QAction("&Preferences", self)
         preferences_action.triggered.connect(self.on_preferences)
         self.edit_menu.addAction(preferences_action)
+
+        # Navigation menu
+        self.navigation_menu = menu_bar.addMenu("&Navigation")
+        logout_action = QAction("&Logout", self)
+        logout_action.triggered.connect(self.on_logout)
+        self.navigation_menu.addAction(logout_action)
+
+        exit_action = QAction("&Exit", self)
+        exit_action.setShortcut("Ctrl+Q")
+        exit_action.triggered.connect(self.close)
+        self.navigation_menu.addAction(exit_action)
 
         # Help menu
         self.help_menu = menu_bar.addMenu("&Help")
@@ -333,6 +345,11 @@ class MainWindow(QMainWindow):
         """Handle the Edit > Preferences menu action."""
         log.info("Menu: Edit > Preferences")
         QMessageBox.information(self, "Preferences", "Preferences action triggered.")
+
+    def on_logout(self):
+        """Handle the Navigation > Logout menu action."""
+        log.info("Menu: Navigation > Logout")
+        QMessageBox.information(self, "Logout", "Logout action triggered.")
 
     def on_about(self):
         """Display application About information."""
