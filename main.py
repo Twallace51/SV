@@ -37,7 +37,7 @@ except ModuleNotFoundError as exc:
         sys.exit(1)
     raise
 
-from __init__ import __project_name__, __version__
+from __init__ import PROJECT_NAME, VERSION
 
 # endregion
 
@@ -102,12 +102,12 @@ def check_latest_pip_available() -> None:
 
 def check_pytest_available() -> None:
     """Confirm that pytest is installed and report its version."""
-    #log.info("pytest %s is available.", pytest.__version__)
+    #log.info("pytest %s is available.", pytest.VERSION)
 
 def show_training_mode_notice(parent: QMainWindow) -> QMessageBox:
     """Show the trainee session notice and auto-close it after 15 seconds."""
     message_box = QMessageBox(parent)
-    message_box.setWindowTitle(f"{__project_name__} - Training Mode")
+    message_box.setWindowTitle(f"{PROJECT_NAME} - Training Mode")
     message_box.setIcon(QMessageBox.Information)
     message_box.setText(
         "Feel free to explore the application\n"
@@ -139,13 +139,16 @@ class LoginDialog(QDialog):
     def __init__(self, parent=None):
         """Initialize login UI controls and interaction state."""
         super().__init__(parent)
-        self.setWindowTitle(f"{__project_name__} - Version:  {__version__}")
+        self.setWindowTitle(f"{PROJECT_NAME} - Version: {VERSION}")
         self.setFixedSize(500, 160)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout(self)
 
-        self.title_label = QLabel(f"{__project_name__}\nLogin Dialog", self)
+        self.title_label = QLabel(
+            f"{PROJECT_NAME} - Version: {VERSION}\nLogin Dialog",
+            self,
+        )
         self.title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.title_label)
 
@@ -259,7 +262,7 @@ class MainWindow(QMainWindow):
     def _apply_window_title(self):
         """Apply the current title text to the native window."""
         self.setWindowTitle(
-            f"{__project_name__} - Current login: {self._username}"
+            f"{PROJECT_NAME} - Version: {VERSION} - Current login: {self._username}"
         )
 
     def showEvent(self, event: QShowEvent):

@@ -11,7 +11,7 @@ from PySide6.QtCore import Qt
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from main import LoginDialog
-from __init__ import __project_name__, __version__
+from __init__ import PROJECT_NAME, VERSION
 
 # endregion
 
@@ -23,10 +23,10 @@ def dialog(qapp):
 
 class TestLoginDialogInit:
     def test_window_title(self, dialog):
-        assert dialog.windowTitle() == f"{__project_name__} - Version: {__version__}"
+        assert dialog.windowTitle() == f"{PROJECT_NAME} - Version: {VERSION}"
 
     def test_title_label(self, dialog):
-        assert dialog.title_label.text() == f"{__project_name__} - Version: {__version__}\nLogin Dialog"
+        assert dialog.title_label.text() == f"{PROJECT_NAME} - Version: {VERSION}\nLogin Dialog"
 
     def test_fixed_size(self, dialog):
         assert dialog.width() == 500
