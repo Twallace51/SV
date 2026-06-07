@@ -87,6 +87,7 @@ class NuevoAlumnoDialog(QDialog):
         self.pension.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
 
         self.grado = QComboBox()
+        self.grado.addItem("Sin grado", 0)
         try:
             conn = sqlite3.connect(get_active_db_path())
             for gid, gname in conn.execute("SELECT id, grado FROM grados ORDER BY grado").fetchall():
@@ -94,6 +95,7 @@ class NuevoAlumnoDialog(QDialog):
             conn.close()
         except Exception:
             pass
+        self.grado.setCurrentIndex(0)
 
         form.addRow("Nombres *:", self.nombres)
         form.addRow("Paterno *:", self.paterno)
