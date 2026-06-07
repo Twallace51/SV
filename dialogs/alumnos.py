@@ -262,7 +262,12 @@ class BuscarAlumnoDialog(QDialog):
             )
             params = [like, like, like]
             if not self.show_all_checkbox.isChecked():
-                query += " AND COALESCE(a.id_grado, 0) > 0"
+                query += (
+                    " AND a.id_grado IS NOT NULL"
+                    " AND TRIM(CAST(a.id_grado AS TEXT)) <> ''"
+                    " AND LOWER(TRIM(CAST(a.id_grado AS TEXT))) NOT IN ('null', 'none')"
+                    " AND CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER) > 0"
+                )
             query += " ORDER BY a.paterno, a.nombres"
 
             rows = conn.execute(query, params).fetchall()
