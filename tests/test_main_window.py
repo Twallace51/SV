@@ -1,7 +1,9 @@
 """Tests for MainWindow."""
 
 # region - imports
+import runpy
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -209,3 +211,21 @@ class TestTraineeDatabaseSession:
         finally:
             win.close()
             reset_active_db_path()
+
+
+class TestMainWindowBootstrap:
+    def test_running_main_window_as_main_delegates_to_main_main(self, monkeypatch):
+        called = []
+
+        fake_main_module = types.ModuleType("main")
+
+        def fake_main():
+            called.append(True)
+
+        fake_main_module.main = fake_main
+        monkeypatch.setitem(sys.modules, "main", fake_main_module)
+
+        main_window_path = Path(__file__).parent.parent / "windows" / "main_window.py"
+        runpy.run_path(str(main_window_path), run_name="__main__")
+
+        assert called == [True]

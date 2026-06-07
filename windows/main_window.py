@@ -29,7 +29,7 @@ try:
     from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     # Support running this file directly from the windows/ directory.
     project_root = Path(__file__).resolve().parent.parent
     if str(project_root) not in sys.path:
