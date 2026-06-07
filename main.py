@@ -18,7 +18,7 @@ try:
         QHBoxLayout, QTextEdit, QDialogButtonBox
     )
     from PySide6.QtGui import QAction
-    from PySide6.QtCore import Qt, QLockFile, QStandardPaths
+    from PySide6.QtCore import Qt, QLockFile, QStandardPaths, QTimer
     from PySide6.QtGui import QMouseEvent, QWheelEvent, QShowEvent
 except ModuleNotFoundError as exc:
     if exc.name == "pytest":
@@ -101,6 +101,21 @@ def check_latest_pip_available() -> None:
 def check_pytest_available() -> None:
     """Confirm that pytest is installed and report its version."""
     log.info("pytest %s is available.", pytest.__version__)
+
+
+def show_training_mode_notice(parent: QMainWindow) -> QMessageBox:
+    """Show the trainee session notice and auto-close it after 15 seconds."""
+    message_box = QMessageBox(parent)
+    message_box.setWindowTitle("Training Mode")
+    message_box.setIcon(QMessageBox.Information)
+    message_box.setText(
+        "Training mode:\n\n"
+        "Any changes, data input or errors will be discarded when session ends."
+    )
+    message_box.setStandardButtons(QMessageBox.NoButton)
+    message_box.show()
+    QTimer.singleShot(15_000, message_box.close)
+    return message_box
 
 def clear_terminal() -> None:
     """Clear the terminal screen before app startup logs are printed."""
@@ -356,6 +371,8 @@ def main():
     #log.info("Login accepted – opening main window")
     window = MainWindow(login.logged_in_username or "unknown")
     window.show()
+    if login.logged_in_username.strip().lower() == "trainee":
+        window.training_mode_notice = show_training_mode_notice(window)
     exit_code = app.exec()
     #log.info("Application exiting with code %d", exit_code)
     sys.exit(exit_code)
