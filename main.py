@@ -44,6 +44,12 @@ from __init__ import PROJECT_NAME, VERSION
 
 DB_PATH = Path(__file__).parent / "SV.db"
 
+# Current-record globals – updated on every successful INSERT/UPDATE;
+# set to None when the corresponding record is deleted.
+current_alumno_id: int | None = None
+current_adulto_id: int | None = None
+current_cta_id: int | None = None
+
 # endregion
 
 def setup_logging() -> logging.Logger:
@@ -198,7 +204,7 @@ class NuevoAlumnoDialog(QDialog):
             return
         try:
             conn = sqlite3.connect(DB_PATH)
-            conn.execute(
+            cur = conn.execute(
                 "INSERT INTO alumnos (nombres, paterno, materno, cumpleanos, rude, Carnet, id_grado, pension)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (nombres, paterno, self.materno.text().strip(),
@@ -207,6 +213,8 @@ class NuevoAlumnoDialog(QDialog):
                  self.grado.currentData(), self.pension.value()),
             )
             conn.commit()
+            global current_alumno_id
+            current_alumno_id = cur.lastrowid
             conn.close()
             QMessageBox.information(self, "Guardado", f"Alumno '{nombres} {paterno}' guardado.")
             self.accept()
@@ -298,6 +306,8 @@ class EditAlumnoDialog(QDialog):
                  self.grado.currentData(), self.pension.value(), self._id),
             )
             conn.commit()
+            global current_alumno_id
+            current_alumno_id = self._id
             conn.close()
             QMessageBox.information(self, "Guardado", f"Alumno '{nombres} {paterno}' actualizado.")
             self.accept()
@@ -416,7 +426,7 @@ class NuevoParienteDialog(QDialog):
             return
         try:
             conn = sqlite3.connect(DB_PATH)
-            conn.execute(
+            cur = conn.execute(
                 "INSERT INTO adultos (a_nombres, a_paterno, a_materno, cell1, cell2, email, a_carnet, NIT)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (nombres, paterno, self.materno.text().strip(),
@@ -425,6 +435,8 @@ class NuevoParienteDialog(QDialog):
                  self.nit.text().strip()),
             )
             conn.commit()
+            global current_adulto_id
+            current_adulto_id = cur.lastrowid
             conn.close()
             QMessageBox.information(self, "Guardado", f"Pariente '{nombres} {paterno}' guardado.")
             self.accept()
@@ -504,6 +516,8 @@ class EditParienteDialog(QDialog):
                  self.nit.text().strip(), self._id),
             )
             conn.commit()
+            global current_adulto_id
+            current_adulto_id = self._id
             conn.close()
             QMessageBox.information(self, "Guardado", f"Pariente '{nombres} {paterno}' actualizado.")
             self.accept()
@@ -639,7 +653,7 @@ class NuevoCuentaDialog(QDialog):
             return
         try:
             conn = sqlite3.connect(DB_PATH)
-            conn.execute(
+            cur = conn.execute(
                 "INSERT INTO ctas (id_alumno, debito, credito, aclaracion, fecha, factura)"
                 " VALUES (?, ?, ?, ?, ?, ?)",
                 (self.alumno.currentData(), self.debito.value(), self.credito.value(),
@@ -648,6 +662,8 @@ class NuevoCuentaDialog(QDialog):
                  self.factura.text().strip()),
             )
             conn.commit()
+            global current_cta_id
+            current_cta_id = cur.lastrowid
             conn.close()
             QMessageBox.information(self, "Guardado", "Cuenta guardada.")
             self.accept()
@@ -739,6 +755,8 @@ class EditCuentaDialog(QDialog):
                  self.factura.text().strip(), self._id),
             )
             conn.commit()
+            global current_cta_id
+            current_cta_id = self._id
             conn.close()
             QMessageBox.information(self, "Guardado", "Cuenta actualizada.")
             self.accept()
