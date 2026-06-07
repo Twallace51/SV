@@ -41,6 +41,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self._username = username
         self._trainee_temp_db_path: Path | None = None
+        self._allow_close = False
         self._apply_window_title()
         self.resize(800, 600)
         self._build_menu_bar()
@@ -62,7 +63,15 @@ class MainWindow(QMainWindow):
         super().showEvent(event)
 
     def closeEvent(self, event: QCloseEvent):
-        """Ensure temporary trainee session artifacts are cleaned up on close."""
+        """Return to login on close; only exit when relogin is cancelled."""
+        if not self._allow_close:
+            event.ignore()
+            if self._relogin_or_close_app():
+                return
+            self._allow_close = True
+            self.close()
+            return
+
         self._clear_training_mode_notice()
         self._cleanup_trainee_temp_database()
         super().closeEvent(event)
@@ -223,6 +232,21 @@ class MainWindow(QMainWindow):
         if self._username.strip().lower() == "trainee":
             self.training_mode_notice = show_training_mode_notice(self)
 
+    def _relogin_or_close_app(self) -> bool:
+        """Hide the main window and relogin; return True when relogin succeeds."""
+        self._clear_training_mode_notice()
+        self._cleanup_trainee_temp_database()
+        self.hide()
+
+        # Use a top-level dialog so it cannot be blocked by a hidden parent.
+        login = LoginDialog()
+        if login.exec() == QDialog.Accepted:
+            self._start_user_session(login.logged_in_username)
+            self.show()
+            return True
+
+        return False
+
     # --- Menu action handlers ---
 
     def on_new(self):
@@ -274,16 +298,8 @@ class MainWindow(QMainWindow):
 
     def on_logout(self):
         """Handle the Navegación > Cerrar sesión menu action."""
-        self._clear_training_mode_notice()
-        self._cleanup_trainee_temp_database()
-        self.hide()
-
-        # Use a top-level dialog during logout so it cannot be blocked by a hidden parent.
-        login = LoginDialog()
-        if login.exec() == QDialog.Accepted:
-            self._start_user_session(login.logged_in_username)
-            self.show()
-        else:
+        if not self._relogin_or_close_app():
+            self._allow_close = True
             self.close()
 
     def on_alumnos_nuevo(self):
