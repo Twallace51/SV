@@ -70,8 +70,8 @@ class NuevoParienteDialog(QDialog):
         layout.addWidget(buttons)
 
     def _save(self):
-        nombres = self.nombres.text().strip()
-        paterno = self.paterno.text().strip()
+        nombres = self.nombres.text().strip().title()
+        paterno = self.paterno.text().strip().title()
         if not nombres or not paterno:
             QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
             return
@@ -80,7 +80,7 @@ class NuevoParienteDialog(QDialog):
             cur = conn.execute(
                 "INSERT INTO adultos (a_nombres, a_paterno, a_materno, cell1, cell2, email, a_carnet, NIT)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (nombres, paterno, self.materno.text().strip(),
+                (nombres, paterno, self.materno.text().strip().title(),
                  self.cell1.text().strip(), self.cell2.text().strip(),
                  self.email.text().strip(), self.carnet.text().strip(),
                  self.nit.text().strip()),
@@ -152,8 +152,8 @@ class EditParienteDialog(QDialog):
         layout.addWidget(buttons)
 
     def _save(self):
-        nombres = self.nombres.text().strip()
-        paterno = self.paterno.text().strip()
+        nombres = self.nombres.text().strip().title()
+        paterno = self.paterno.text().strip().title()
         if not nombres or not paterno:
             QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
             return
@@ -162,7 +162,7 @@ class EditParienteDialog(QDialog):
             conn.execute(
                 "UPDATE adultos SET a_nombres=?, a_paterno=?, a_materno=?,"
                 " cell1=?, cell2=?, email=?, a_carnet=?, NIT=? WHERE id=?",
-                (nombres, paterno, self.materno.text().strip(),
+                (nombres, paterno, self.materno.text().strip().title(),
                  self.cell1.text().strip(), self.cell2.text().strip(),
                  self.email.text().strip(), self.carnet.text().strip(),
                  self.nit.text().strip(), self._id),

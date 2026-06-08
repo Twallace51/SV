@@ -114,8 +114,8 @@ class NuevoAlumnoDialog(QDialog):
         layout.addWidget(buttons)
 
     def _save(self):
-        nombres = self.nombres.text().strip()
-        paterno = self.paterno.text().strip()
+        nombres = self.nombres.text().strip().title()
+        paterno = self.paterno.text().strip().title()
         if not nombres or not paterno:
             QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
             return
@@ -124,7 +124,7 @@ class NuevoAlumnoDialog(QDialog):
             cur = conn.execute(
                 "INSERT INTO alumnos (nombres, paterno, materno, cumpleanos, rude, Carnet, id_grado, pension)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (nombres, paterno, self.materno.text().strip(),
+                (nombres, paterno, self.materno.text().strip().title(),
                  self.cumpleanos.date().toString("yyyy-MM-dd"),
                  self.rude.text().strip(), self.carnet.text().strip(),
                  self.grado.currentData(), self.pension.value()),
@@ -209,8 +209,8 @@ class EditAlumnoDialog(QDialog):
         layout.addWidget(buttons)
 
     def _save(self):
-        nombres = self.nombres.text().strip()
-        paterno = self.paterno.text().strip()
+        nombres = self.nombres.text().strip().title()
+        paterno = self.paterno.text().strip().title()
         if not nombres or not paterno:
             QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
             return
@@ -219,7 +219,7 @@ class EditAlumnoDialog(QDialog):
             conn.execute(
                 "UPDATE alumnos SET nombres=?, paterno=?, materno=?, cumpleanos=?,"
                 " rude=?, Carnet=?, id_grado=?, pension=? WHERE id=?",
-                (nombres, paterno, self.materno.text().strip(),
+                (nombres, paterno, self.materno.text().strip().title(),
                  self.cumpleanos.date().toString("yyyy-MM-dd"),
                  self.rude.text().strip(), self.carnet.text().strip(),
                  self.grado.currentData(), self.pension.value(), self._id),
