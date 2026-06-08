@@ -249,13 +249,29 @@ class MainWindow(QMainWindow):
 
     def _refresh_current_alumno_id_label(self):
         """Update the current alumno ID status label from shared dialog state."""
-        value = alumnos_dialogs.current_alumno_id
-        self.current_alumno_id_value.setText("-" if value is None else str(value))
+        alumno_id = alumnos_dialogs.current_alumno_id
+        alumno_name = alumnos_dialogs.current_alumno_name
+
+        if alumno_id is None:
+            self.current_alumno_id_value.setText("-")
+        else:
+            text = str(alumno_id)
+            if alumno_name:
+                text += f" - {alumno_name}"
+            self.current_alumno_id_value.setText(text)
 
     def _refresh_current_adulto_id_label(self):
         """Update the current adulto ID status label from shared dialog state."""
-        value = parientes_dialogs.current_adulto_id
-        self.current_adulto_id_value.setText("-" if value is None else str(value))
+        adulto_id = parientes_dialogs.current_adulto_id
+        adulto_name = parientes_dialogs.current_adulto_name
+
+        if adulto_id is None:
+            self.current_adulto_id_value.setText("-")
+        else:
+            text = str(adulto_id)
+            if adulto_name:
+                text += f" - {adulto_name}"
+            self.current_adulto_id_value.setText(text)
 
     def _apply_session_theme(self):
         """Apply a trainee-only background tint for the current session."""
