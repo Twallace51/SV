@@ -7,7 +7,7 @@ import types
 from pathlib import Path
 
 import pytest
-from PySide6.QtWidgets import QLabel, QDialog
+from PySide6.QtWidgets import QLabel, QDialog, QWidget
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from windows.main_window import MainWindow
@@ -30,10 +30,31 @@ class TestMainWindowInit:
         assert window.width() == 800
         assert window.height() == 600
 
-    def test_central_widget_is_label(self, window):
+    def test_central_widget_contains_welcome_label(self, window):
         central = window.centralWidget()
-        assert isinstance(central, QLabel)
-        assert central.text() == "¡Bienvenido!"
+        assert isinstance(central, QWidget)
+        assert isinstance(window.welcome_label, QLabel)
+        assert window.welcome_label.text() == "¡Bienvenido!"
+
+    def test_current_alumno_id_defaults_to_dash(self, window):
+        assert window.current_alumno_id_label.text() == "Current alumno ID:"
+        assert window.current_alumno_id_value.text() == "-"
+
+    def test_current_adulto_id_defaults_to_dash(self, window):
+        assert window.current_adulto_id_label.text() == "Current adulto ID:"
+        assert window.current_adulto_id_value.text() == "-"
+
+    def test_refresh_current_alumno_id_label_uses_shared_state(self, window, monkeypatch):
+        monkeypatch.setattr("windows.main_window.alumnos_dialogs.current_alumno_id", 23)
+        window._refresh_current_alumno_id_label()
+
+        assert window.current_alumno_id_value.text() == "23"
+
+    def test_refresh_current_adulto_id_label_uses_shared_state(self, window, monkeypatch):
+        monkeypatch.setattr("windows.main_window.parientes_dialogs.current_adulto_id", 41)
+        window._refresh_current_adulto_id_label()
+
+        assert window.current_adulto_id_value.text() == "41"
 class TestMainWindowMenuBar:
     def test_menu_bar_exists(self, window):
         assert window.menuBar() is not None

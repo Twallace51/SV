@@ -10,8 +10,9 @@ from pathlib import Path
 from datetime import datetime
 
 from PySide6.QtWidgets import (
-    QMainWindow, QLabel, QDialog,
+    QMainWindow, QLabel, QDialog, QWidget,
     QVBoxLayout, QTextEdit, QDialogButtonBox, QMessageBox,
+    QHBoxLayout,
 )
 from PySide6.QtGui import QAction, QShowEvent, QCloseEvent
 from PySide6.QtCore import Qt
@@ -26,6 +27,8 @@ try:
     )
     from utils import show_training_mode_notice
     from dialogs.login import LoginDialog
+    import dialogs.alumnos as alumnos_dialogs
+    import dialogs.parientes as parientes_dialogs
     from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
@@ -46,6 +49,8 @@ except (ModuleNotFoundError, ImportError):
     )
     from utils import show_training_mode_notice
     from dialogs.login import LoginDialog
+    import dialogs.alumnos as alumnos_dialogs
+    import dialogs.parientes as parientes_dialogs
     from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
@@ -213,10 +218,44 @@ class MainWindow(QMainWindow):
         self.help_menu.addAction(about_action)
 
     def _build_central(self):
-        """Create and attach the central welcome label widget."""
-        label = QLabel("¡Bienvenido!", self)
-        label.setAlignment(Qt.AlignCenter)
-        self.setCentralWidget(label)
+        """Create and attach the central welcome/status widget."""
+        central = QWidget(self)
+        layout = QVBoxLayout(central)
+
+        self.welcome_label = QLabel("¡Bienvenido!", self)
+        self.welcome_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.welcome_label)
+
+        current_row = QHBoxLayout()
+        self.current_alumno_id_label = QLabel("Current alumno ID:", self)
+        self.current_alumno_id_value = QLabel("-", self)
+        current_row.addWidget(self.current_alumno_id_label)
+        current_row.addWidget(self.current_alumno_id_value)
+        current_row.addStretch(1)
+        layout.addLayout(current_row)
+
+        current_adulto_row = QHBoxLayout()
+        self.current_adulto_id_label = QLabel("Current adulto ID:", self)
+        self.current_adulto_id_value = QLabel("-", self)
+        current_adulto_row.addWidget(self.current_adulto_id_label)
+        current_adulto_row.addWidget(self.current_adulto_id_value)
+        current_adulto_row.addStretch(1)
+        layout.addLayout(current_adulto_row)
+
+        layout.addStretch(1)
+        self.setCentralWidget(central)
+        self._refresh_current_alumno_id_label()
+        self._refresh_current_adulto_id_label()
+
+    def _refresh_current_alumno_id_label(self):
+        """Update the current alumno ID status label from shared dialog state."""
+        value = alumnos_dialogs.current_alumno_id
+        self.current_alumno_id_value.setText("-" if value is None else str(value))
+
+    def _refresh_current_adulto_id_label(self):
+        """Update the current adulto ID status label from shared dialog state."""
+        value = parientes_dialogs.current_adulto_id
+        self.current_adulto_id_value.setText("-" if value is None else str(value))
 
     def _apply_session_theme(self):
         """Apply a trainee-only background tint for the current session."""
@@ -320,21 +359,25 @@ class MainWindow(QMainWindow):
         """Handle the Alumnos > Nuevo menu action."""
         log.info("Menú: Alumnos > Nuevo")
         NuevoAlumnoDialog(self).exec()
+        self._refresh_current_alumno_id_label()
 
     def on_alumnos_buscar(self):
         """Handle the Alumnos > Buscar menu action."""
         log.info("Menú: Alumnos > Buscar")
         BuscarAlumnoDialog(self).exec()
+        self._refresh_current_alumno_id_label()
 
     def on_parientes_nuevo(self):
         """Handle the Parientes > Nuevo menu action."""
         log.info("Menú: Parientes > Nuevo")
         NuevoParienteDialog(self).exec()
+        self._refresh_current_adulto_id_label()
 
     def on_parientes_buscar(self):
         """Handle the Parientes > Buscar menu action."""
         log.info("Menú: Parientes > Buscar")
         BuscarParienteDialog(self).exec()
+        self._refresh_current_adulto_id_label()
 
     def on_cuentas_nuevo(self):
         """Handle the Cuentas > Nuevo menu action."""
