@@ -119,13 +119,17 @@ class NuevoAlumnoDialog(QDialog):
         if not nombres or not paterno:
             QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
             return
+        cumpleanos = self.cumpleanos.date().toString("yyyy-MM-dd")
+        if not self.cumpleanos.date().isValid():
+            QMessageBox.warning(self, "Validación", "La fecha de cumpleaños debe tener el formato YYYY-MM-DD.")
+            return
         try:
             conn = sqlite3.connect(get_active_db_path())
             cur = conn.execute(
                 "INSERT INTO alumnos (nombres, paterno, materno, cumpleanos, rude, Carnet, id_grado, pension)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (nombres, paterno, self.materno.text().strip().title(),
-                 self.cumpleanos.date().toString("yyyy-MM-dd"),
+                 cumpleanos,
                  self.rude.text().strip(), self.carnet.text().strip(),
                  self.grado.currentData(), self.pension.value()),
             )
@@ -143,9 +147,10 @@ class NuevoAlumnoDialog(QDialog):
 class EditAlumnoDialog(QDialog):
     """Edit form pre-populated with an existing alumno record."""
 
-    def __init__(self, record_id: int, parent=None):
+    def __init__(self, record_id: int, parent=None, is_admin: bool = False):
         super().__init__(parent)
         self._id = record_id
+        self._is_admin = is_admin
         self.setWindowTitle("Alumnos - Editar")
         self.setMinimumWidth(420)
         layout = QVBoxLayout(self)
@@ -204,8 +209,13 @@ class EditAlumnoDialog(QDialog):
         layout.addLayout(form)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=self)
+        self.delete_btn = buttons.addButton("Borrar", QDialogButtonBox.ActionRole)
+        self.delete_btn.setEnabled(self._is_admin)
+        if not self._is_admin:
+            self.delete_btn.setToolTip("Solo administrador puede borrar registros.")
         buttons.accepted.connect(self._save)
         buttons.rejected.connect(self.reject)
+        self.delete_btn.clicked.connect(self._delete)
         layout.addWidget(buttons)
 
     def _save(self):
@@ -214,13 +224,17 @@ class EditAlumnoDialog(QDialog):
         if not nombres or not paterno:
             QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
             return
+        cumpleanos = self.cumpleanos.date().toString("yyyy-MM-dd")
+        if not self.cumpleanos.date().isValid():
+            QMessageBox.warning(self, "Validación", "La fecha de cumpleaños debe tener el formato YYYY-MM-DD.")
+            return
         try:
             conn = sqlite3.connect(get_active_db_path())
             conn.execute(
                 "UPDATE alumnos SET nombres=?, paterno=?, materno=?, cumpleanos=?,"
                 " rude=?, Carnet=?, id_grado=?, pension=? WHERE id=?",
                 (nombres, paterno, self.materno.text().strip().title(),
-                 self.cumpleanos.date().toString("yyyy-MM-dd"),
+                 cumpleanos,
                  self.rude.text().strip(), self.carnet.text().strip(),
                  self.grado.currentData(), self.pension.value(), self._id),
             )
@@ -234,14 +248,43 @@ class EditAlumnoDialog(QDialog):
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
 
+    def _delete(self):
+        if not self._is_admin:
+            QMessageBox.warning(self, "Permisos", "Solo administrador puede borrar registros.")
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Confirmar borrado",
+            "¿Desea borrar este alumno? Esta acción no se puede deshacer.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        try:
+            conn = sqlite3.connect(get_active_db_path())
+            conn.execute("DELETE FROM alumnos WHERE id = ?", (self._id,))
+            conn.commit()
+            conn.close()
+            global current_alumno_id, current_alumno_name
+            current_alumno_id = None
+            current_alumno_name = None
+            QMessageBox.information(self, "Borrado", "Alumno borrado correctamente.")
+            self.accept()
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"No se pudo borrar:\n{exc}")
+
 
 class BuscarAlumnoDialog(QDialog):
     """Search dialog for alumnos."""
 
     _HEADERS = ["ID", "Nombres", "Paterno", "Materno", "RUDE", "Carnet", "Grado", "Pensión"]
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, is_admin: bool = False):
         super().__init__(parent)
+        self._is_admin = is_admin
         self.setWindowTitle("Alumnos - Buscar")
         self.resize(760, 420)
         layout = QVBoxLayout(self)
@@ -302,7 +345,7 @@ class BuscarAlumnoDialog(QDialog):
         id_item = self.table.item(row, 0)
         if id_item is None:
             return
-        dlg = EditAlumnoDialog(int(id_item.text()), self)
+        dlg = EditAlumnoDialog(int(id_item.text()), self, is_admin=self._is_admin)
         if dlg.exec() == QDialog.Accepted:
             self._load(self.search_edit.text())
 

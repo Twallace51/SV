@@ -380,7 +380,7 @@ class MainWindow(QMainWindow):
     def on_alumnos_buscar(self):
         """Handle the Alumnos > Buscar menu action."""
         log.info("Menú: Alumnos > Buscar")
-        BuscarAlumnoDialog(self).exec()
+        BuscarAlumnoDialog(self, is_admin=self._username.strip().lower() == "admin").exec()
         self._refresh_current_alumno_id_label()
 
     def on_parientes_nuevo(self):
@@ -392,7 +392,7 @@ class MainWindow(QMainWindow):
     def on_parientes_buscar(self):
         """Handle the Parientes > Buscar menu action."""
         log.info("Menú: Parientes > Buscar")
-        BuscarParienteDialog(self).exec()
+        BuscarParienteDialog(self, is_admin=self._username.strip().lower() == "admin").exec()
         self._refresh_current_adulto_id_label()
 
     def on_cuentas_nuevo(self):

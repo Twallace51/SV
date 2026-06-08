@@ -99,9 +99,10 @@ class NuevoParienteDialog(QDialog):
 class EditParienteDialog(QDialog):
     """Edit form pre-populated with an existing pariente record."""
 
-    def __init__(self, record_id: int, parent=None):
+    def __init__(self, record_id: int, parent=None, is_admin: bool = False):
         super().__init__(parent)
         self._id = record_id
+        self._is_admin = is_admin
         self.setWindowTitle("Parientes - Editar")
         self.setMinimumWidth(420)
         layout = QVBoxLayout(self)
@@ -147,8 +148,13 @@ class EditParienteDialog(QDialog):
         layout.addLayout(form)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=self)
+        self.delete_btn = buttons.addButton("Borrar", QDialogButtonBox.ActionRole)
+        self.delete_btn.setEnabled(self._is_admin)
+        if not self._is_admin:
+            self.delete_btn.setToolTip("Solo administrador puede borrar registros.")
         buttons.accepted.connect(self._save)
         buttons.rejected.connect(self.reject)
+        self.delete_btn.clicked.connect(self._delete)
         layout.addWidget(buttons)
 
     def _save(self):
@@ -177,14 +183,43 @@ class EditParienteDialog(QDialog):
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
 
+    def _delete(self):
+        if not self._is_admin:
+            QMessageBox.warning(self, "Permisos", "Solo administrador puede borrar registros.")
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Confirmar borrado",
+            "¿Desea borrar este pariente? Esta acción no se puede deshacer.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        try:
+            conn = sqlite3.connect(get_active_db_path())
+            conn.execute("DELETE FROM adultos WHERE id = ?", (self._id,))
+            conn.commit()
+            conn.close()
+            global current_adulto_id, current_adulto_name
+            current_adulto_id = None
+            current_adulto_name = None
+            QMessageBox.information(self, "Borrado", "Pariente borrado correctamente.")
+            self.accept()
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"No se pudo borrar:\n{exc}")
+
 
 class BuscarParienteDialog(QDialog):
     """Search dialog for parientes (adultos)."""
 
     _HEADERS = ["ID", "Nombres", "Paterno", "Materno", "Celular 1", "Celular 2", "Email", "Carnet", "NIT"]
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, is_admin: bool = False):
         super().__init__(parent)
+        self._is_admin = is_admin
         self.setWindowTitle("Parientes - Buscar")
         self.resize(820, 380)
         layout = QVBoxLayout(self)
@@ -240,7 +275,7 @@ class BuscarParienteDialog(QDialog):
         id_item = self.table.item(row, 0)
         if id_item is None:
             return
-        dlg = EditParienteDialog(int(id_item.text()), self)
+        dlg = EditParienteDialog(int(id_item.text()), self, is_admin=self._is_admin)
         if dlg.exec() == QDialog.Accepted:
             self._load(self.search_edit.text())
 
