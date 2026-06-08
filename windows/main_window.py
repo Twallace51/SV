@@ -224,6 +224,7 @@ class MainWindow(QMainWindow):
 
         self.welcome_label = QLabel("¡Bienvenido!", self)
         self.welcome_label.setAlignment(Qt.AlignCenter)
+        self.welcome_label.setStyleSheet("font-size: 28px; font-weight: bold;")
         layout.addWidget(self.welcome_label)
 
         current_row = QHBoxLayout()
