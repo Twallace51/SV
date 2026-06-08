@@ -227,7 +227,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.welcome_label)
 
         current_row = QHBoxLayout()
-        self.current_alumno_id_label = QLabel("Current alumno ID:", self)
+        self.current_alumno_id_label = QLabel("ID de alumno actual:", self)
         self.current_alumno_id_value = QLabel("-", self)
         current_row.addWidget(self.current_alumno_id_label)
         current_row.addWidget(self.current_alumno_id_value)
@@ -235,7 +235,7 @@ class MainWindow(QMainWindow):
         layout.addLayout(current_row)
 
         current_adulto_row = QHBoxLayout()
-        self.current_adulto_id_label = QLabel("Current adulto ID:", self)
+        self.current_adulto_id_label = QLabel("ID de adulto actual:", self)
         self.current_adulto_id_value = QLabel("-", self)
         current_adulto_row.addWidget(self.current_adulto_id_label)
         current_adulto_row.addWidget(self.current_adulto_id_value)

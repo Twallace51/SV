@@ -20,6 +20,7 @@ log = logging.getLogger("app")
 # Current-record global – updated on every successful INSERT/UPDATE;
 # set to None when the corresponding record is deleted.
 current_adulto_id: int | None = None
+current_adulto_name: str | None = None
 
 
 class NumericTableWidgetItem(QTableWidgetItem):
@@ -85,8 +86,9 @@ class NuevoParienteDialog(QDialog):
                  self.nit.text().strip()),
             )
             conn.commit()
-            global current_adulto_id
+            global current_adulto_id, current_adulto_name
             current_adulto_id = cur.lastrowid
+            current_adulto_name = f"{paterno}, {nombres}"
             conn.close()
             QMessageBox.information(self, "Guardado", f"Pariente '{nombres} {paterno}' guardado.")
             self.accept()
@@ -166,8 +168,9 @@ class EditParienteDialog(QDialog):
                  self.nit.text().strip(), self._id),
             )
             conn.commit()
-            global current_adulto_id
+            global current_adulto_id, current_adulto_name
             current_adulto_id = self._id
+            current_adulto_name = f"{paterno}, {nombres}"
             conn.close()
             QMessageBox.information(self, "Guardado", f"Pariente '{nombres} {paterno}' actualizado.")
             self.accept()

@@ -23,6 +23,7 @@ log = logging.getLogger("app")
 # Current-record global – updated on every successful INSERT/UPDATE;
 # set to None when the corresponding record is deleted.
 current_alumno_id: int | None = None
+current_alumno_name: str | None = None
 
 
 def _normalize_grado_id(value):
@@ -129,8 +130,9 @@ class NuevoAlumnoDialog(QDialog):
                  self.grado.currentData(), self.pension.value()),
             )
             conn.commit()
-            global current_alumno_id
+            global current_alumno_id, current_alumno_name
             current_alumno_id = cur.lastrowid
+            current_alumno_name = f"{nombres} {paterno}"
             conn.close()
             QMessageBox.information(self, "Guardado", f"Alumno '{nombres} {paterno}' guardado.")
             self.accept()
@@ -223,8 +225,9 @@ class EditAlumnoDialog(QDialog):
                  self.grado.currentData(), self.pension.value(), self._id),
             )
             conn.commit()
-            global current_alumno_id
+            global current_alumno_id, current_alumno_name
             current_alumno_id = self._id
+            current_alumno_name = f"{nombres} {paterno}"
             conn.close()
             QMessageBox.information(self, "Guardado", f"Alumno '{nombres} {paterno}' actualizado.")
             self.accept()

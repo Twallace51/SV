@@ -37,11 +37,11 @@ class TestMainWindowInit:
         assert window.welcome_label.text() == "¡Bienvenido!"
 
     def test_current_alumno_id_defaults_to_dash(self, window):
-        assert window.current_alumno_id_label.text() == "Current alumno ID:"
+        assert window.current_alumno_id_label.text() == "ID de alumno actual:"
         assert window.current_alumno_id_value.text() == "-"
 
     def test_current_adulto_id_defaults_to_dash(self, window):
-        assert window.current_adulto_id_label.text() == "Current adulto ID:"
+        assert window.current_adulto_id_label.text() == "ID de adulto actual:"
         assert window.current_adulto_id_value.text() == "-"
 
     def test_refresh_current_alumno_id_label_uses_shared_state(self, window, monkeypatch):
