@@ -203,6 +203,7 @@ class BuscarParienteDialog(QDialog):
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setSortingEnabled(True)
+        self.table.cellClicked.connect(self._on_single_click)
         self.table.cellDoubleClicked.connect(self._on_double_click)
         layout.addWidget(self.table)
 
@@ -212,7 +213,30 @@ class BuscarParienteDialog(QDialog):
 
         self._load("")
 
+    def _on_single_click(self, row: int, _col: int):
+        self._set_current_adulto_from_row(row)
+
+    def _set_current_adulto_from_row(self, row: int):
+        id_item = self.table.item(row, 0)
+        if id_item is None:
+            return
+        nombres_item = self.table.item(row, 1)
+        paterno_item = self.table.item(row, 2)
+
+        try:
+            selected_id = int(id_item.text())
+        except (TypeError, ValueError):
+            return
+
+        selected_nombres = "" if nombres_item is None else nombres_item.text().strip()
+        selected_paterno = "" if paterno_item is None else paterno_item.text().strip()
+
+        global current_adulto_id, current_adulto_name
+        current_adulto_id = selected_id
+        current_adulto_name = f"{selected_paterno}, {selected_nombres}"
+
     def _on_double_click(self, row: int, _col: int):
+        self._set_current_adulto_from_row(row)
         id_item = self.table.item(row, 0)
         if id_item is None:
             return

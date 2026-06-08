@@ -265,6 +265,7 @@ class BuscarAlumnoDialog(QDialog):
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setSortingEnabled(True)
+        self.table.cellClicked.connect(self._on_single_click)
         self.table.cellDoubleClicked.connect(self._on_double_click)
         layout.addWidget(self.table)
 
@@ -274,7 +275,30 @@ class BuscarAlumnoDialog(QDialog):
 
         self._load("")
 
+    def _on_single_click(self, row: int, _col: int):
+        self._set_current_alumno_from_row(row)
+
+    def _set_current_alumno_from_row(self, row: int):
+        id_item = self.table.item(row, 0)
+        if id_item is None:
+            return
+        nombres_item = self.table.item(row, 1)
+        paterno_item = self.table.item(row, 2)
+
+        try:
+            selected_id = int(id_item.text())
+        except (TypeError, ValueError):
+            return
+
+        selected_nombres = "" if nombres_item is None else nombres_item.text().strip()
+        selected_paterno = "" if paterno_item is None else paterno_item.text().strip()
+
+        global current_alumno_id, current_alumno_name
+        current_alumno_id = selected_id
+        current_alumno_name = " ".join(part for part in (selected_nombres, selected_paterno) if part)
+
     def _on_double_click(self, row: int, _col: int):
+        self._set_current_alumno_from_row(row)
         id_item = self.table.item(row, 0)
         if id_item is None:
             return
