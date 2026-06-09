@@ -114,6 +114,10 @@ class NuevoCuentaDialog(QDialog):
     def _sync_amount_fields(self):
         debito_has_value = self.debito.value() > 0
         credito_has_value = self.credito.value() > 0
+        if not debito_has_value and not credito_has_value:
+            self.debito.setEnabled(True)
+            self.credito.setEnabled(True)
+            return
         self.credito.setEnabled(not debito_has_value)
         self.debito.setEnabled(not credito_has_value)
 
@@ -256,6 +260,10 @@ class EditCuentaDialog(QDialog):
     def _sync_amount_fields(self):
         debito_has_value = self.debito.value() > 0
         credito_has_value = self.credito.value() > 0
+        if not debito_has_value and not credito_has_value:
+            self.debito.setEnabled(True)
+            self.credito.setEnabled(True)
+            return
         self.credito.setEnabled(not debito_has_value)
         self.debito.setEnabled(not credito_has_value)
 
