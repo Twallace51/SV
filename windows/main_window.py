@@ -451,7 +451,7 @@ class MainWindow(QMainWindow):
     def on_cuentas_buscar(self):
         """Handle the Cuentas > Buscar menu action."""
         log.info("Menú: Cuentas > Buscar")
-        BuscarCuentaDialog(self).exec()
+        BuscarCuentaDialog(self, is_admin=self._username.strip().lower() == "admin").exec()
 
     def on_about(self):
         """Display application About information."""
