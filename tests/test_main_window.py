@@ -57,6 +57,23 @@ class TestMainWindowInit:
         window._refresh_current_adulto_id_label()
 
         assert window.current_adulto_id_value.text() == "41"
+
+    def test_inactivity_timer_is_five_minutes_single_shot(self, window):
+        assert window._inactivity_timer.isSingleShot()
+        assert window._inactivity_timer.interval() == 5 * 60 * 1000
+
+    def test_inactivity_timeout_triggers_logout_when_visible(self, qapp, monkeypatch):
+        win = MainWindow("user")
+        try:
+            logout_calls = []
+            monkeypatch.setattr(win, "on_logout", lambda: logout_calls.append(True))
+            monkeypatch.setattr(win, "isVisible", lambda: True)
+
+            win._handle_inactivity_timeout()
+
+            assert logout_calls == [True]
+        finally:
+            win.close()
 class TestMainWindowMenuBar:
     def test_menu_bar_exists(self, window):
         assert window.menuBar() is not None

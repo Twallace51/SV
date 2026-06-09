@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
 )
 from PySide6.QtGui import QAction, QShowEvent, QCloseEvent
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QEvent, QTimer, QCoreApplication
 
 try:
     from __init__ import (
@@ -65,6 +65,19 @@ log = logging.getLogger("app")
 class MainWindow(QMainWindow):
     """Primary application window shown after successful login."""
 
+    _INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000
+    _USER_ACTIVITY_EVENTS = {
+        QEvent.Type.MouseMove,
+        QEvent.Type.MouseButtonPress,
+        QEvent.Type.MouseButtonRelease,
+        QEvent.Type.KeyPress,
+        QEvent.Type.KeyRelease,
+        QEvent.Type.Wheel,
+        QEvent.Type.TouchBegin,
+        QEvent.Type.TouchUpdate,
+        QEvent.Type.TouchEnd,
+    }
+
     def __init__(self, username: str):
         """Initialize the main window and include version/user in title."""
         super().__init__()
@@ -78,8 +91,50 @@ class MainWindow(QMainWindow):
         self._build_central()
         self._configure_session_database(self._username)
         self._ensure_monthly_pension_records()
+        self._setup_inactivity_timer()
         self._apply_window_title()
         self._apply_session_theme()
+
+    def _setup_inactivity_timer(self):
+        """Initialize and start inactivity tracking for automatic logout."""
+        self._inactivity_timer = QTimer(self)
+        self._inactivity_timer.setSingleShot(True)
+        self._inactivity_timer.setInterval(self._INACTIVITY_TIMEOUT_MS)
+        self._inactivity_timer.timeout.connect(self._handle_inactivity_timeout)
+
+        app = QCoreApplication.instance()
+        if app is not None:
+            app.installEventFilter(self)
+
+        self._restart_inactivity_timer()
+
+    def _restart_inactivity_timer(self):
+        """Restart inactivity countdown from zero."""
+        if hasattr(self, "_inactivity_timer") and self._inactivity_timer is not None:
+            self._inactivity_timer.start()
+
+    def _stop_inactivity_timer(self):
+        """Stop inactivity tracking and remove the app-level event filter."""
+        if hasattr(self, "_inactivity_timer") and self._inactivity_timer is not None:
+            self._inactivity_timer.stop()
+
+        app = QCoreApplication.instance()
+        if app is not None:
+            app.removeEventFilter(self)
+
+    def _handle_inactivity_timeout(self):
+        """Automatically log out when no user activity is detected for 5 minutes."""
+        if not self.isVisible() or self._handling_close_flow:
+            return
+
+        log.info("Cierre de sesión automático por inactividad")
+        self.on_logout()
+
+    def eventFilter(self, watched, event):
+        """Reset inactivity timer on user activity events while window is visible."""
+        if self.isVisible() and event.type() in self._USER_ACTIVITY_EVENTS:
+            self._restart_inactivity_timer()
+        return super().eventFilter(watched, event)
 
     def _ensure_monthly_pension_records(self, now: datetime | None = None):
         """Ensure monthly pension charges exist in ctas on day 1 of Feb-Nov."""
@@ -134,6 +189,7 @@ class MainWindow(QMainWindow):
     def showEvent(self, event: QShowEvent):
         """Reapply title on show to keep native title bar in sync."""
         self._apply_window_title()
+        self._restart_inactivity_timer()
         super().showEvent(event)
 
     def closeEvent(self, event: QCloseEvent):
@@ -155,6 +211,7 @@ class MainWindow(QMainWindow):
             return
 
         self._clear_training_mode_notice()
+        self._stop_inactivity_timer()
         self._cleanup_trainee_temp_database()
         super().closeEvent(event)
 
@@ -345,6 +402,7 @@ class MainWindow(QMainWindow):
         self._configure_session_database(self._username)
         self._apply_window_title()
         self._apply_session_theme()
+        self._restart_inactivity_timer()
         self._clear_training_mode_notice()
         if self._username.strip().lower() == "trainee":
             self.training_mode_notice = show_training_mode_notice(self)
