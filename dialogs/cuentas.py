@@ -63,6 +63,13 @@ class NuevoCuentaDialog(QDialog):
         self.credito.valueChanged.connect(self._sync_amount_fields)
 
         self.aclaracion = QLineEdit()
+        self.aclaracion_select = QComboBox()
+        self.aclaracion_select.addItems(["Pension", "Comedor", "Insumos"])
+        self.aclaracion_select.setCurrentIndex(-1)
+        self.aclaracion_select.currentTextChanged.connect(self._apply_aclaracion_option)
+        aclaracion_row = QHBoxLayout()
+        aclaracion_row.addWidget(self.aclaracion)
+        aclaracion_row.addWidget(self.aclaracion_select)
         self.fecha = QDateEdit()
         self.fecha.setCalendarPopup(True)
         self.fecha.setDisplayFormat("yyyy-MM-dd")
@@ -74,7 +81,7 @@ class NuevoCuentaDialog(QDialog):
         form.addRow("Alumno:", self.alumno)
         form.addRow("Débito:", self.debito)
         form.addRow("Crédito:", self.credito)
-        form.addRow("Aclaración:", self.aclaracion)
+        form.addRow("Aclaración:", aclaracion_row)
         form.addRow("Fecha:", self.fecha)
         form.addRow("Numero Factura:", self.factura)
         layout.addLayout(form)
@@ -120,6 +127,12 @@ class NuevoCuentaDialog(QDialog):
             return
         self.credito.setEnabled(not debito_has_value)
         self.debito.setEnabled(not credito_has_value)
+
+    def _apply_aclaracion_option(self, option: str):
+        current = self.aclaracion.text().strip()
+        preset_values = {"Pension", "Comedor", "Insumos"}
+        if option and (not current or current in preset_values):
+            self.aclaracion.setText(option)
 
     def _save(self):
         raw_id = self.id_alumno.text().strip()
@@ -199,6 +212,13 @@ class EditCuentaDialog(QDialog):
         self.credito.valueChanged.connect(self._sync_amount_fields)
 
         self.aclaracion = QLineEdit()
+        self.aclaracion_select = QComboBox()
+        self.aclaracion_select.addItems(["Pension", "Comedor", "Insumos"])
+        self.aclaracion_select.setCurrentIndex(-1)
+        self.aclaracion_select.currentTextChanged.connect(self._apply_aclaracion_option)
+        aclaracion_row = QHBoxLayout()
+        aclaracion_row.addWidget(self.aclaracion)
+        aclaracion_row.addWidget(self.aclaracion_select)
         self.fecha = QDateEdit()
         self.fecha.setCalendarPopup(True)
         self.fecha.setDisplayFormat("yyyy-MM-dd")
@@ -215,12 +235,15 @@ class EditCuentaDialog(QDialog):
             if d.isValid():
                 self.fecha.setDate(d)
             self.factura.setText(row[5] or "")
+            aclaracion_idx = self.aclaracion_select.findText(self.aclaracion.text())
+            if aclaracion_idx >= 0:
+                self.aclaracion_select.setCurrentIndex(aclaracion_idx)
 
         form.addRow("ID Alumno *:", self.id_alumno)
         form.addRow("Alumno:", self.alumno)
         form.addRow("Débito:", self.debito)
         form.addRow("Crédito:", self.credito)
-        form.addRow("Aclaración:", self.aclaracion)
+        form.addRow("Aclaración:", aclaracion_row)
         form.addRow("Fecha:", self.fecha)
         form.addRow("Numero Factura:", self.factura)
         layout.addLayout(form)
@@ -266,6 +289,12 @@ class EditCuentaDialog(QDialog):
             return
         self.credito.setEnabled(not debito_has_value)
         self.debito.setEnabled(not credito_has_value)
+
+    def _apply_aclaracion_option(self, option: str):
+        current = self.aclaracion.text().strip()
+        preset_values = {"Pension", "Comedor", "Insumos"}
+        if option and (not current or current in preset_values):
+            self.aclaracion.setText(option)
 
     def _save(self):
         raw_id = self.id_alumno.text().strip()
