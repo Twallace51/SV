@@ -2,8 +2,10 @@
 
 # region - imports
 import runpy
+import sqlite3
 import sys
 import types
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -250,3 +252,83 @@ class TestMainWindowBootstrap:
         runpy.run_path(str(main_window_path), run_name="__main__")
 
         assert called == [True]
+
+
+class TestMonthlyPensionSync:
+    def _create_schema(self, db_path: Path):
+        conn = sqlite3.connect(db_path)
+        conn.execute(
+            "CREATE TABLE alumnos ("
+            "id INTEGER PRIMARY KEY, "
+            "nombres TEXT, "
+            "paterno TEXT, "
+            "pension REAL"
+            ")"
+        )
+        conn.execute(
+            "CREATE TABLE ctas ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "id_alumno INTEGER, "
+            "debito REAL, "
+            "credito REAL, "
+            "aclaracion TEXT, "
+            "fecha TEXT, "
+            "factura TEXT"
+            ")"
+        )
+        conn.commit()
+        conn.close()
+
+    def test_first_day_feb_to_nov_adds_missing_monthly_pension_rows(self, qapp, tmp_path):
+        db_path = tmp_path / "monthly.db"
+        self._create_schema(db_path)
+
+        conn = sqlite3.connect(db_path)
+        conn.execute("INSERT INTO alumnos (id, nombres, paterno, pension) VALUES (1, 'Ana', 'Lopez', 350)")
+        conn.execute("INSERT INTO alumnos (id, nombres, paterno, pension) VALUES (2, 'Luis', 'Perez', 0)")
+        conn.commit()
+        conn.close()
+
+        win = MainWindow("user")
+        try:
+            set_active_db_path(db_path)
+            win._ensure_monthly_pension_records(datetime(2026, 2, 1, 8, 30, 0))
+
+            conn = sqlite3.connect(db_path)
+            rows = conn.execute(
+                "SELECT id_alumno, debito, credito, aclaracion, fecha "
+                "FROM ctas ORDER BY id"
+            ).fetchall()
+            conn.close()
+
+            assert rows == [(1, 350.0, 0.0, "Pension para febrero", "2026-02-01")]
+        finally:
+            win.close()
+            reset_active_db_path()
+
+    def test_first_day_does_not_duplicate_existing_monthly_pension_rows(self, qapp, tmp_path):
+        db_path = tmp_path / "monthly_existing.db"
+        self._create_schema(db_path)
+
+        conn = sqlite3.connect(db_path)
+        conn.execute("INSERT INTO alumnos (id, nombres, paterno, pension) VALUES (1, 'Ana', 'Lopez', 350)")
+        conn.execute(
+            "INSERT INTO ctas (id_alumno, debito, credito, aclaracion, fecha, factura) "
+            "VALUES (1, 350, 0, 'Pension para marzo', '2026-03-01', '')"
+        )
+        conn.commit()
+        conn.close()
+
+        win = MainWindow("user")
+        try:
+            set_active_db_path(db_path)
+            win._ensure_monthly_pension_records(datetime(2026, 3, 1, 9, 0, 0))
+
+            conn = sqlite3.connect(db_path)
+            count = conn.execute("SELECT COUNT(*) FROM ctas WHERE aclaracion = 'Pension para marzo'").fetchone()[0]
+            conn.close()
+
+            assert count == 1
+        finally:
+            win.close()
+            reset_active_db_path()

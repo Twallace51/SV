@@ -3,6 +3,7 @@
 # region - imports
 
 import logging
+import sqlite3
 import shutil
 import tempfile
 import sys
@@ -22,6 +23,7 @@ try:
         PROJECT_NAME,
         VERSION,
         DB_PATH,
+        get_active_db_path,
         set_active_db_path,
         reset_active_db_path,
     )
@@ -44,6 +46,7 @@ except (ModuleNotFoundError, ImportError):
         PROJECT_NAME,
         VERSION,
         DB_PATH,
+        get_active_db_path,
         set_active_db_path,
         reset_active_db_path,
     )
@@ -74,8 +77,52 @@ class MainWindow(QMainWindow):
         self._build_menu_bar()
         self._build_central()
         self._configure_session_database(self._username)
+        self._ensure_monthly_pension_records()
         self._apply_window_title()
         self._apply_session_theme()
+
+    def _ensure_monthly_pension_records(self, now: datetime | None = None):
+        """Ensure monthly pension charges exist in ctas on day 1 of Feb-Nov."""
+        current = now or datetime.now()
+        if current.day != 1 or current.month < 2 or current.month > 11:
+            return
+
+        month_names = [
+            "enero", "febrero", "marzo", "abril", "mayo", "junio",
+            "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+        ]
+        mes_actual = month_names[current.month - 1]
+        aclaracion = f"Pension para {mes_actual}"
+        fecha_actual = current.strftime("%Y-%m-%d")
+
+        try:
+            conn = sqlite3.connect(get_active_db_path())
+            alumnos_con_pension = conn.execute(
+                "SELECT id, pension FROM alumnos WHERE pension IS NOT NULL AND pension > 0"
+            ).fetchall()
+
+            inserted = 0
+            for alumno_id, pension in alumnos_con_pension:
+                exists = conn.execute(
+                    "SELECT 1 FROM ctas WHERE id_alumno = ? AND aclaracion = ? LIMIT 1",
+                    (alumno_id, aclaracion),
+                ).fetchone()
+                if exists:
+                    continue
+
+                conn.execute(
+                    "INSERT INTO ctas (id_alumno, debito, credito, aclaracion, fecha, factura)"
+                    " VALUES (?, ?, ?, ?, ?, ?)",
+                    (alumno_id, pension, 0, aclaracion, fecha_actual, ""),
+                )
+                inserted += 1
+
+            if inserted > 0:
+                conn.commit()
+                log.info("Pensión mensual: %s registros agregados para %s.", inserted, mes_actual)
+            conn.close()
+        except Exception:
+            log.exception("No se pudo confirmar/agregar registros de pensión mensual en ctas")
 
     def _apply_window_title(self):
         """Apply the current title text to the native window."""
