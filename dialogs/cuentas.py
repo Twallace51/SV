@@ -179,9 +179,10 @@ class NuevoCuentaDialog(QDialog):
 class EditCuentaDialog(QDialog):
     """Edit form pre-populated with an existing cuenta record."""
 
-    def __init__(self, record_id: int, parent=None):
+    def __init__(self, record_id: int, parent=None, is_admin: bool = False):
         super().__init__(parent)
         self._id = record_id
+        self._is_admin = is_admin
         self.setWindowTitle("Cuentas - Editar")
         self.setMinimumWidth(440)
         layout = QVBoxLayout(self)
@@ -253,8 +254,13 @@ class EditCuentaDialog(QDialog):
         self._sync_amount_fields()
 
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=self)
+        self.delete_btn = buttons.addButton("Borrar", QDialogButtonBox.ActionRole)
+        self.delete_btn.setEnabled(self._is_admin)
+        if not self._is_admin:
+            self.delete_btn.setToolTip("Solo administrador puede borrar registros.")
         buttons.accepted.connect(self._save)
         buttons.rejected.connect(self.reject)
+        self.delete_btn.clicked.connect(self._delete)
         layout.addWidget(buttons)
 
     def _sync_alumno_nombre(self):
@@ -338,6 +344,36 @@ class EditCuentaDialog(QDialog):
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
 
+    def _delete(self):
+        if not self._is_admin:
+            QMessageBox.warning(self, "Permisos", "Solo administrador puede borrar registros.")
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Confirmar borrado",
+            "¿Desea borrar esta cuenta? Esta acción no se puede deshacer.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        try:
+            conn = sqlite3.connect(get_active_db_path())
+            conn.execute("DELETE FROM ctas WHERE id = ?", (self._id,))
+            conn.commit()
+            conn.close()
+
+            global current_cta_id
+            if current_cta_id == self._id:
+                current_cta_id = None
+
+            QMessageBox.information(self, "Borrado", "Cuenta borrada correctamente.")
+            self.accept()
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"No se pudo borrar:\n{exc}")
+
 
 class BuscarCuentaDialog(QDialog):
     """Search dialog for cuentas."""
@@ -369,11 +405,6 @@ class BuscarCuentaDialog(QDialog):
         layout.addWidget(self.table)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
-        self.delete_btn = buttons.addButton("Borrar", QDialogButtonBox.ActionRole)
-        self.delete_btn.setEnabled(self._is_admin)
-        if not self._is_admin:
-            self.delete_btn.setToolTip("Solo administrador puede borrar registros.")
-        self.delete_btn.clicked.connect(self._delete_selected)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
@@ -383,7 +414,7 @@ class BuscarCuentaDialog(QDialog):
         id_item = self.table.item(row, 0)
         if id_item is None:
             return
-        dlg = EditCuentaDialog(int(id_item.text()), self)
+        dlg = EditCuentaDialog(int(id_item.text()), self, is_admin=self._is_admin)
         if dlg.exec() == QDialog.Accepted:
             self._load(self.search_edit.text())
 
@@ -410,49 +441,3 @@ class BuscarCuentaDialog(QDialog):
                 item = NumericTableWidgetItem(text) if c == 0 else QTableWidgetItem(text)
                 self.table.setItem(r, c, item)
         self.table.setSortingEnabled(True)
-
-    def _delete_selected(self):
-        if not self._is_admin:
-            QMessageBox.warning(self, "Permisos", "Solo administrador puede borrar registros.")
-            return
-
-        row = self.table.currentRow()
-        if row < 0:
-            QMessageBox.warning(self, "Selección", "Seleccione una cuenta para borrar.")
-            return
-
-        id_item = self.table.item(row, 0)
-        if id_item is None:
-            QMessageBox.warning(self, "Selección", "No se pudo identificar la cuenta seleccionada.")
-            return
-
-        try:
-            record_id = int(id_item.text())
-        except ValueError:
-            QMessageBox.warning(self, "Selección", "ID de cuenta inválido.")
-            return
-
-        reply = QMessageBox.question(
-            self,
-            "Confirmar borrado",
-            "¿Desea borrar esta cuenta? Esta acción no se puede deshacer.",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-        if reply != QMessageBox.Yes:
-            return
-
-        try:
-            conn = sqlite3.connect(get_active_db_path())
-            conn.execute("DELETE FROM ctas WHERE id = ?", (record_id,))
-            conn.commit()
-            conn.close()
-
-            global current_cta_id
-            if current_cta_id == record_id:
-                current_cta_id = None
-
-            QMessageBox.information(self, "Borrado", "Cuenta borrada correctamente.")
-            self._load(self.search_edit.text())
-        except Exception as exc:
-            QMessageBox.critical(self, "Error", f"No se pudo borrar:\n{exc}")
