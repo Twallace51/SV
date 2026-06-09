@@ -41,6 +41,9 @@ class TestLoginDialogInit:
     def test_has_quit_button(self, dialog):
         assert dialog.quit_btn.text() == "Salir"
 
+    def test_has_training_mode_button(self, dialog):
+        assert dialog.training_mode_btn.text() == "Modo Entrenamiento"
+
 class TestQuitButton:
     def test_quit_button_rejects_dialog(self, dialog):
         rejected = []
@@ -50,6 +53,20 @@ class TestQuitButton:
         dialog.quit_btn.click()
 
         assert rejected == [True]
+
+
+class TestTrainingModeButton:
+    def test_training_mode_button_logs_in_as_trainee(self, dialog):
+        accepted = []
+        original_accept = dialog.accept
+        dialog.accept = lambda: accepted.append(True) or original_accept()
+
+        dialog.training_mode_btn.click()
+
+        assert accepted == [True]
+        assert dialog.logged_in_username == "trainee"
+        assert dialog.username_edit.text() == "trainee"
+        assert dialog.password_edit.text() == "trainee"
 
 class TestPasswordToggle:
     def test_toggle_show(self, dialog):

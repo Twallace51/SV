@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QDialog, QLabel, QLineEdit,
     QVBoxLayout, QFormLayout, QMessageBox, QHBoxLayout,
     QDialogButtonBox, QTableWidget, QTableWidgetItem,
-    QDateEdit, QSpinBox, QHeaderView,
+    QDateEdit, QSpinBox, QHeaderView, QComboBox,
     QAbstractSpinBox,
 )
 from PySide6.QtCore import QDate

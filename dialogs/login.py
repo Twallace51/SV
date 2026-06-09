@@ -41,6 +41,13 @@ class LoginDialog(QDialog):
 
         self.username_edit = QLineEdit()
         self.username_edit.setPlaceholderText("Ingrese: admin, user o trainee")
+        self.training_mode_btn = QPushButton("Modo Entrenamiento")
+        self.training_mode_btn.clicked.connect(self.login_as_trainee)
+        username_layout = QHBoxLayout()
+        username_layout.setContentsMargins(0, 0, 0, 0)
+        username_layout.addWidget(self.username_edit)
+        username_layout.addWidget(self.training_mode_btn)
+
         self.password_edit = QLineEdit()
         self.password_edit.setPlaceholderText("Ingrese contraseña")
         self.password_edit.setEchoMode(QLineEdit.Password)
@@ -55,7 +62,7 @@ class LoginDialog(QDialog):
         password_layout.addWidget(self.password_edit)
         password_layout.addWidget(self.password_toggle_btn)
 
-        form.addRow("Usuario:", self.username_edit)
+        form.addRow("Usuario:", username_layout)
         form.addRow("Contraseña:", password_layout)
         layout.addLayout(form)
 
@@ -116,6 +123,13 @@ class LoginDialog(QDialog):
             QMessageBox.warning(self, "Error de acceso", message)
             self.password_edit.clear()
             self.password_edit.setFocus()
+
+    def login_as_trainee(self):
+        """Quick-login shortcut for training mode user."""
+        self.username_edit.setText("trainee")
+        self.password_edit.setText("trainee")
+        self.logged_in_username = "trainee"
+        self.accept()
 
     def toggle_password_visibility(self, checked: bool):
         """Toggle password field visibility between masked and plain text."""
