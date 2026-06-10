@@ -335,6 +335,54 @@ class ReporteAlumnosBecadosDialog(ReporteAlumnosPorGradoDialog):
         return "\n".join(lines) + "\n"
 
 
+class ReporteAlumnosRudeDialog(ReporteAlumnosBecadosDialog):
+    """Display and export enrolled alumnos with RUDE column."""
+
+    _HEADERS = ("Grado", "ID", "Nombres", "Paterno", "Materno", "RUDE")
+    _WINDOW_TITLE = "Alumnos - Reporte de rude"
+    _REPORT_TITLE = "Alumnos con RUDE"
+    _EMPTY_MESSAGE = "No hay alumnos inscritos actualmente."
+    _PREVIEW_TITLE = "Vista previa - Alumnos con RUDE"
+    _DEFAULT_FILENAME = "alumnos_rude"
+    _EXTRA_FILTER = ""
+
+    def _build_html(self):
+        rows = list(self._flat_rows())
+        sections = [
+            f"<h1>{html.escape(self._REPORT_TITLE)}</h1>",
+            f"<p>Total de alumnos: {len(rows)}</p>",
+        ]
+        if not rows:
+            sections.append(f"<p>{html.escape(self._EMPTY_MESSAGE)}</p>")
+            return "".join(sections)
+
+        sections.append("<table border='1' cellspacing='0' cellpadding='4'><tr>")
+        sections.extend(f"<th>{html.escape(header)}</th>" for header in self._HEADERS)
+        sections.append("</tr>")
+        for _grade_id, grade_name, student_id, nombres, paterno, materno, rude, _carnet, _pension in rows:
+            row = (grade_name, student_id, nombres, paterno, materno, rude)
+            sections.append("<tr>")
+            sections.extend(f"<td>{html.escape(self._display(value))}</td>" for value in row)
+            sections.append("</tr>")
+        sections.append("</table>")
+        return "".join(sections)
+
+    def _build_markdown(self):
+        rows = list(self._flat_rows())
+        lines = [f"# {self._REPORT_TITLE}", "", f"Total de alumnos: {len(rows)}", ""]
+        if not rows:
+            lines.append(self._EMPTY_MESSAGE)
+            return "\n".join(lines) + "\n"
+
+        lines.append("| " + " | ".join(self._HEADERS) + " |")
+        lines.append("| " + " | ".join("---" for _header in self._HEADERS) + " |")
+        for _grade_id, grade_name, student_id, nombres, paterno, materno, rude, _carnet, _pension in rows:
+            row = (grade_name, student_id, nombres, paterno, materno, rude)
+            values = [self._display(value).replace("|", "\\|").replace("\n", " ") for value in row]
+            lines.append("| " + " | ".join(values) + " |")
+        return "\n".join(lines) + "\n"
+
+
 class ReporteAlumnosCumpleanosDialog(ReporteAlumnosBecadosDialog):
     """Display and export enrolled alumnos with birthday columns."""
 

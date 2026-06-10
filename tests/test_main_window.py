@@ -162,6 +162,14 @@ class TestMainWindowMenuBar:
 
         assert "Becados" in action_texts
 
+    def test_alumnos_reportes_has_rude_action(self, window):
+        action_texts = [
+            action.text().replace("&", "")
+            for action in window.alumnos_reportes_menu.actions()
+        ]
+
+        assert "Rude" in action_texts
+
     def test_alumnos_reportes_has_cumpleanos_action(self, window):
         action_texts = [
             action.text().replace("&", "")
@@ -215,6 +223,22 @@ class TestMainWindowMenuBar:
         monkeypatch.setattr("windows.main_window.ReporteAlumnosCumpleanosDialog", FakeReportDialog)
 
         window.alumnos_cumpleanos_action.trigger()
+
+        assert calls == [("created", window), ("executed", None)]
+
+    def test_alumnos_rude_action_opens_report_dialog(self, window, monkeypatch):
+        calls = []
+
+        class FakeReportDialog:
+            def __init__(self, parent=None):
+                calls.append(("created", parent))
+
+            def exec(self):
+                calls.append(("executed", None))
+
+        monkeypatch.setattr("windows.main_window.ReporteAlumnosRudeDialog", FakeReportDialog)
+
+        window.alumnos_rude_action.trigger()
 
         assert calls == [("created", window), ("executed", None)]
 
