@@ -33,6 +33,7 @@ def _create_report_database(path: Path):
                 (3, "Celia", "Vega", "", "R-3", "C-3", 0, "0"),
                 (4, "Dario", "Soto", "", "R-4", "C-4", 0, None),
                 (5, "Elena", "Mora", "", "R-5", "C-5", 0, "2"),
+                (6, "Fabio", "Ruiz", "", "R-6", "C-6", 0, "1"),
             ],
         )
 
@@ -45,7 +46,7 @@ def test_report_groups_only_alumnos_with_positive_grade(qapp, tmp_path):
         dialog = ReporteAlumnosPorGradoDialog()
 
         assert list(dialog._groups) == [(1, "Primero A"), (2, "Segundo A")]
-        assert [student[0] for students in dialog._groups.values() for student in students] == [1, 5, 2]
+        assert [student[0] for students in dialog._groups.values() for student in students] == [1, 6, 5, 2]
         assert "Celia" not in dialog.viewer.toPlainText()
         assert "Dario" not in dialog.viewer.toPlainText()
     finally:
@@ -120,11 +121,20 @@ def test_becados_report_filters_zero_pension_with_positive_grade(qapp, tmp_path)
         dialog = ReporteAlumnosBecadosDialog()
         student_ids = [student[0] for students in dialog._groups.values() for student in students]
 
-        assert student_ids == [5]
+        assert student_ids == [6, 5]
         assert "Elena" in dialog.viewer.toPlainText()
+        assert "Fabio" in dialog.viewer.toPlainText()
         assert "Celia" not in dialog.viewer.toPlainText()
         assert "Dario" not in dialog.viewer.toPlainText()
-        assert dialog.continuous_output_checkbox.isChecked()
+        assert not hasattr(dialog, "continuous_output_checkbox")
         assert dialog._DEFAULT_FILENAME == "alumnos_becados"
+
+        report_html = dialog._build_html()
+        markdown = dialog._build_markdown()
+        assert "<h2>" not in report_html
+        assert report_html.count("<table") == 1
+        assert "## Primero A" not in markdown
+        assert "## Segundo A" not in markdown
+        assert markdown.count("| ID Grado | Grado |") == 1
     finally:
         reset_active_db_path()

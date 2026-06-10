@@ -35,6 +35,7 @@ class ReporteAlumnosPorGradoDialog(QDialog):
     _PREVIEW_TITLE = "Vista previa - Alumnos por grados"
     _DEFAULT_FILENAME = "alumnos_por_grado"
     _EXTRA_FILTER = ""
+    _SHOW_PAGINATION_TOGGLE = True
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -43,13 +44,14 @@ class ReporteAlumnosPorGradoDialog(QDialog):
         self._groups = self._load_groups()
 
         layout = QVBoxLayout(self)
-        self.continuous_output_checkbox = QCheckBox("Salida continua", self)
-        self.continuous_output_checkbox.setChecked(True)
-        self.continuous_output_checkbox.setToolTip(
-            "Desactive para comenzar cada grado en una página nueva"
-        )
-        self.continuous_output_checkbox.toggled.connect(self._refresh_document)
-        layout.addWidget(self.continuous_output_checkbox)
+        if self._SHOW_PAGINATION_TOGGLE:
+            self.continuous_output_checkbox = QCheckBox("Salida continua", self)
+            self.continuous_output_checkbox.setChecked(True)
+            self.continuous_output_checkbox.setToolTip(
+                "Desactive para comenzar cada grado en una página nueva"
+            )
+            self.continuous_output_checkbox.toggled.connect(self._refresh_document)
+            layout.addWidget(self.continuous_output_checkbox)
 
         self._document = QTextDocument(self)
         self._refresh_document()
@@ -123,7 +125,7 @@ class ReporteAlumnosPorGradoDialog(QDialog):
             return "".join(sections)
 
         for index, ((grade_id, grade_name), rows) in enumerate(self._groups.items()):
-            page_break = " style='page-break-before: always'" if index > 0 and not self.continuous_output_checkbox.isChecked() else ""
+            page_break = " style='page-break-before: always'" if index > 0 and not self._is_continuous_output() else ""
             sections.append(
                 f"<div{page_break}><h2>{html.escape(str(grade_name))} "
                 f"(ID {grade_id}) - {len(rows)} alumnos</h2>"
@@ -140,7 +142,7 @@ class ReporteAlumnosPorGradoDialog(QDialog):
 
     def _refresh_document(self):
         self._document.setHtml(self._build_html())
-        if self.continuous_output_checkbox.isChecked():
+        if self._is_continuous_output():
             return
 
         for grade_id, grade_name in list(self._groups)[1:]:
@@ -153,6 +155,10 @@ class ReporteAlumnosPorGradoDialog(QDialog):
                 QTextFormat.PageBreakFlag.PageBreak_AlwaysBefore
             )
             cursor.setBlockFormat(block_format)
+
+    def _is_continuous_output(self):
+        checkbox = getattr(self, "continuous_output_checkbox", None)
+        return checkbox is None or checkbox.isChecked()
 
     @staticmethod
     def _display(value):
@@ -283,8 +289,45 @@ class ReporteAlumnosBecadosDialog(ReporteAlumnosPorGradoDialog):
     """Display and export enrolled alumnos whose pension is zero."""
 
     _WINDOW_TITLE = "Alumnos - Reporte de becados"
-    _REPORT_TITLE = "Alumnos becados por grado"
+    _REPORT_TITLE = "Alumnos becados"
     _EMPTY_MESSAGE = "No hay alumnos becados inscritos actualmente."
     _PREVIEW_TITLE = "Vista previa - Alumnos becados"
     _DEFAULT_FILENAME = "alumnos_becados"
     _EXTRA_FILTER = "AND COALESCE(a.pension, 0) = 0 "
+    _SHOW_PAGINATION_TOGGLE = False
+
+    def _build_html(self):
+        rows = list(self._flat_rows())
+        sections = [
+            f"<h1>{html.escape(self._REPORT_TITLE)}</h1>",
+            f"<p>Total de alumnos: {len(rows)}</p>",
+        ]
+        if not rows:
+            sections.append(f"<p>{html.escape(self._EMPTY_MESSAGE)}</p>")
+            return "".join(sections)
+
+        headers = ("ID Grado", "Grado", *self._HEADERS)
+        sections.append("<table border='1' cellspacing='0' cellpadding='4'><tr>")
+        sections.extend(f"<th>{html.escape(header)}</th>" for header in headers)
+        sections.append("</tr>")
+        for row in rows:
+            sections.append("<tr>")
+            sections.extend(f"<td>{html.escape(self._display(value))}</td>" for value in row)
+            sections.append("</tr>")
+        sections.append("</table>")
+        return "".join(sections)
+
+    def _build_markdown(self):
+        rows = list(self._flat_rows())
+        lines = [f"# {self._REPORT_TITLE}", "", f"Total de alumnos: {len(rows)}", ""]
+        if not rows:
+            lines.append(self._EMPTY_MESSAGE)
+            return "\n".join(lines) + "\n"
+
+        headers = ("ID Grado", "Grado", *self._HEADERS)
+        lines.append("| " + " | ".join(headers) + " |")
+        lines.append("| " + " | ".join("---" for _header in headers) + " |")
+        for row in rows:
+            values = [self._display(value).replace("|", "\\|").replace("\n", " ") for value in row]
+            lines.append("| " + " | ".join(values) + " |")
+        return "\n".join(lines) + "\n"
