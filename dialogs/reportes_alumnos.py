@@ -331,3 +331,57 @@ class ReporteAlumnosBecadosDialog(ReporteAlumnosPorGradoDialog):
             values = [self._display(value).replace("|", "\\|").replace("\n", " ") for value in row]
             lines.append("| " + " | ".join(values) + " |")
         return "\n".join(lines) + "\n"
+
+
+class ReporteAlumnosCumpleanosDialog(ReporteAlumnosBecadosDialog):
+    """Display and export enrolled alumnos with birthday columns."""
+
+    _HEADERS = (
+        "ID",
+        "Nombres",
+        "Paterno",
+        "Materno",
+        "RUDE",
+        "Carnet",
+        "Cumpleanos",
+        "Cumpleanos MM-dd",
+    )
+    _WINDOW_TITLE = "Alumnos - Reporte de cumpleanos"
+    _REPORT_TITLE = "Alumnos - Cumpleanos"
+    _EMPTY_MESSAGE = "No hay alumnos inscritos actualmente."
+    _PREVIEW_TITLE = "Vista previa - Alumnos cumpleanos"
+    _DEFAULT_FILENAME = "alumnos_cumpleanos"
+    _EXTRA_FILTER = ""
+
+    @classmethod
+    def _load_groups(cls):
+        groups = defaultdict(list)
+        query = (
+            "SELECT CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER), "
+            "COALESCE(g.grado, 'Grado ' || TRIM(CAST(a.id_grado AS TEXT))), "
+            "a.id, a.nombres, a.paterno, a.materno, a.rude, a.Carnet, "
+            "COALESCE(TRIM(a.cumpleanos), ''), "
+            "CASE "
+            "  WHEN a.cumpleanos IS NULL OR TRIM(a.cumpleanos) = '' THEN '' "
+            "  WHEN LENGTH(TRIM(a.cumpleanos)) >= 10 THEN SUBSTR(TRIM(a.cumpleanos), 6, 5) "
+            "  ELSE '' "
+            "END "
+            "FROM alumnos a "
+            "LEFT JOIN grados g ON g.id = CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER) "
+            "WHERE a.id_grado IS NOT NULL "
+            "AND TRIM(CAST(a.id_grado AS TEXT)) <> '' "
+            "AND LOWER(TRIM(CAST(a.id_grado AS TEXT))) NOT IN ('null', 'none') "
+            "AND CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER) > 0 "
+            "ORDER BY CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER), "
+            "a.paterno, a.materno, a.nombres"
+        )
+        try:
+            with sqlite3.connect(get_active_db_path()) as connection:
+                rows = connection.execute(query).fetchall()
+        except sqlite3.Error as exc:
+            QMessageBox.critical(None, cls._WINDOW_TITLE, f"No se pudo cargar el reporte:\n{exc}")
+            rows = []
+
+        for grade_id, grade_name, *student in rows:
+            groups[(grade_id, grade_name)].append(tuple(student))
+        return dict(groups)

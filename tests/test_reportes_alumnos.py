@@ -9,6 +9,7 @@ from PySide6.QtGui import QTextFormat
 from __init__ import reset_active_db_path, set_active_db_path
 from dialogs.reportes_alumnos import (
     ReporteAlumnosBecadosDialog,
+    ReporteAlumnosCumpleanosDialog,
     ReporteAlumnosPorGradoDialog,
 )
 
@@ -19,21 +20,21 @@ def _create_report_database(path: Path):
         connection.execute(
             "CREATE TABLE alumnos ("
             "id INTEGER PRIMARY KEY, nombres TEXT, paterno TEXT, materno TEXT, "
-            "rude TEXT, Carnet TEXT, pension REAL, id_grado TEXT)"
+            "cumpleanos TEXT, rude TEXT, Carnet TEXT, pension REAL, id_grado TEXT)"
         )
         connection.executemany(
             "INSERT INTO grados (id, grado) VALUES (?, ?)",
             [(1, "Primero A"), (2, "Segundo A")],
         )
         connection.executemany(
-            "INSERT INTO alumnos VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO alumnos VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
-                (1, "Ana", "Lopez", "Rios", "R-1", "C-1", 300, "1"),
-                (2, "Beto", "Perez", "", "R-2", "C-2", 320, "2"),
-                (3, "Celia", "Vega", "", "R-3", "C-3", 0, "0"),
-                (4, "Dario", "Soto", "", "R-4", "C-4", 0, None),
-                (5, "Elena", "Mora", "", "R-5", "C-5", 0, "2"),
-                (6, "Fabio", "Ruiz", "", "R-6", "C-6", 0, "1"),
+                (1, "Ana", "Lopez", "Rios", "2010-01-15", "R-1", "C-1", 300, "1"),
+                (2, "Beto", "Perez", "", "2011-07-20", "R-2", "C-2", 320, "2"),
+                (3, "Celia", "Vega", "", "2010-08-30", "R-3", "C-3", 0, "0"),
+                (4, "Dario", "Soto", "", "", "R-4", "C-4", 0, None),
+                (5, "Elena", "Mora", "", "2009-12-03", "R-5", "C-5", 0, "2"),
+                (6, "Fabio", "Ruiz", "", "2010-02-28", "R-6", "C-6", 0, "1"),
             ],
         )
 
@@ -136,5 +137,33 @@ def test_becados_report_filters_zero_pension_with_positive_grade(qapp, tmp_path)
         assert "## Primero A" not in markdown
         assert "## Segundo A" not in markdown
         assert markdown.count("| ID Grado | Grado |") == 1
+    finally:
+        reset_active_db_path()
+
+
+def test_cumpleanos_report_has_mm_dd_column_and_no_group_sections(qapp, tmp_path):
+    database = tmp_path / "report.db"
+    _create_report_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = ReporteAlumnosCumpleanosDialog()
+        student_ids = [student[0] for students in dialog._groups.values() for student in students]
+
+        assert student_ids == [1, 6, 5, 2]
+        assert not hasattr(dialog, "continuous_output_checkbox")
+
+        plain_text = dialog.viewer.toPlainText()
+        assert "Cumpleanos" in plain_text
+        assert "Cumpleanos MM-dd" in plain_text
+        assert "01-15" in plain_text
+        assert "02-28" in plain_text
+        assert "12-03" in plain_text
+        assert "07-20" in plain_text
+
+        report_html = dialog._build_html()
+        markdown = dialog._build_markdown()
+        assert "<h2>" not in report_html
+        assert "| ID Grado | Grado | ID | Nombres | Paterno | Materno | RUDE | Carnet | Cumpleanos | Cumpleanos MM-dd |" in markdown
+        assert "| 1 | Primero A | 1 | Ana | Lopez | Rios | R-1 | C-1 | 2010-01-15 | 01-15 |" in markdown
     finally:
         reset_active_db_path()
