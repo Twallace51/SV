@@ -42,7 +42,7 @@ try:
     )
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
-    from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog
+    from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog, ReporteCuentasDetallesDialog
 except (ModuleNotFoundError, ImportError):
     # Support running this file directly from the windows/ directory.
     project_root = Path(__file__).resolve().parent.parent
@@ -74,7 +74,7 @@ except (ModuleNotFoundError, ImportError):
     )
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
-    from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog
+    from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog, ReporteCuentasDetallesDialog
 
 # endregion
 
@@ -364,6 +364,9 @@ class MainWindow(QMainWindow):
         self.cuentas_alumnos_action = QAction("&Alumnos", self)
         self.cuentas_alumnos_action.triggered.connect(self.on_cuentas_reportes_alumnos)
         self.cuentas_reportes_menu.addAction(self.cuentas_alumnos_action)
+        self.cuentas_detalles_action = QAction("&Detalles", self)
+        self.cuentas_detalles_action.triggered.connect(self.on_cuentas_reportes_detalles)
+        self.cuentas_reportes_menu.addAction(self.cuentas_detalles_action)
 
         # Ayuda menu
         self.help_menu = menu_bar.addMenu("A&yuda")
@@ -605,6 +608,11 @@ class MainWindow(QMainWindow):
         """Handle the Cuentas > Reportes > Alumnos menu action."""
         log.info("Menú: Cuentas > Reportes > Alumnos")
         ReporteCuentasAlumnosDialog(self).exec()
+
+    def on_cuentas_reportes_detalles(self):
+        """Handle the Cuentas > Reportes > Detalles menu action."""
+        log.info("Menú: Cuentas > Reportes > Detalles")
+        ReporteCuentasDetallesDialog(self).exec()
 
     def on_about(self):
         """Display application About information."""

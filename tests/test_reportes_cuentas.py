@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 
 from __init__ import reset_active_db_path, set_active_db_path
-from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog
+from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog, ReporteCuentasDetallesDialog
 
 
 def _create_cuentas_database(path: Path):
@@ -241,3 +241,109 @@ def test_cuentas_alumnos_report_export_excel(qapp, tmp_path):
         assert xlsx_path.stat().st_size > 0
     finally:
         reset_active_db_path()
+
+
+def test_cuentas_detalles_dialog_loads_rows_for_alumno(qapp, tmp_path):
+    database = tmp_path / "cuentas_detalles.db"
+    _create_alumnos_cuentas_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = ReporteCuentasDetallesDialog(alumno_id=1)
+
+        # Should have 1 row for alumno 1
+        assert len(dialog._rows) == 1
+        assert dialog._rows[0][0] == "2026-01-01"  # fecha
+        assert dialog._rows[0][1] == "pago"  # aclaracion
+    finally:
+        reset_active_db_path()
+
+
+def test_cuentas_detalles_dialog_computes_balance(qapp, tmp_path):
+    database = tmp_path / "cuentas_detalles_balance.db"
+    _create_alumnos_cuentas_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = ReporteCuentasDetallesDialog(alumno_id=1)
+
+        # balance = 250 - 100 = 150
+        assert dialog._balance == 150.0
+    finally:
+        reset_active_db_path()
+
+
+def test_cuentas_detalles_dialog_gets_alumno_nombre(qapp, tmp_path):
+    database = tmp_path / "cuentas_detalles_name.db"
+    _create_alumnos_cuentas_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = ReporteCuentasDetallesDialog(alumno_id=1)
+
+        assert dialog._alumno_nombre == "Ana Lopez Rios"
+    finally:
+        reset_active_db_path()
+
+
+def test_cuentas_detalles_dialog_build_html(qapp, tmp_path):
+    database = tmp_path / "cuentas_detalles_html.db"
+    _create_alumnos_cuentas_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = ReporteCuentasDetallesDialog(alumno_id=1)
+        html = dialog._build_html()
+
+        assert "Alumno ID: 1" in html
+        assert "Ana Lopez Rios" in html
+        assert "pago" in html
+        assert "+150" in html
+        assert "Balance" in html
+    finally:
+        reset_active_db_path()
+
+
+def test_cuentas_detalles_dialog_build_markdown(qapp, tmp_path):
+    database = tmp_path / "cuentas_detalles_md.db"
+    _create_alumnos_cuentas_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = ReporteCuentasDetallesDialog(alumno_id=1)
+        markdown = dialog._build_markdown()
+
+        assert "# Cuentas - Detalles por alumno" in markdown
+        assert "**Alumno ID:** 1" in markdown
+        assert "**Alumno:** Ana Lopez Rios" in markdown
+        assert "| Fecha | Aclaración | Débito | Crédito |" in markdown
+        assert "| --- | --- | --- | --- |" in markdown
+        assert "2026-01-01" in markdown
+        assert "pago" in markdown
+    finally:
+        reset_active_db_path()
+
+
+def test_cuentas_detalles_dialog_uses_current_alumno_id(qapp, tmp_path, monkeypatch):
+    database = tmp_path / "cuentas_detalles_current.db"
+    _create_alumnos_cuentas_database(database)
+    set_active_db_path(database)
+    try:
+        import dialogs.alumnos as alumnos_dialogs
+        monkeypatch.setattr(alumnos_dialogs, "current_alumno_id", 2)
+        monkeypatch.setattr(alumnos_dialogs, "current_alumno_name", "Beto Perez")
+
+        dialog = ReporteCuentasDetallesDialog()
+
+        assert dialog._alumno_id == 2
+        assert dialog._alumno_nombre == "Beto Perez"
+    finally:
+        reset_active_db_path()
+
+
+def test_cuentas_detalles_action_in_main_window(qapp):
+    from windows.main_window import MainWindow
+    win = MainWindow("testuser")
+    try:
+        action_texts = [
+            action.text().replace("&", "")
+            for action in win.cuentas_reportes_menu.actions()
+        ]
+        assert "Detalles" in action_texts
+    finally:
+        win.close()
