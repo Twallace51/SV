@@ -122,6 +122,31 @@ class TestMainWindowMenuBar:
         action_texts = [a.text() for a in window.navigation_menu.actions() if not a.isSeparator()]
         assert any("Salir" in t for t in action_texts)
 
+    @pytest.mark.parametrize("menu_name", ["alumnos_menu", "parientes_menu", "cuentas_menu"])
+    def test_domain_menu_has_reportes_action(self, window, menu_name):
+        menu = getattr(window, menu_name)
+        action_texts = [action.text().replace("&", "") for action in menu.actions()]
+
+        assert "Reportes" in action_texts
+
+    @pytest.mark.parametrize(
+        ("action_name", "handler_name"),
+        [
+            ("alumnos_reportes_action", "on_alumnos_reportes"),
+            ("parientes_reportes_action", "on_parientes_reportes"),
+            ("cuentas_reportes_action", "on_cuentas_reportes"),
+        ],
+    )
+    def test_reportes_action_calls_handler(self, window, monkeypatch, action_name, handler_name):
+        calls = []
+        action = getattr(window, action_name)
+        action.triggered.disconnect()
+        action.triggered.connect(lambda: calls.append(handler_name))
+
+        action.trigger()
+
+        assert calls == [handler_name]
+
     def test_logout_action_reopens_login_dialog_and_updates_user(self, window, monkeypatch):
         shown = []
         hidden = []

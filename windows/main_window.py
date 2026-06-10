@@ -296,6 +296,9 @@ class MainWindow(QMainWindow):
         alumnos_buscar_action = QAction("&Buscar", self)
         alumnos_buscar_action.triggered.connect(self.on_alumnos_buscar)
         self.alumnos_menu.addAction(alumnos_buscar_action)
+        self.alumnos_reportes_action = QAction("&Reportes", self)
+        self.alumnos_reportes_action.triggered.connect(self.on_alumnos_reportes)
+        self.alumnos_menu.addAction(self.alumnos_reportes_action)
 
         # Parientes menu
         self.parientes_menu = menu_bar.addMenu("&Parientes")
@@ -305,6 +308,9 @@ class MainWindow(QMainWindow):
         parientes_buscar_action = QAction("&Buscar", self)
         parientes_buscar_action.triggered.connect(self.on_parientes_buscar)
         self.parientes_menu.addAction(parientes_buscar_action)
+        self.parientes_reportes_action = QAction("&Reportes", self)
+        self.parientes_reportes_action.triggered.connect(self.on_parientes_reportes)
+        self.parientes_menu.addAction(self.parientes_reportes_action)
 
         # Cuentas menu
         self.cuentas_menu = menu_bar.addMenu("&Cuentas")
@@ -314,6 +320,9 @@ class MainWindow(QMainWindow):
         cuentas_buscar_action = QAction("&Buscar", self)
         cuentas_buscar_action.triggered.connect(self.on_cuentas_buscar)
         self.cuentas_menu.addAction(cuentas_buscar_action)
+        self.cuentas_reportes_action = QAction("&Reportes", self)
+        self.cuentas_reportes_action.triggered.connect(self.on_cuentas_reportes)
+        self.cuentas_menu.addAction(self.cuentas_reportes_action)
 
         # Ayuda menu
         self.help_menu = menu_bar.addMenu("A&yuda")
@@ -489,6 +498,11 @@ class MainWindow(QMainWindow):
         BuscarAlumnoDialog(self, is_admin=self._username.strip().lower() == "admin").exec()
         self._refresh_current_alumno_id_label()
 
+    def on_alumnos_reportes(self):
+        """Handle the Alumnos > Reportes menu action."""
+        log.info("Menú: Alumnos > Reportes")
+        QMessageBox.information(self, "Reportes de Alumnos", "Reportes de alumnos próximamente.")
+
     def on_parientes_nuevo(self):
         """Handle the Parientes > Nuevo menu action."""
         log.info("Menú: Parientes > Nuevo")
@@ -501,6 +515,11 @@ class MainWindow(QMainWindow):
         BuscarParienteDialog(self, is_admin=self._username.strip().lower() == "admin").exec()
         self._refresh_current_adulto_id_label()
 
+    def on_parientes_reportes(self):
+        """Handle the Parientes > Reportes menu action."""
+        log.info("Menú: Parientes > Reportes")
+        QMessageBox.information(self, "Reportes de Parientes", "Reportes de parientes próximamente.")
+
     def on_cuentas_nuevo(self):
         """Handle the Cuentas > Nuevo menu action."""
         log.info("Menú: Cuentas > Nuevo")
@@ -510,6 +529,11 @@ class MainWindow(QMainWindow):
         """Handle the Cuentas > Buscar menu action."""
         log.info("Menú: Cuentas > Buscar")
         BuscarCuentaDialog(self, is_admin=self._username.strip().lower() == "admin").exec()
+
+    def on_cuentas_reportes(self):
+        """Handle the Cuentas > Reportes menu action."""
+        log.info("Menú: Cuentas > Reportes")
+        QMessageBox.information(self, "Reportes de Cuentas", "Reportes de cuentas próximamente.")
 
     def on_about(self):
         """Display application About information."""
