@@ -5,6 +5,7 @@ import html
 import re
 import sqlite3
 from collections import defaultdict
+from datetime import date
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -36,6 +37,9 @@ class ReporteAlumnosPorGradoDialog(QDialog):
     _DEFAULT_FILENAME = "alumnos_por_grado"
     _EXTRA_FILTER = ""
     _SHOW_PAGINATION_TOGGLE = True
+
+    def _report_title_with_date(self):
+        return f"{self._REPORT_TITLE} - {date.today():%Y-%m-%d}"
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -117,7 +121,7 @@ class ReporteAlumnosPorGradoDialog(QDialog):
 
     def _build_html(self):
         sections = [
-            f"<h1>{html.escape(self._REPORT_TITLE)}</h1>",
+            f"<h1>{html.escape(self._report_title_with_date())}</h1>",
             f"<p>Total de alumnos: {sum(len(rows) for rows in self._groups.values())}</p>",
         ]
         if not self._groups:
@@ -222,7 +226,7 @@ class ReporteAlumnosPorGradoDialog(QDialog):
             self._show_export_error(exc)
 
     def _build_markdown(self):
-        lines = [f"# {self._REPORT_TITLE}", ""]
+        lines = [f"# {self._report_title_with_date()}", ""]
         lines.append(f"Total de alumnos: {sum(len(rows) for rows in self._groups.values())}")
         lines.append("")
         if not self._groups:
@@ -301,7 +305,7 @@ class ReporteAlumnosBecadosDialog(ReporteAlumnosPorGradoDialog):
     def _build_html(self):
         rows = list(self._flat_rows())
         sections = [
-            f"<h1>{html.escape(self._REPORT_TITLE)}</h1>",
+            f"<h1>{html.escape(self._report_title_with_date())}</h1>",
             f"<p>Total de alumnos: {len(rows)}</p>",
         ]
         if not rows:
@@ -321,7 +325,7 @@ class ReporteAlumnosBecadosDialog(ReporteAlumnosPorGradoDialog):
 
     def _build_markdown(self):
         rows = list(self._flat_rows())
-        lines = [f"# {self._REPORT_TITLE}", "", f"Total de alumnos: {len(rows)}", ""]
+        lines = [f"# {self._report_title_with_date()}", "", f"Total de alumnos: {len(rows)}", ""]
         if not rows:
             lines.append(self._EMPTY_MESSAGE)
             return "\n".join(lines) + "\n"
@@ -349,7 +353,7 @@ class ReporteAlumnosRudeDialog(ReporteAlumnosBecadosDialog):
     def _build_html(self):
         rows = list(self._flat_rows())
         sections = [
-            f"<h1>{html.escape(self._REPORT_TITLE)}</h1>",
+            f"<h1>{html.escape(self._report_title_with_date())}</h1>",
             f"<p>Total de alumnos: {len(rows)}</p>",
         ]
         if not rows:
@@ -369,7 +373,7 @@ class ReporteAlumnosRudeDialog(ReporteAlumnosBecadosDialog):
 
     def _build_markdown(self):
         rows = list(self._flat_rows())
-        lines = [f"# {self._REPORT_TITLE}", "", f"Total de alumnos: {len(rows)}", ""]
+        lines = [f"# {self._report_title_with_date()}", "", f"Total de alumnos: {len(rows)}", ""]
         if not rows:
             lines.append(self._EMPTY_MESSAGE)
             return "\n".join(lines) + "\n"
@@ -397,7 +401,7 @@ class ReporteAlumnosCarnetDialog(ReporteAlumnosBecadosDialog):
     def _build_html(self):
         rows = list(self._flat_rows())
         sections = [
-            f"<h1>{html.escape(self._REPORT_TITLE)}</h1>",
+            f"<h1>{html.escape(self._report_title_with_date())}</h1>",
             f"<p>Total de alumnos: {len(rows)}</p>",
         ]
         if not rows:
@@ -417,7 +421,7 @@ class ReporteAlumnosCarnetDialog(ReporteAlumnosBecadosDialog):
 
     def _build_markdown(self):
         rows = list(self._flat_rows())
-        lines = [f"# {self._REPORT_TITLE}", "", f"Total de alumnos: {len(rows)}", ""]
+        lines = [f"# {self._report_title_with_date()}", "", f"Total de alumnos: {len(rows)}", ""]
         if not rows:
             lines.append(self._EMPTY_MESSAGE)
             return "\n".join(lines) + "\n"
@@ -510,7 +514,7 @@ class ReporteAlumnosCumpleanosDialog(ReporteAlumnosBecadosDialog):
     def _build_html(self):
         rows = list(self._flat_rows())
         sections = [
-            f"<h1>{html.escape(self._REPORT_TITLE)}</h1>",
+            f"<h1>{html.escape(self._report_title_with_date())}</h1>",
             f"<p>Total de alumnos: {len(rows)}</p>",
         ]
         if not rows:
@@ -529,7 +533,7 @@ class ReporteAlumnosCumpleanosDialog(ReporteAlumnosBecadosDialog):
 
     def _build_markdown(self):
         rows = list(self._flat_rows())
-        lines = [f"# {self._REPORT_TITLE}", "", f"Total de alumnos: {len(rows)}", ""]
+        lines = [f"# {self._report_title_with_date()}", "", f"Total de alumnos: {len(rows)}", ""]
         if not rows:
             lines.append(self._EMPTY_MESSAGE)
             return "\n".join(lines) + "\n"

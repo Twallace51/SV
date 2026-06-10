@@ -1,9 +1,11 @@
 """Tests for alumnos reports."""
 
 import sqlite3
+from datetime import date
 from pathlib import Path
 from zipfile import ZipFile
 
+import pytest
 from PySide6.QtGui import QTextFormat
 
 from __init__ import reset_active_db_path, set_active_db_path
@@ -39,6 +41,30 @@ def _create_report_database(path: Path):
                 (6, "Fabio", "Ruiz", "", "2010-02-28", "R-6", "C-6", 0, "1"),
             ],
         )
+
+
+@pytest.mark.parametrize(
+    "dialog_cls",
+    [
+        ReporteAlumnosPorGradoDialog,
+        ReporteAlumnosBecadosDialog,
+        ReporteAlumnosRudeDialog,
+        ReporteAlumnosCarnetDialog,
+        ReporteAlumnosCumpleanosDialog,
+    ],
+)
+def test_report_title_includes_current_date(qapp, tmp_path, dialog_cls):
+    database = tmp_path / "report.db"
+    _create_report_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = dialog_cls()
+        markdown = dialog._build_markdown()
+
+        expected_title = f"# {dialog._REPORT_TITLE} - {date.today():%Y-%m-%d}"
+        assert expected_title in markdown
+    finally:
+        reset_active_db_path()
 
 
 def test_report_groups_only_alumnos_with_positive_grade(qapp, tmp_path):
