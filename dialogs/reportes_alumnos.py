@@ -288,6 +288,8 @@ class ReporteAlumnosPorGradoDialog(QDialog):
 class ReporteAlumnosBecadosDialog(ReporteAlumnosPorGradoDialog):
     """Display and export enrolled alumnos whose pension is zero."""
 
+    _HEADERS = ("Grado", "ID", "Nombres", "Paterno", "Materno", "Pension")
+
     _WINDOW_TITLE = "Alumnos - Reporte de becados"
     _REPORT_TITLE = "Alumnos becados"
     _EMPTY_MESSAGE = "No hay alumnos becados inscritos actualmente."
@@ -306,11 +308,11 @@ class ReporteAlumnosBecadosDialog(ReporteAlumnosPorGradoDialog):
             sections.append(f"<p>{html.escape(self._EMPTY_MESSAGE)}</p>")
             return "".join(sections)
 
-        headers = ("ID Grado", "Grado", *self._HEADERS)
         sections.append("<table border='1' cellspacing='0' cellpadding='4'><tr>")
-        sections.extend(f"<th>{html.escape(header)}</th>" for header in headers)
+        sections.extend(f"<th>{html.escape(header)}</th>" for header in self._HEADERS)
         sections.append("</tr>")
-        for row in rows:
+        for _grade_id, grade_name, student_id, nombres, paterno, materno, _rude, _carnet, pension in rows:
+            row = (grade_name, student_id, nombres, paterno, materno, pension)
             sections.append("<tr>")
             sections.extend(f"<td>{html.escape(self._display(value))}</td>" for value in row)
             sections.append("</tr>")
@@ -324,10 +326,10 @@ class ReporteAlumnosBecadosDialog(ReporteAlumnosPorGradoDialog):
             lines.append(self._EMPTY_MESSAGE)
             return "\n".join(lines) + "\n"
 
-        headers = ("ID Grado", "Grado", *self._HEADERS)
-        lines.append("| " + " | ".join(headers) + " |")
-        lines.append("| " + " | ".join("---" for _header in headers) + " |")
-        for row in rows:
+        lines.append("| " + " | ".join(self._HEADERS) + " |")
+        lines.append("| " + " | ".join("---" for _header in self._HEADERS) + " |")
+        for _grade_id, grade_name, student_id, nombres, paterno, materno, _rude, _carnet, pension in rows:
+            row = (grade_name, student_id, nombres, paterno, materno, pension)
             values = [self._display(value).replace("|", "\\|").replace("\n", " ") for value in row]
             lines.append("| " + " | ".join(values) + " |")
         return "\n".join(lines) + "\n"

@@ -136,7 +136,10 @@ def test_becados_report_filters_zero_pension_with_positive_grade(qapp, tmp_path)
         assert report_html.count("<table") == 1
         assert "## Primero A" not in markdown
         assert "## Segundo A" not in markdown
-        assert markdown.count("| ID Grado | Grado |") == 1
+        assert markdown.count("| Grado | ID | Nombres | Paterno | Materno | Pension |") == 1
+        assert "ID Grado" not in markdown
+        assert "RUDE" not in markdown
+        assert "Carnet" not in markdown
     finally:
         reset_active_db_path()
 
