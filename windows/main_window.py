@@ -32,6 +32,7 @@ try:
     import dialogs.alumnos as alumnos_dialogs
     import dialogs.parientes as parientes_dialogs
     from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
+    from dialogs.reportes_alumnos import ReporteAlumnosPorGradoDialog
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
 except (ModuleNotFoundError, ImportError):
@@ -55,6 +56,7 @@ except (ModuleNotFoundError, ImportError):
     import dialogs.alumnos as alumnos_dialogs
     import dialogs.parientes as parientes_dialogs
     from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
+    from dialogs.reportes_alumnos import ReporteAlumnosPorGradoDialog
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
 
@@ -296,9 +298,11 @@ class MainWindow(QMainWindow):
         alumnos_buscar_action = QAction("&Buscar", self)
         alumnos_buscar_action.triggered.connect(self.on_alumnos_buscar)
         self.alumnos_menu.addAction(alumnos_buscar_action)
-        self.alumnos_reportes_action = QAction("&Reportes", self)
-        self.alumnos_reportes_action.triggered.connect(self.on_alumnos_reportes)
-        self.alumnos_menu.addAction(self.alumnos_reportes_action)
+        self.alumnos_reportes_menu = self.alumnos_menu.addMenu("&Reportes")
+        self.alumnos_reportes_action = self.alumnos_reportes_menu.menuAction()
+        self.alumnos_por_grados_action = QAction("Por &grados", self)
+        self.alumnos_por_grados_action.triggered.connect(self.on_alumnos_por_grados)
+        self.alumnos_reportes_menu.addAction(self.alumnos_por_grados_action)
 
         # Parientes menu
         self.parientes_menu = menu_bar.addMenu("&Parientes")
@@ -498,10 +502,10 @@ class MainWindow(QMainWindow):
         BuscarAlumnoDialog(self, is_admin=self._username.strip().lower() == "admin").exec()
         self._refresh_current_alumno_id_label()
 
-    def on_alumnos_reportes(self):
-        """Handle the Alumnos > Reportes menu action."""
-        log.info("Menú: Alumnos > Reportes")
-        QMessageBox.information(self, "Reportes de Alumnos", "Reportes de alumnos próximamente.")
+    def on_alumnos_por_grados(self):
+        """Handle the Alumnos > Reportes > Por grados menu action."""
+        log.info("Menú: Alumnos > Reportes > Por grados")
+        ReporteAlumnosPorGradoDialog(self).exec()
 
     def on_parientes_nuevo(self):
         """Handle the Parientes > Nuevo menu action."""
