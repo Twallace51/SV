@@ -200,7 +200,7 @@ class ReporteAlumnosPorGradoDialog(QDialog):
         return Path(path) if path else None
 
     def _export_csv(self):
-        path = self._choose_path("Exportar reporte a CSV", f"{self._DEFAULT_FILENAME}.csv", "CSV (*.csv)")
+        path = self._choose_path("Exportar reporte a CSV", f"{self._DEFAULT_FILENAME}_{date.today():%Y-%m-%d}.csv", "CSV (*.csv)")
         if path is None:
             return
         try:
@@ -213,7 +213,7 @@ class ReporteAlumnosPorGradoDialog(QDialog):
             self._show_export_error(exc)
 
     def _export_excel(self):
-        path = self._choose_path("Exportar reporte a Excel", f"{self._DEFAULT_FILENAME}.xlsx", "Excel (*.xlsx)")
+        path = self._choose_path("Exportar reporte a Excel", f"{self._DEFAULT_FILENAME}_{date.today():%Y-%m-%d}.xlsx", "Excel (*.xlsx)")
         if path is None:
             return
         try:
@@ -223,7 +223,7 @@ class ReporteAlumnosPorGradoDialog(QDialog):
             self._show_export_error(exc)
 
     def _export_markdown(self):
-        path = self._choose_path("Exportar reporte a Markdown", f"{self._DEFAULT_FILENAME}.md", "Markdown (*.md)")
+        path = self._choose_path("Exportar reporte a Markdown", f"{self._DEFAULT_FILENAME}_{date.today():%Y-%m-%d}.md", "Markdown (*.md)")
         if path is None:
             return
         try:
