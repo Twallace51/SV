@@ -285,7 +285,6 @@ class BuscarAlumnoDialog(QDialog):
     def __init__(self, parent=None, is_admin: bool = False):
         super().__init__(parent)
         self._is_admin = is_admin
-        self.setWindowTitle("Alumnos - Buscar")
         self.resize(760, 420)
         layout = QVBoxLayout(self)
 
@@ -298,6 +297,7 @@ class BuscarAlumnoDialog(QDialog):
 
         self.show_all_checkbox = QCheckBox("Todos")
         self.show_all_checkbox.setToolTip("Desactive para mostrar solo inscritos")
+        self.show_all_checkbox.toggled.connect(self._update_title)
         self.show_all_checkbox.toggled.connect(lambda _checked: self._load(self.search_edit.text()))
         search_row.addWidget(self.show_all_checkbox)
         layout.addLayout(search_row)
@@ -316,7 +316,15 @@ class BuscarAlumnoDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
+        self._update_title()
         self._load("")
+
+    def _update_title(self):
+        """Update window title based on checkbox state."""
+        if self.show_all_checkbox.isChecked():
+            self.setWindowTitle("Alumnos - Buscar entre todos alumnos registrados")
+        else:
+            self.setWindowTitle("Alumnos - Buscar entre alumnos inscritos actualmente")
 
     def _on_single_click(self, row: int, _col: int):
         self._set_current_alumno_from_row(row)
