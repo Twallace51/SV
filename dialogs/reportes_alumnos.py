@@ -8,9 +8,10 @@ from collections import defaultdict
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from PySide6.QtGui import QTextDocument
+from PySide6.QtGui import QTextDocument, QTextFormat
 from PySide6.QtPrintSupport import QPrintPreviewDialog, QPrinter
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -34,10 +35,19 @@ class ReporteAlumnosPorGradoDialog(QDialog):
         self.setWindowTitle("Alumnos - Reporte por grados")
         self.resize(900, 620)
         self._groups = self._load_groups()
-        self._document = QTextDocument(self)
-        self._document.setHtml(self._build_html())
 
         layout = QVBoxLayout(self)
+        self.continuous_output_checkbox = QCheckBox("Salida continua", self)
+        self.continuous_output_checkbox.setChecked(True)
+        self.continuous_output_checkbox.setToolTip(
+            "Desactive para comenzar cada grado en una página nueva"
+        )
+        self.continuous_output_checkbox.toggled.connect(self._refresh_document)
+        layout.addWidget(self.continuous_output_checkbox)
+
+        self._document = QTextDocument(self)
+        self._refresh_document()
+
         self.viewer = QTextBrowser(self)
         self.viewer.setDocument(self._document)
         layout.addWidget(self.viewer)
@@ -105,8 +115,12 @@ class ReporteAlumnosPorGradoDialog(QDialog):
             sections.append("<p>No hay alumnos inscritos actualmente.</p>")
             return "".join(sections)
 
-        for (grade_id, grade_name), rows in self._groups.items():
-            sections.append(f"<h2>{html.escape(str(grade_name))} (ID {grade_id}) - {len(rows)} alumnos</h2>")
+        for index, ((grade_id, grade_name), rows) in enumerate(self._groups.items()):
+            page_break = " style='page-break-before: always'" if index > 0 and not self.continuous_output_checkbox.isChecked() else ""
+            sections.append(
+                f"<div{page_break}><h2>{html.escape(str(grade_name))} "
+                f"(ID {grade_id}) - {len(rows)} alumnos</h2>"
+            )
             sections.append("<table border='1' cellspacing='0' cellpadding='4'><tr>")
             sections.extend(f"<th>{html.escape(header)}</th>" for header in self._HEADERS)
             sections.append("</tr>")
@@ -114,8 +128,24 @@ class ReporteAlumnosPorGradoDialog(QDialog):
                 sections.append("<tr>")
                 sections.extend(f"<td>{html.escape(self._display(value))}</td>" for value in row)
                 sections.append("</tr>")
-            sections.append("</table>")
+            sections.append("</table></div>")
         return "".join(sections)
+
+    def _refresh_document(self):
+        self._document.setHtml(self._build_html())
+        if self.continuous_output_checkbox.isChecked():
+            return
+
+        for grade_id, grade_name in list(self._groups)[1:]:
+            heading = f"{grade_name} (ID {grade_id})"
+            cursor = self._document.find(heading)
+            if cursor.isNull():
+                continue
+            block_format = cursor.blockFormat()
+            block_format.setPageBreakPolicy(
+                QTextFormat.PageBreakFlag.PageBreak_AlwaysBefore
+            )
+            cursor.setBlockFormat(block_format)
 
     @staticmethod
     def _display(value):

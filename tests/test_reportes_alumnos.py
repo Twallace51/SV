@@ -4,6 +4,8 @@ import sqlite3
 from pathlib import Path
 from zipfile import ZipFile
 
+from PySide6.QtGui import QTextFormat
+
 from __init__ import reset_active_db_path, set_active_db_path
 from dialogs.reportes_alumnos import ReporteAlumnosPorGradoDialog
 
@@ -57,6 +59,38 @@ def test_markdown_export_content_is_grouped(qapp, tmp_path):
         assert "## Primero A (ID 1)" in markdown
         assert "## Segundo A (ID 2)" in markdown
         assert "| 1 | Ana | Lopez | Rios | R-1 | C-1 | 300.0 |" in markdown
+    finally:
+        reset_active_db_path()
+
+
+def test_report_defaults_to_continuous_output(qapp, tmp_path):
+    database = tmp_path / "report.db"
+    _create_report_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = ReporteAlumnosPorGradoDialog()
+
+        assert dialog.continuous_output_checkbox.isChecked()
+        assert "page-break-before: always" not in dialog._build_html()
+    finally:
+        reset_active_db_path()
+
+
+def test_disabling_continuous_output_adds_page_break_per_grade(qapp, tmp_path):
+    database = tmp_path / "report.db"
+    _create_report_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = ReporteAlumnosPorGradoDialog()
+
+        dialog.continuous_output_checkbox.setChecked(False)
+
+        assert dialog._build_html().count("page-break-before: always") == 1
+        second_grade = dialog._document.find("Segundo A (ID 2)")
+        assert not second_grade.isNull()
+        assert second_grade.blockFormat().pageBreakPolicy() & (
+            QTextFormat.PageBreakFlag.PageBreak_AlwaysBefore
+        )
     finally:
         reset_active_db_path()
 
