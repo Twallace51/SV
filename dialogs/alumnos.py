@@ -264,7 +264,6 @@ class NuevoAlumnoDialog(QDialog):
             current_alumno_id = cur.lastrowid
             current_alumno_name = f"{nombres} {paterno}"
             conn.close()
-            QMessageBox.information(self, "Guardado", f"Alumno '{nombres} {paterno}' guardado.")
             self.accept()
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
@@ -506,7 +505,6 @@ class EditAlumnoDialog(QDialog):
             current_alumno_id = self._id
             current_alumno_name = f"{nombres} {paterno}"
             conn.close()
-            QMessageBox.information(self, "Guardado", f"Alumno '{nombres} {paterno}' actualizado.")
             self.accept()
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")

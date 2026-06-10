@@ -170,7 +170,6 @@ class NuevoCuentaDialog(QDialog):
             global current_cta_id
             current_cta_id = cur.lastrowid
             conn.close()
-            QMessageBox.information(self, "Guardado", "Cuenta guardada.")
             self.accept()
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
@@ -339,7 +338,6 @@ class EditCuentaDialog(QDialog):
             global current_cta_id
             current_cta_id = self._id
             conn.close()
-            QMessageBox.information(self, "Guardado", "Cuenta actualizada.")
             self.accept()
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")

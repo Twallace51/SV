@@ -90,7 +90,6 @@ class NuevoParienteDialog(QDialog):
             current_adulto_id = cur.lastrowid
             current_adulto_name = f"{paterno}, {nombres}"
             conn.close()
-            QMessageBox.information(self, "Guardado", f"Pariente '{nombres} {paterno}' guardado.")
             self.accept()
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
@@ -178,7 +177,6 @@ class EditParienteDialog(QDialog):
             current_adulto_id = self._id
             current_adulto_name = f"{paterno}, {nombres}"
             conn.close()
-            QMessageBox.information(self, "Guardado", f"Pariente '{nombres} {paterno}' actualizado.")
             self.accept()
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
