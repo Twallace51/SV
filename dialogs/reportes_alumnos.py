@@ -544,3 +544,127 @@ class ReporteAlumnosCumpleanosDialog(ReporteAlumnosBecadosDialog):
             values = [self._display(value).replace("|", "\\|").replace("\n", " ") for value in row]
             lines.append("| " + " | ".join(values) + " |")
         return "\n".join(lines) + "\n"
+
+
+class ReporteAlumnosParientesDialog(ReporteAlumnosBecadosDialog):
+    """Display and export enrolled alumnos with parent IDs and looked-up names."""
+
+    _HEADERS = ("ID", "Alumno", "ID Padre", "Padre", "ID Madre", "Madre")
+    _WINDOW_TITLE = "Alumnos - Reporte de parientes"
+    _REPORT_TITLE = "Alumnos - Parientes"
+    _EMPTY_MESSAGE = "No hay alumnos inscritos actualmente."
+    _PREVIEW_TITLE = "Vista previa - Alumnos parientes"
+    _DEFAULT_FILENAME = "alumnos_parientes"
+    _EXTRA_FILTER = ""
+
+    @classmethod
+    def _load_groups(cls):
+        groups = defaultdict(list)
+        query = (
+            "SELECT CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER), "
+            "COALESCE(g.grado, 'Grado ' || TRIM(CAST(a.id_grado AS TEXT))), "
+            "a.id, a.nombres, a.paterno, a.materno, "
+            "NULLIF(TRIM(CAST(a.id_padre AS TEXT)), ''), "
+            "p.a_nombres, p.a_paterno, p.a_materno, "
+            "NULLIF(TRIM(CAST(a.id_madre AS TEXT)), ''), "
+            "m.a_nombres, m.a_paterno, m.a_materno "
+            "FROM alumnos a "
+            "LEFT JOIN grados g ON g.id = CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER) "
+            "LEFT JOIN adultos p ON p.id = CASE "
+            "  WHEN a.id_padre IS NULL THEN NULL "
+            "  WHEN TRIM(CAST(a.id_padre AS TEXT)) = '' THEN NULL "
+            "  WHEN LOWER(TRIM(CAST(a.id_padre AS TEXT))) IN ('null', 'none') THEN NULL "
+            "  ELSE CAST(TRIM(CAST(a.id_padre AS TEXT)) AS INTEGER) "
+            "END "
+            "LEFT JOIN adultos m ON m.id = CASE "
+            "  WHEN a.id_madre IS NULL THEN NULL "
+            "  WHEN TRIM(CAST(a.id_madre AS TEXT)) = '' THEN NULL "
+            "  WHEN LOWER(TRIM(CAST(a.id_madre AS TEXT))) IN ('null', 'none') THEN NULL "
+            "  ELSE CAST(TRIM(CAST(a.id_madre AS TEXT)) AS INTEGER) "
+            "END "
+            "WHERE a.id_grado IS NOT NULL "
+            "AND TRIM(CAST(a.id_grado AS TEXT)) <> '' "
+            "AND LOWER(TRIM(CAST(a.id_grado AS TEXT))) NOT IN ('null', 'none') "
+            "AND CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER) > 0 "
+            "ORDER BY CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER), "
+            "a.paterno, a.materno, a.nombres"
+        )
+        try:
+            with sqlite3.connect(get_active_db_path()) as connection:
+                rows = connection.execute(query).fetchall()
+        except sqlite3.Error as exc:
+            QMessageBox.critical(None, cls._WINDOW_TITLE, f"No se pudo cargar el reporte:\n{exc}")
+            rows = []
+
+        for grade_id, grade_name, *student in rows:
+            groups[(grade_id, grade_name)].append(tuple(student))
+        return dict(groups)
+
+    @staticmethod
+    def _full_name(nombres, paterno, materno):
+        return " ".join(
+            part.strip() for part in (str(nombres or ""), str(paterno or ""), str(materno or "")) if part and str(part).strip()
+        )
+
+    def _flat_rows(self):
+        rows = []
+        for (_grade_id, _grade_name), students in self._groups.items():
+            for (
+                student_id,
+                nombres,
+                paterno,
+                materno,
+                id_padre,
+                padre_nombres,
+                padre_paterno,
+                padre_materno,
+                id_madre,
+                madre_nombres,
+                madre_paterno,
+                madre_materno,
+            ) in students:
+                rows.append(
+                    (
+                        student_id,
+                        self._full_name(nombres, paterno, materno),
+                        self._display(id_padre),
+                        self._full_name(padre_nombres, padre_paterno, padre_materno),
+                        self._display(id_madre),
+                        self._full_name(madre_nombres, madre_paterno, madre_materno),
+                    )
+                )
+        return iter(rows)
+
+    def _build_html(self):
+        rows = list(self._flat_rows())
+        sections = [
+            f"<h1>{html.escape(self._report_title_with_date())}</h1>",
+            f"<p>Total de alumnos: {len(rows)}</p>",
+        ]
+        if not rows:
+            sections.append(f"<p>{html.escape(self._EMPTY_MESSAGE)}</p>")
+            return "".join(sections)
+
+        sections.append("<table border='1' cellspacing='0' cellpadding='4'><tr>")
+        sections.extend(f"<th>{html.escape(header)}</th>" for header in self._HEADERS)
+        sections.append("</tr>")
+        for row in rows:
+            sections.append("<tr>")
+            sections.extend(f"<td>{html.escape(self._display(value))}</td>" for value in row)
+            sections.append("</tr>")
+        sections.append("</table>")
+        return "".join(sections)
+
+    def _build_markdown(self):
+        rows = list(self._flat_rows())
+        lines = [f"# {self._report_title_with_date()}", "", f"Total de alumnos: {len(rows)}", ""]
+        if not rows:
+            lines.append(self._EMPTY_MESSAGE)
+            return "\n".join(lines) + "\n"
+
+        lines.append("| " + " | ".join(self._HEADERS) + " |")
+        lines.append("| " + " | ".join("---" for _header in self._HEADERS) + " |")
+        for row in rows:
+            values = [self._display(value).replace("|", "\\|").replace("\n", " ") for value in row]
+            lines.append("| " + " | ".join(values) + " |")
+        return "\n".join(lines) + "\n"

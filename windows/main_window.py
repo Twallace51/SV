@@ -36,6 +36,7 @@ try:
         ReporteAlumnosBecadosDialog,
         ReporteAlumnosCarnetDialog,
         ReporteAlumnosCumpleanosDialog,
+        ReporteAlumnosParientesDialog,
         ReporteAlumnosPorGradoDialog,
         ReporteAlumnosRudeDialog,
     )
@@ -66,6 +67,7 @@ except (ModuleNotFoundError, ImportError):
         ReporteAlumnosBecadosDialog,
         ReporteAlumnosCarnetDialog,
         ReporteAlumnosCumpleanosDialog,
+        ReporteAlumnosParientesDialog,
         ReporteAlumnosPorGradoDialog,
         ReporteAlumnosRudeDialog,
     )
@@ -328,6 +330,9 @@ class MainWindow(QMainWindow):
         self.alumnos_cumpleanos_action = QAction("&Cumpleanos", self)
         self.alumnos_cumpleanos_action.triggered.connect(self.on_alumnos_cumpleanos)
         self.alumnos_reportes_menu.addAction(self.alumnos_cumpleanos_action)
+        self.alumnos_parientes_action = QAction("&Parientes", self)
+        self.alumnos_parientes_action.triggered.connect(self.on_alumnos_parientes)
+        self.alumnos_reportes_menu.addAction(self.alumnos_parientes_action)
 
         # Parientes menu
         self.parientes_menu = menu_bar.addMenu("&Parientes")
@@ -551,6 +556,11 @@ class MainWindow(QMainWindow):
         """Handle the Alumnos > Reportes > Cumpleanos menu action."""
         log.info("Menú: Alumnos > Reportes > Cumpleanos")
         ReporteAlumnosCumpleanosDialog(self).exec()
+
+    def on_alumnos_parientes(self):
+        """Handle the Alumnos > Reportes > Parientes menu action."""
+        log.info("Menú: Alumnos > Reportes > Parientes")
+        ReporteAlumnosParientesDialog(self).exec()
 
     def on_parientes_nuevo(self):
         """Handle the Parientes > Nuevo menu action."""

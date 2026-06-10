@@ -13,6 +13,7 @@ from dialogs.reportes_alumnos import (
     ReporteAlumnosBecadosDialog,
     ReporteAlumnosCarnetDialog,
     ReporteAlumnosCumpleanosDialog,
+    ReporteAlumnosParientesDialog,
     ReporteAlumnosPorGradoDialog,
     ReporteAlumnosRudeDialog,
 )
@@ -22,23 +23,37 @@ def _create_report_database(path: Path):
     with sqlite3.connect(path) as connection:
         connection.execute("CREATE TABLE grados (id INTEGER PRIMARY KEY, grado TEXT)")
         connection.execute(
+            "CREATE TABLE adultos ("
+            "id INTEGER PRIMARY KEY, a_nombres TEXT, a_paterno TEXT, a_materno TEXT)"
+        )
+        connection.execute(
             "CREATE TABLE alumnos ("
             "id INTEGER PRIMARY KEY, nombres TEXT, paterno TEXT, materno TEXT, "
-            "cumpleanos TEXT, rude TEXT, Carnet TEXT, pension REAL, id_grado TEXT)"
+            "cumpleanos TEXT, rude TEXT, Carnet TEXT, pension REAL, id_grado TEXT, "
+            "id_padre TEXT, id_madre TEXT)"
         )
         connection.executemany(
             "INSERT INTO grados (id, grado) VALUES (?, ?)",
             [(1, "Primero A"), (2, "Segundo A")],
         )
         connection.executemany(
-            "INSERT INTO alumnos VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO adultos (id, a_nombres, a_paterno, a_materno) VALUES (?, ?, ?, ?)",
             [
-                (1, "Ana", "Lopez", "Rios", "2010-01-15", "R-1", "C-1", 300, "1"),
-                (2, "Beto", "Perez", "", "2011-07-20", "R-2", "C-2", 320, "2"),
-                (3, "Celia", "Vega", "", "2010-08-30", "R-3", "C-3", 0, "0"),
-                (4, "Dario", "Soto", "", "", "R-4", "C-4", 0, None),
-                (5, "Elena", "Mora", "", "2009-12-03", "R-5", "C-5", 0, "2"),
-                (6, "Fabio", "Ruiz", "", "2010-02-28", "R-6", "C-6", 0, "1"),
+                (1, "Pedro", "Lopez", "Diaz"),
+                (2, "Marta", "Lopez", "Rios"),
+                (3, "Juan", "Perez", "Quispe"),
+                (4, "Ana", "Perez", "Mamani"),
+            ],
+        )
+        connection.executemany(
+            "INSERT INTO alumnos VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (1, "Ana", "Lopez", "Rios", "2010-01-15", "R-1", "C-1", 300, "1", "1", "2"),
+                (2, "Beto", "Perez", "", "2011-07-20", "R-2", "C-2", 320, "2", "3", "4"),
+                (3, "Celia", "Vega", "", "2010-08-30", "R-3", "C-3", 0, "0", "", ""),
+                (4, "Dario", "Soto", "", "", "R-4", "C-4", 0, None, None, None),
+                (5, "Elena", "Mora", "", "2009-12-03", "R-5", "C-5", 0, "2", "", ""),
+                (6, "Fabio", "Ruiz", "", "2010-02-28", "R-6", "C-6", 0, "1", "1", "2"),
             ],
         )
 
@@ -51,6 +66,7 @@ def _create_report_database(path: Path):
         ReporteAlumnosRudeDialog,
         ReporteAlumnosCarnetDialog,
         ReporteAlumnosCumpleanosDialog,
+        ReporteAlumnosParientesDialog,
     ],
 )
 def test_report_title_includes_current_date(qapp, tmp_path, dialog_cls):
@@ -258,5 +274,29 @@ def test_carnet_report_has_carnet_column_without_becados_filter(qapp, tmp_path):
         assert "| Grado | ID | Nombres | Paterno | Materno | Carnet |" in markdown
         assert "| Primero A | 1 | Ana | Lopez | Rios | C-1 |" in markdown
         assert "RUDE" not in markdown
+    finally:
+        reset_active_db_path()
+
+
+def test_parientes_report_has_parent_ids_and_lookup_names(qapp, tmp_path):
+    database = tmp_path / "report.db"
+    _create_report_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = ReporteAlumnosParientesDialog()
+        rows = list(dialog._flat_rows())
+
+        assert rows[0] == (1, "Ana Lopez Rios", "1", "Pedro Lopez Diaz", "2", "Marta Lopez Rios")
+        assert rows[1] == (6, "Fabio Ruiz", "1", "Pedro Lopez Diaz", "2", "Marta Lopez Rios")
+        assert rows[2] == (5, "Elena Mora", "", "", "", "")
+        assert rows[3] == (2, "Beto Perez", "3", "Juan Perez Quispe", "4", "Ana Perez Mamani")
+
+        plain_text = dialog.viewer.toPlainText()
+        assert "ID Padre" in plain_text
+        assert "ID Madre" in plain_text
+        assert "Pedro Lopez Diaz" in plain_text
+        assert "Marta Lopez Rios" in plain_text
+        assert "Celia" not in plain_text
+        assert "Dario" not in plain_text
     finally:
         reset_active_db_path()
