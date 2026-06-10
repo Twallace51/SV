@@ -9,8 +9,8 @@ from PySide6.QtWidgets import (
     QDialog, QLabel, QLineEdit,
     QVBoxLayout, QFormLayout, QMessageBox, QHBoxLayout,
     QDialogButtonBox, QTableWidget, QTableWidgetItem,
-    QDateEdit, QComboBox, QDoubleSpinBox, QHeaderView,
-    QAbstractSpinBox, QCheckBox, QWidget,
+    QDateEdit, QComboBox, QHeaderView,
+    QCheckBox, QWidget,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIntValidator
@@ -99,11 +99,27 @@ class NuevoAlumnoDialog(QDialog):
         self.cumpleanos.setDisplayFormat("yyyy-MM-dd")
         self.rude = QLineEdit()
         self.carnet = QLineEdit()
-        self.pension = QDoubleSpinBox()
-        self.pension.setRange(0, 99999)
-        self.pension.setDecimals(2)
-        self.pension.setPrefix("Bs ")
-        self.pension.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.pension = QLineEdit()
+        self.pension.setValidator(QIntValidator(0, 99999, self))
+        self.pension.setText("0")
+
+        self.id_padre = QLineEdit()
+        self.id_padre.setPlaceholderText("ID")
+        self.id_padre.setValidator(QIntValidator(1, 999999999, self))
+        self.id_padre.setMaximumWidth(100)
+        self.padre_lookup = QLineEdit()
+        self.padre_lookup.setReadOnly(True)
+        self.padre_lookup.setPlaceholderText("a_nombres a_paterno a_materno")
+        self.id_padre.textChanged.connect(self._refresh_padre_lookup)
+
+        self.id_madre = QLineEdit()
+        self.id_madre.setPlaceholderText("ID")
+        self.id_madre.setValidator(QIntValidator(1, 999999999, self))
+        self.id_madre.setMaximumWidth(100)
+        self.madre_lookup = QLineEdit()
+        self.madre_lookup.setReadOnly(True)
+        self.madre_lookup.setPlaceholderText("a_nombres a_paterno a_materno")
+        self.id_madre.textChanged.connect(self._refresh_madre_lookup)
 
         self.grado = QComboBox()
         self.grado.addItem("Sin grado", 0)
@@ -122,9 +138,27 @@ class NuevoAlumnoDialog(QDialog):
         form.addRow("Cumpleaños:", self.cumpleanos)
         form.addRow("RUDE:", self.rude)
         form.addRow("Carnet:", self.carnet)
+
+        padre_row = QWidget(self)
+        padre_layout = QHBoxLayout(padre_row)
+        padre_layout.setContentsMargins(0, 0, 0, 0)
+        padre_layout.addWidget(self.id_padre)
+        padre_layout.addWidget(self.padre_lookup, 1)
+        form.addRow("ID Padre:", padre_row)
+
+        madre_row = QWidget(self)
+        madre_layout = QHBoxLayout(madre_row)
+        madre_layout.setContentsMargins(0, 0, 0, 0)
+        madre_layout.addWidget(self.id_madre)
+        madre_layout.addWidget(self.madre_lookup, 1)
+        form.addRow("ID Madre:", madre_row)
+
         form.addRow("Grado:", self.grado)
         form.addRow("Pensión:", self.pension)
         layout.addLayout(form)
+
+        self._refresh_padre_lookup()
+        self._refresh_madre_lookup()
 
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=self)
         buttons.accepted.connect(self._save)
@@ -141,15 +175,48 @@ class NuevoAlumnoDialog(QDialog):
         if not self.cumpleanos.date().isValid():
             QMessageBox.warning(self, "Validación", "La fecha de cumpleaños debe tener el formato YYYY-MM-DD.")
             return
+
+        pension_text = self.pension.text().strip()
+        try:
+            pension_value = int(pension_text) if pension_text else 0
+        except (TypeError, ValueError):
+            pension_value = 0
+        pension_value = max(0, pension_value)
+        self.pension.setText(str(pension_value))
+
+        id_padre = _normalize_related_adulto_id(self.id_padre.text())
+        id_madre = _normalize_related_adulto_id(self.id_madre.text())
         try:
             conn = sqlite3.connect(get_active_db_path())
+            columns = {
+                column_row[1]
+                for column_row in conn.execute("PRAGMA table_info(alumnos)").fetchall()
+            }
+            has_id_padre = "id_padre" in columns
+            has_id_madre = "id_madre" in columns
+
+            insert_fields = ["nombres", "paterno", "materno", "cumpleanos", "rude", "Carnet", "id_grado", "pension"]
+            values = [
+                nombres,
+                paterno,
+                self.materno.text().strip().title(),
+                cumpleanos,
+                self.rude.text().strip(),
+                self.carnet.text().strip(),
+                self.grado.currentData(),
+                pension_value,
+            ]
+            if has_id_padre:
+                insert_fields.append("id_padre")
+                values.append(id_padre)
+            if has_id_madre:
+                insert_fields.append("id_madre")
+                values.append(id_madre)
+
+            placeholders = ", ".join("?" for _field in insert_fields)
             cur = conn.execute(
-                "INSERT INTO alumnos (nombres, paterno, materno, cumpleanos, rude, Carnet, id_grado, pension)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (nombres, paterno, self.materno.text().strip().title(),
-                 cumpleanos,
-                 self.rude.text().strip(), self.carnet.text().strip(),
-                 self.grado.currentData(), self.pension.value()),
+                f"INSERT INTO alumnos ({', '.join(insert_fields)}) VALUES ({placeholders})",
+                tuple(values),
             )
             conn.commit()
             global current_alumno_id, current_alumno_name
@@ -160,6 +227,37 @@ class NuevoAlumnoDialog(QDialog):
             self.accept()
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
+
+    @staticmethod
+    def _build_adulto_lookup_name(nombres, paterno, materno):
+        return " ".join(
+            part.strip()
+            for part in (str(nombres or ""), str(paterno or ""), str(materno or ""))
+            if part and str(part).strip()
+        )
+
+    def _lookup_adulto_name(self, related_id_text):
+        related_id = _normalize_related_adulto_id(related_id_text)
+        if related_id is None:
+            return ""
+        try:
+            with sqlite3.connect(get_active_db_path()) as conn:
+                row = conn.execute(
+                    "SELECT a_nombres, a_paterno, a_materno FROM adultos WHERE id = ?",
+                    (related_id,),
+                ).fetchone()
+        except Exception:
+            return ""
+
+        if not row:
+            return "No encontrado"
+        return self._build_adulto_lookup_name(*row)
+
+    def _refresh_padre_lookup(self):
+        self.padre_lookup.setText(self._lookup_adulto_name(self.id_padre.text()))
+
+    def _refresh_madre_lookup(self):
+        self.madre_lookup.setText(self._lookup_adulto_name(self.id_madre.text()))
 
 
 class EditAlumnoDialog(QDialog):
@@ -182,10 +280,9 @@ class EditAlumnoDialog(QDialog):
         self.cumpleanos.setDisplayFormat("yyyy-MM-dd")
         self.rude = QLineEdit()
         self.carnet = QLineEdit()
-        self.pension = QDoubleSpinBox()
-        self.pension.setRange(0, 99999)
-        self.pension.setDecimals(2)
-        self.pension.setPrefix("Bs ")
+        self.pension = QLineEdit()
+        self.pension.setValidator(QIntValidator(0, 99999, self))
+        self.pension.setText("0")
 
         self.id_padre = QLineEdit()
         self.id_padre.setPlaceholderText("ID")
@@ -247,7 +344,11 @@ class EditAlumnoDialog(QDialog):
             idx = self.grado.findData(grado_id)
             if idx >= 0:
                 self.grado.setCurrentIndex(idx)
-            self.pension.setValue(row[7] or 0)
+            try:
+                pension_value = int(float(row[7])) if row[7] is not None else 0
+            except (TypeError, ValueError):
+                pension_value = 0
+            self.pension.setText(str(max(0, pension_value)))
 
             offset = 8
             if has_id_padre:
@@ -305,6 +406,14 @@ class EditAlumnoDialog(QDialog):
             QMessageBox.warning(self, "Validación", "La fecha de cumpleaños debe tener el formato YYYY-MM-DD.")
             return
 
+        pension_text = self.pension.text().strip()
+        try:
+            pension_value = int(pension_text) if pension_text else 0
+        except (TypeError, ValueError):
+            pension_value = 0
+        pension_value = max(0, pension_value)
+        self.pension.setText(str(pension_value))
+
         id_padre = _normalize_related_adulto_id(self.id_padre.text())
         id_madre = _normalize_related_adulto_id(self.id_madre.text())
         try:
@@ -324,7 +433,7 @@ class EditAlumnoDialog(QDialog):
                 nombres, paterno, self.materno.text().strip().title(),
                 cumpleanos,
                 self.rude.text().strip(), self.carnet.text().strip(),
-                self.grado.currentData(), self.pension.value(),
+                self.grado.currentData(), pension_value,
             ]
             if has_id_padre:
                 set_fields.append("id_padre=?")
