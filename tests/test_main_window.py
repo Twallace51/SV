@@ -133,7 +133,6 @@ class TestMainWindowMenuBar:
         ("action_name", "handler_name"),
         [
             ("parientes_reportes_action", "on_parientes_reportes"),
-            ("cuentas_reportes_action", "on_cuentas_reportes"),
         ],
     )
     def test_reportes_action_calls_handler(self, window, monkeypatch, action_name, handler_name):
@@ -145,6 +144,21 @@ class TestMainWindowMenuBar:
         action.trigger()
 
         assert calls == [handler_name]
+
+    def test_cuentas_reportes_menu_exists(self, window):
+        action_texts = [
+            action.text().replace("&", "") for action in window.cuentas_reportes_menu.actions()
+        ]
+        assert "Total" in action_texts
+
+    def test_cuentas_total_action_calls_handler(self, window, monkeypatch):
+        calls = []
+        window.cuentas_total_action.triggered.disconnect()
+        window.cuentas_total_action.triggered.connect(lambda: calls.append("on_cuentas_reportes"))
+
+        window.cuentas_total_action.trigger()
+
+        assert calls == ["on_cuentas_reportes"]
 
     def test_alumnos_reportes_has_por_grados_action(self, window):
         action_texts = [

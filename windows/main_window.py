@@ -42,7 +42,7 @@ try:
     )
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
-    from dialogs.reportes_cuentas import ReporteCuentasTotalDialog
+    from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog
 except (ModuleNotFoundError, ImportError):
     # Support running this file directly from the windows/ directory.
     project_root = Path(__file__).resolve().parent.parent
@@ -74,7 +74,7 @@ except (ModuleNotFoundError, ImportError):
     )
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
-    from dialogs.reportes_cuentas import ReporteCuentasTotalDialog
+    from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog
 
 # endregion
 
@@ -356,9 +356,14 @@ class MainWindow(QMainWindow):
         cuentas_buscar_action = QAction("&Buscar", self)
         cuentas_buscar_action.triggered.connect(self.on_cuentas_buscar)
         self.cuentas_menu.addAction(cuentas_buscar_action)
-        self.cuentas_reportes_action = QAction("&Reportes", self)
-        self.cuentas_reportes_action.triggered.connect(self.on_cuentas_reportes)
-        self.cuentas_menu.addAction(self.cuentas_reportes_action)
+        self.cuentas_reportes_menu = self.cuentas_menu.addMenu("&Reportes")
+        self.cuentas_reportes_action = self.cuentas_reportes_menu.menuAction()
+        self.cuentas_total_action = QAction("&Total", self)
+        self.cuentas_total_action.triggered.connect(self.on_cuentas_reportes)
+        self.cuentas_reportes_menu.addAction(self.cuentas_total_action)
+        self.cuentas_alumnos_action = QAction("&Alumnos", self)
+        self.cuentas_alumnos_action.triggered.connect(self.on_cuentas_reportes_alumnos)
+        self.cuentas_reportes_menu.addAction(self.cuentas_alumnos_action)
 
         # Ayuda menu
         self.help_menu = menu_bar.addMenu("A&yuda")
@@ -592,9 +597,14 @@ class MainWindow(QMainWindow):
         BuscarCuentaDialog(self, is_admin=self._username.strip().lower() == "admin").exec()
 
     def on_cuentas_reportes(self):
-        """Handle the Cuentas > Reportes menu action."""
-        log.info("Menú: Cuentas > Reportes")
+        """Handle the Cuentas > Reportes > Total menu action."""
+        log.info("Menú: Cuentas > Reportes > Total")
         ReporteCuentasTotalDialog(self).exec()
+
+    def on_cuentas_reportes_alumnos(self):
+        """Handle the Cuentas > Reportes > Alumnos menu action."""
+        log.info("Menú: Cuentas > Reportes > Alumnos")
+        ReporteCuentasAlumnosDialog(self).exec()
 
     def on_about(self):
         """Display application About information."""
