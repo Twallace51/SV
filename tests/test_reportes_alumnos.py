@@ -287,9 +287,9 @@ def test_parientes_report_has_parent_ids_and_lookup_names(qapp, tmp_path):
         rows = list(dialog._flat_rows())
 
         assert rows[0] == (1, "Ana Lopez Rios", "1", "Pedro Lopez Diaz", "2", "Marta Lopez Rios")
-        assert rows[1] == (6, "Fabio Ruiz", "1", "Pedro Lopez Diaz", "2", "Marta Lopez Rios")
+        assert rows[1] == (2, "Beto Perez", "3", "Juan Perez Quispe", "4", "Ana Perez Mamani")
         assert rows[2] == (5, "Elena Mora", "", "", "", "")
-        assert rows[3] == (2, "Beto Perez", "3", "Juan Perez Quispe", "4", "Ana Perez Mamani")
+        assert rows[3] == (6, "Fabio Ruiz", "1", "Pedro Lopez Diaz", "2", "Marta Lopez Rios")
 
         plain_text = dialog.viewer.toPlainText()
         assert "ID Padre" in plain_text

@@ -586,8 +586,7 @@ class ReporteAlumnosParientesDialog(ReporteAlumnosBecadosDialog):
             "AND TRIM(CAST(a.id_grado AS TEXT)) <> '' "
             "AND LOWER(TRIM(CAST(a.id_grado AS TEXT))) NOT IN ('null', 'none') "
             "AND CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER) > 0 "
-            "ORDER BY CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER), "
-            "a.paterno, a.materno, a.nombres"
+            "ORDER BY a.nombres, a.paterno, a.materno"
         )
         try:
             with sqlite3.connect(get_active_db_path()) as connection:
@@ -633,6 +632,7 @@ class ReporteAlumnosParientesDialog(ReporteAlumnosBecadosDialog):
                         self._full_name(madre_nombres, madre_paterno, madre_materno),
                     )
                 )
+        rows.sort(key=lambda row: row[1].lower())
         return iter(rows)
 
     def _build_html(self):
