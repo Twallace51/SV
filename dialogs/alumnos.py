@@ -61,6 +61,35 @@ def _normalize_related_adulto_id(value):
         return None
 
 
+def _validate_alumno_integrity(conn, rude, carnet, id_padre, id_madre, current_id=None):
+    """Return validation errors for related adults and unique alumno fields."""
+    errors = []
+
+    for label, related_id in (("padre", id_padre), ("madre", id_madre)):
+        if related_id is None:
+            continue
+        exists = conn.execute(
+            "SELECT 1 FROM adultos WHERE id = ?",
+            (related_id,),
+        ).fetchone()
+        if not exists:
+            errors.append(f"El ID de {label} no existe en adultos.")
+
+    for label, value, column_name in (("RUDE", rude, "rude"), ("Carnet", carnet, "Carnet")):
+        if not value:
+            continue
+        params = [value]
+        query = f"SELECT 1 FROM alumnos WHERE {column_name} = ?"
+        if current_id is not None:
+            query += " AND id <> ?"
+            params.append(current_id)
+        duplicate = conn.execute(query, tuple(params)).fetchone()
+        if duplicate:
+            errors.append(f"{label} ya existe en otro alumno.")
+
+    return errors
+
+
 class NumericTableWidgetItem(QTableWidgetItem):
     """Table item that compares by integer value for proper numeric sorting."""
 
@@ -188,6 +217,18 @@ class NuevoAlumnoDialog(QDialog):
         id_madre = _normalize_related_adulto_id(self.id_madre.text())
         try:
             conn = sqlite3.connect(get_active_db_path())
+            validation_errors = _validate_alumno_integrity(
+                conn,
+                self.rude.text().strip(),
+                self.carnet.text().strip(),
+                id_padre,
+                id_madre,
+            )
+            if validation_errors:
+                QMessageBox.warning(self, "Validación", "\n".join(validation_errors))
+                conn.close()
+                return
+
             columns = {
                 column_row[1]
                 for column_row in conn.execute("PRAGMA table_info(alumnos)").fetchall()
@@ -418,6 +459,19 @@ class EditAlumnoDialog(QDialog):
         id_madre = _normalize_related_adulto_id(self.id_madre.text())
         try:
             conn = sqlite3.connect(get_active_db_path())
+            validation_errors = _validate_alumno_integrity(
+                conn,
+                self.rude.text().strip(),
+                self.carnet.text().strip(),
+                id_padre,
+                id_madre,
+                current_id=self._id,
+            )
+            if validation_errors:
+                QMessageBox.warning(self, "Validación", "\n".join(validation_errors))
+                conn.close()
+                return
+
             columns = {
                 column_row[1]
                 for column_row in conn.execute("PRAGMA table_info(alumnos)").fetchall()
