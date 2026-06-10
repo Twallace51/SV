@@ -189,7 +189,14 @@ class ReporteAlumnosPorGradoDialog(QDialog):
         QMessageBox.information(self, "Imprimir", "El reporte fue enviado a la impresora predeterminada.")
 
     def _choose_path(self, caption, default_name, file_filter):
-        path, _selected_filter = QFileDialog.getSaveFileName(self, caption, default_name, file_filter)
+        desktop_dir = Path.home() / "Desktop"
+        initial_path = (desktop_dir if desktop_dir.exists() else Path.home()) / default_name
+        path, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            caption,
+            str(initial_path),
+            file_filter,
+        )
         return Path(path) if path else None
 
     def _export_csv(self):
