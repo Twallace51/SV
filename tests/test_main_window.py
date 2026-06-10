@@ -154,6 +154,14 @@ class TestMainWindowMenuBar:
 
         assert "Por grados" in action_texts
 
+    def test_alumnos_reportes_has_becados_action(self, window):
+        action_texts = [
+            action.text().replace("&", "")
+            for action in window.alumnos_reportes_menu.actions()
+        ]
+
+        assert "Becados" in action_texts
+
     def test_alumnos_por_grados_action_opens_report_dialog(self, window, monkeypatch):
         calls = []
 
@@ -167,6 +175,22 @@ class TestMainWindowMenuBar:
         monkeypatch.setattr("windows.main_window.ReporteAlumnosPorGradoDialog", FakeReportDialog)
 
         window.alumnos_por_grados_action.trigger()
+
+        assert calls == [("created", window), ("executed", None)]
+
+    def test_alumnos_becados_action_opens_report_dialog(self, window, monkeypatch):
+        calls = []
+
+        class FakeReportDialog:
+            def __init__(self, parent=None):
+                calls.append(("created", parent))
+
+            def exec(self):
+                calls.append(("executed", None))
+
+        monkeypatch.setattr("windows.main_window.ReporteAlumnosBecadosDialog", FakeReportDialog)
+
+        window.alumnos_becados_action.trigger()
 
         assert calls == [("created", window), ("executed", None)]
 

@@ -7,7 +7,10 @@ from zipfile import ZipFile
 from PySide6.QtGui import QTextFormat
 
 from __init__ import reset_active_db_path, set_active_db_path
-from dialogs.reportes_alumnos import ReporteAlumnosPorGradoDialog
+from dialogs.reportes_alumnos import (
+    ReporteAlumnosBecadosDialog,
+    ReporteAlumnosPorGradoDialog,
+)
 
 
 def _create_report_database(path: Path):
@@ -29,6 +32,7 @@ def _create_report_database(path: Path):
                 (2, "Beto", "Perez", "", "R-2", "C-2", 320, "2"),
                 (3, "Celia", "Vega", "", "R-3", "C-3", 0, "0"),
                 (4, "Dario", "Soto", "", "R-4", "C-4", 0, None),
+                (5, "Elena", "Mora", "", "R-5", "C-5", 0, "2"),
             ],
         )
 
@@ -41,7 +45,7 @@ def test_report_groups_only_alumnos_with_positive_grade(qapp, tmp_path):
         dialog = ReporteAlumnosPorGradoDialog()
 
         assert list(dialog._groups) == [(1, "Primero A"), (2, "Segundo A")]
-        assert [student[0] for students in dialog._groups.values() for student in students] == [1, 2]
+        assert [student[0] for students in dialog._groups.values() for student in students] == [1, 5, 2]
         assert "Celia" not in dialog.viewer.toPlainText()
         assert "Dario" not in dialog.viewer.toPlainText()
     finally:
@@ -106,3 +110,21 @@ def test_excel_writer_creates_valid_xlsx_package(tmp_path):
         sheet = workbook.read("xl/worksheets/sheet1.xml").decode("utf-8")
         assert "ID Grado" in sheet
         assert "Primero A" in sheet
+
+
+def test_becados_report_filters_zero_pension_with_positive_grade(qapp, tmp_path):
+    database = tmp_path / "report.db"
+    _create_report_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = ReporteAlumnosBecadosDialog()
+        student_ids = [student[0] for students in dialog._groups.values() for student in students]
+
+        assert student_ids == [5]
+        assert "Elena" in dialog.viewer.toPlainText()
+        assert "Celia" not in dialog.viewer.toPlainText()
+        assert "Dario" not in dialog.viewer.toPlainText()
+        assert dialog.continuous_output_checkbox.isChecked()
+        assert dialog._DEFAULT_FILENAME == "alumnos_becados"
+    finally:
+        reset_active_db_path()

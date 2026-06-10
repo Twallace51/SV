@@ -32,7 +32,10 @@ try:
     import dialogs.alumnos as alumnos_dialogs
     import dialogs.parientes as parientes_dialogs
     from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
-    from dialogs.reportes_alumnos import ReporteAlumnosPorGradoDialog
+    from dialogs.reportes_alumnos import (
+        ReporteAlumnosBecadosDialog,
+        ReporteAlumnosPorGradoDialog,
+    )
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
 except (ModuleNotFoundError, ImportError):
@@ -56,7 +59,10 @@ except (ModuleNotFoundError, ImportError):
     import dialogs.alumnos as alumnos_dialogs
     import dialogs.parientes as parientes_dialogs
     from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
-    from dialogs.reportes_alumnos import ReporteAlumnosPorGradoDialog
+    from dialogs.reportes_alumnos import (
+        ReporteAlumnosBecadosDialog,
+        ReporteAlumnosPorGradoDialog,
+    )
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
 
@@ -303,6 +309,9 @@ class MainWindow(QMainWindow):
         self.alumnos_por_grados_action = QAction("Por &grados", self)
         self.alumnos_por_grados_action.triggered.connect(self.on_alumnos_por_grados)
         self.alumnos_reportes_menu.addAction(self.alumnos_por_grados_action)
+        self.alumnos_becados_action = QAction("&Becados", self)
+        self.alumnos_becados_action.triggered.connect(self.on_alumnos_becados)
+        self.alumnos_reportes_menu.addAction(self.alumnos_becados_action)
 
         # Parientes menu
         self.parientes_menu = menu_bar.addMenu("&Parientes")
@@ -506,6 +515,11 @@ class MainWindow(QMainWindow):
         """Handle the Alumnos > Reportes > Por grados menu action."""
         log.info("Menú: Alumnos > Reportes > Por grados")
         ReporteAlumnosPorGradoDialog(self).exec()
+
+    def on_alumnos_becados(self):
+        """Handle the Alumnos > Reportes > Becados menu action."""
+        log.info("Menú: Alumnos > Reportes > Becados")
+        ReporteAlumnosBecadosDialog(self).exec()
 
     def on_parientes_nuevo(self):
         """Handle the Parientes > Nuevo menu action."""

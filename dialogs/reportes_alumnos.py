@@ -29,10 +29,16 @@ class ReporteAlumnosPorGradoDialog(QDialog):
     """Display and export enrolled alumnos grouped by grade."""
 
     _HEADERS = ("ID", "Nombres", "Paterno", "Materno", "RUDE", "Carnet", "Pension")
+    _WINDOW_TITLE = "Alumnos - Reporte por grados"
+    _REPORT_TITLE = "Alumnos inscritos por grado"
+    _EMPTY_MESSAGE = "No hay alumnos inscritos actualmente."
+    _PREVIEW_TITLE = "Vista previa - Alumnos por grados"
+    _DEFAULT_FILENAME = "alumnos_por_grado"
+    _EXTRA_FILTER = ""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Alumnos - Reporte por grados")
+        self.setWindowTitle(self._WINDOW_TITLE)
         self.resize(900, 620)
         self._groups = self._load_groups()
 
@@ -79,8 +85,8 @@ class ReporteAlumnosPorGradoDialog(QDialog):
         close_buttons.rejected.connect(self.reject)
         layout.addWidget(close_buttons)
 
-    @staticmethod
-    def _load_groups():
+    @classmethod
+    def _load_groups(cls):
         groups = defaultdict(list)
         query = (
             "SELECT CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER), "
@@ -92,6 +98,7 @@ class ReporteAlumnosPorGradoDialog(QDialog):
             "AND TRIM(CAST(a.id_grado AS TEXT)) <> '' "
             "AND LOWER(TRIM(CAST(a.id_grado AS TEXT))) NOT IN ('null', 'none') "
             "AND CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER) > 0 "
+            f"{cls._EXTRA_FILTER}"
             "ORDER BY CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER), "
             "a.paterno, a.materno, a.nombres"
         )
@@ -99,7 +106,7 @@ class ReporteAlumnosPorGradoDialog(QDialog):
             with sqlite3.connect(get_active_db_path()) as connection:
                 rows = connection.execute(query).fetchall()
         except sqlite3.Error as exc:
-            QMessageBox.critical(None, "Reporte por grados", f"No se pudo cargar el reporte:\n{exc}")
+            QMessageBox.critical(None, cls._WINDOW_TITLE, f"No se pudo cargar el reporte:\n{exc}")
             rows = []
 
         for grade_id, grade_name, *student in rows:
@@ -108,11 +115,11 @@ class ReporteAlumnosPorGradoDialog(QDialog):
 
     def _build_html(self):
         sections = [
-            "<h1>Alumnos inscritos por grado</h1>",
+            f"<h1>{html.escape(self._REPORT_TITLE)}</h1>",
             f"<p>Total de alumnos: {sum(len(rows) for rows in self._groups.values())}</p>",
         ]
         if not self._groups:
-            sections.append("<p>No hay alumnos inscritos actualmente.</p>")
+            sections.append(f"<p>{html.escape(self._EMPTY_MESSAGE)}</p>")
             return "".join(sections)
 
         for index, ((grade_id, grade_name), rows) in enumerate(self._groups.items()):
@@ -159,7 +166,7 @@ class ReporteAlumnosPorGradoDialog(QDialog):
     def _print_preview(self):
         printer = QPrinter(QPrinter.PrinterMode.HighResolution)
         preview = QPrintPreviewDialog(printer, self)
-        preview.setWindowTitle("Vista previa - Alumnos por grados")
+        preview.setWindowTitle(self._PREVIEW_TITLE)
         preview.paintRequested.connect(self._document.print_)
         preview.exec()
 
@@ -176,7 +183,7 @@ class ReporteAlumnosPorGradoDialog(QDialog):
         return Path(path) if path else None
 
     def _export_csv(self):
-        path = self._choose_path("Exportar reporte a CSV", "alumnos_por_grado.csv", "CSV (*.csv)")
+        path = self._choose_path("Exportar reporte a CSV", f"{self._DEFAULT_FILENAME}.csv", "CSV (*.csv)")
         if path is None:
             return
         try:
@@ -189,7 +196,7 @@ class ReporteAlumnosPorGradoDialog(QDialog):
             self._show_export_error(exc)
 
     def _export_excel(self):
-        path = self._choose_path("Exportar reporte a Excel", "alumnos_por_grado.xlsx", "Excel (*.xlsx)")
+        path = self._choose_path("Exportar reporte a Excel", f"{self._DEFAULT_FILENAME}.xlsx", "Excel (*.xlsx)")
         if path is None:
             return
         try:
@@ -199,7 +206,7 @@ class ReporteAlumnosPorGradoDialog(QDialog):
             self._show_export_error(exc)
 
     def _export_markdown(self):
-        path = self._choose_path("Exportar reporte a Markdown", "alumnos_por_grado.md", "Markdown (*.md)")
+        path = self._choose_path("Exportar reporte a Markdown", f"{self._DEFAULT_FILENAME}.md", "Markdown (*.md)")
         if path is None:
             return
         try:
@@ -209,11 +216,11 @@ class ReporteAlumnosPorGradoDialog(QDialog):
             self._show_export_error(exc)
 
     def _build_markdown(self):
-        lines = ["# Alumnos inscritos por grado", ""]
+        lines = [f"# {self._REPORT_TITLE}", ""]
         lines.append(f"Total de alumnos: {sum(len(rows) for rows in self._groups.values())}")
         lines.append("")
         if not self._groups:
-            lines.append("No hay alumnos inscritos actualmente.")
+            lines.append(self._EMPTY_MESSAGE)
             return "\n".join(lines) + "\n"
 
         for (grade_id, grade_name), rows in self._groups.items():
@@ -270,3 +277,14 @@ class ReporteAlumnosPorGradoDialog(QDialog):
 
     def _show_export_error(self, exc):
         QMessageBox.critical(self, "Exportar", f"No se pudo exportar el reporte:\n{exc}")
+
+
+class ReporteAlumnosBecadosDialog(ReporteAlumnosPorGradoDialog):
+    """Display and export enrolled alumnos whose pension is zero."""
+
+    _WINDOW_TITLE = "Alumnos - Reporte de becados"
+    _REPORT_TITLE = "Alumnos becados por grado"
+    _EMPTY_MESSAGE = "No hay alumnos becados inscritos actualmente."
+    _PREVIEW_TITLE = "Vista previa - Alumnos becados"
+    _DEFAULT_FILENAME = "alumnos_becados"
+    _EXTRA_FILTER = "AND COALESCE(a.pension, 0) = 0 "
