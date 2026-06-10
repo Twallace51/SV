@@ -9,6 +9,7 @@ from PySide6.QtGui import QTextFormat
 from __init__ import reset_active_db_path, set_active_db_path
 from dialogs.reportes_alumnos import (
     ReporteAlumnosBecadosDialog,
+    ReporteAlumnosCarnetDialog,
     ReporteAlumnosCumpleanosDialog,
     ReporteAlumnosPorGradoDialog,
     ReporteAlumnosRudeDialog,
@@ -202,5 +203,34 @@ def test_rude_report_has_rude_column_without_becados_filter(qapp, tmp_path):
         assert "| Grado | ID | Nombres | Paterno | Materno | RUDE |" in markdown
         assert "| Primero A | 1 | Ana | Lopez | Rios | R-1 |" in markdown
         assert "Pension" not in markdown
+    finally:
+        reset_active_db_path()
+
+
+def test_carnet_report_has_carnet_column_without_becados_filter(qapp, tmp_path):
+    database = tmp_path / "report.db"
+    _create_report_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = ReporteAlumnosCarnetDialog()
+        student_ids = [student[0] for students in dialog._groups.values() for student in students]
+
+        assert student_ids == [1, 6, 5, 2]
+        assert not hasattr(dialog, "continuous_output_checkbox")
+
+        plain_text = dialog.viewer.toPlainText()
+        assert "Carnet" in plain_text
+        assert "RUDE" not in plain_text
+        assert "Pension" not in plain_text
+        assert "ID Grado" not in plain_text
+        assert "C-1" in plain_text
+        assert "C-2" in plain_text
+
+        report_html = dialog._build_html()
+        markdown = dialog._build_markdown()
+        assert "<h2>" not in report_html
+        assert "| Grado | ID | Nombres | Paterno | Materno | Carnet |" in markdown
+        assert "| Primero A | 1 | Ana | Lopez | Rios | C-1 |" in markdown
+        assert "RUDE" not in markdown
     finally:
         reset_active_db_path()

@@ -34,6 +34,7 @@ try:
     from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
     from dialogs.reportes_alumnos import (
         ReporteAlumnosBecadosDialog,
+        ReporteAlumnosCarnetDialog,
         ReporteAlumnosCumpleanosDialog,
         ReporteAlumnosPorGradoDialog,
         ReporteAlumnosRudeDialog,
@@ -63,6 +64,7 @@ except (ModuleNotFoundError, ImportError):
     from dialogs.alumnos import NuevoAlumnoDialog, BuscarAlumnoDialog
     from dialogs.reportes_alumnos import (
         ReporteAlumnosBecadosDialog,
+        ReporteAlumnosCarnetDialog,
         ReporteAlumnosCumpleanosDialog,
         ReporteAlumnosPorGradoDialog,
         ReporteAlumnosRudeDialog,
@@ -320,6 +322,9 @@ class MainWindow(QMainWindow):
         self.alumnos_rude_action = QAction("&Rude", self)
         self.alumnos_rude_action.triggered.connect(self.on_alumnos_rude)
         self.alumnos_reportes_menu.addAction(self.alumnos_rude_action)
+        self.alumnos_carnet_action = QAction("&Carnet", self)
+        self.alumnos_carnet_action.triggered.connect(self.on_alumnos_carnet)
+        self.alumnos_reportes_menu.addAction(self.alumnos_carnet_action)
         self.alumnos_cumpleanos_action = QAction("&Cumpleanos", self)
         self.alumnos_cumpleanos_action.triggered.connect(self.on_alumnos_cumpleanos)
         self.alumnos_reportes_menu.addAction(self.alumnos_cumpleanos_action)
@@ -536,6 +541,11 @@ class MainWindow(QMainWindow):
         """Handle the Alumnos > Reportes > Rude menu action."""
         log.info("Menú: Alumnos > Reportes > Rude")
         ReporteAlumnosRudeDialog(self).exec()
+
+    def on_alumnos_carnet(self):
+        """Handle the Alumnos > Reportes > Carnet menu action."""
+        log.info("Menú: Alumnos > Reportes > Carnet")
+        ReporteAlumnosCarnetDialog(self).exec()
 
     def on_alumnos_cumpleanos(self):
         """Handle the Alumnos > Reportes > Cumpleanos menu action."""
