@@ -280,6 +280,7 @@ class MainWindow(QMainWindow):
     def _build_menu_bar(self):
         """Create the menu bar and connect actions to handlers."""
         menu_bar = self.menuBar()
+        menu_bar.setStyleSheet("QMenuBar::item { font-size: 14px; }")
 
         # Navegación menu
         self.navigation_menu = menu_bar.addMenu("&Navegación")
