@@ -149,12 +149,15 @@ def test_cumpleanos_report_has_mm_dd_column_and_no_group_sections(qapp, tmp_path
         dialog = ReporteAlumnosCumpleanosDialog()
         student_ids = [student[0] for students in dialog._groups.values() for student in students]
 
-        assert student_ids == [1, 6, 5, 2]
+        assert student_ids == [1, 6, 2, 5]
         assert not hasattr(dialog, "continuous_output_checkbox")
 
         plain_text = dialog.viewer.toPlainText()
         assert "Cumpleanos" in plain_text
         assert "Cumpleanos MM-dd" in plain_text
+        assert "ID Grado" not in plain_text
+        assert "RUDE" not in plain_text
+        assert "Carnet" not in plain_text
         assert "01-15" in plain_text
         assert "02-28" in plain_text
         assert "12-03" in plain_text
@@ -163,7 +166,8 @@ def test_cumpleanos_report_has_mm_dd_column_and_no_group_sections(qapp, tmp_path
         report_html = dialog._build_html()
         markdown = dialog._build_markdown()
         assert "<h2>" not in report_html
-        assert "| ID Grado | Grado | ID | Nombres | Paterno | Materno | RUDE | Carnet | Cumpleanos | Cumpleanos MM-dd |" in markdown
-        assert "| 1 | Primero A | 1 | Ana | Lopez | Rios | R-1 | C-1 | 2010-01-15 | 01-15 |" in markdown
+        assert "| Cumpleanos MM-dd | Grado | ID | Nombres | Paterno | Materno | Cumpleanos |" in markdown
+        assert "| 01-15 | Primero A | 1 | Ana | Lopez | Rios | 2010-01-15 |" in markdown
+        assert markdown.index("| 02-28 |") < markdown.index("| 07-20 |") < markdown.index("| 12-03 |")
     finally:
         reset_active_db_path()

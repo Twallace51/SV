@@ -337,14 +337,13 @@ class ReporteAlumnosCumpleanosDialog(ReporteAlumnosBecadosDialog):
     """Display and export enrolled alumnos with birthday columns."""
 
     _HEADERS = (
+        "Cumpleanos MM-dd",
+        "Grado",
         "ID",
         "Nombres",
         "Paterno",
         "Materno",
-        "RUDE",
-        "Carnet",
         "Cumpleanos",
-        "Cumpleanos MM-dd",
     )
     _WINDOW_TITLE = "Alumnos - Reporte de cumpleanos"
     _REPORT_TITLE = "Alumnos - Cumpleanos"
@@ -359,7 +358,7 @@ class ReporteAlumnosCumpleanosDialog(ReporteAlumnosBecadosDialog):
         query = (
             "SELECT CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER), "
             "COALESCE(g.grado, 'Grado ' || TRIM(CAST(a.id_grado AS TEXT))), "
-            "a.id, a.nombres, a.paterno, a.materno, a.rude, a.Carnet, "
+            "a.id, a.nombres, a.paterno, a.materno, "
             "COALESCE(TRIM(a.cumpleanos), ''), "
             "CASE "
             "  WHEN a.cumpleanos IS NULL OR TRIM(a.cumpleanos) = '' THEN '' "
@@ -372,7 +371,13 @@ class ReporteAlumnosCumpleanosDialog(ReporteAlumnosBecadosDialog):
             "AND TRIM(CAST(a.id_grado AS TEXT)) <> '' "
             "AND LOWER(TRIM(CAST(a.id_grado AS TEXT))) NOT IN ('null', 'none') "
             "AND CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER) > 0 "
-            "ORDER BY CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER), "
+            "ORDER BY "
+            "CASE "
+            "  WHEN a.cumpleanos IS NULL OR TRIM(a.cumpleanos) = '' THEN '99-99' "
+            "  WHEN LENGTH(TRIM(a.cumpleanos)) >= 10 THEN SUBSTR(TRIM(a.cumpleanos), 6, 5) "
+            "  ELSE '99-99' "
+            "END, "
+            "CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER), "
             "a.paterno, a.materno, a.nombres"
         )
         try:
@@ -385,3 +390,55 @@ class ReporteAlumnosCumpleanosDialog(ReporteAlumnosBecadosDialog):
         for grade_id, grade_name, *student in rows:
             groups[(grade_id, grade_name)].append(tuple(student))
         return dict(groups)
+
+    def _flat_rows(self):
+        rows = []
+        for (_grade_id, grade_name), students in self._groups.items():
+            for student in students:
+                student_id, nombres, paterno, materno, cumpleanos, cumpleanos_mmdd = student
+                rows.append(
+                    (
+                        self._display(cumpleanos_mmdd),
+                        self._display(grade_name),
+                        student_id,
+                        nombres,
+                        paterno,
+                        materno,
+                        self._display(cumpleanos),
+                    )
+                )
+        return iter(sorted(rows, key=lambda row: (row[0], str(row[2]), row[3], row[4])))
+
+    def _build_html(self):
+        rows = list(self._flat_rows())
+        sections = [
+            f"<h1>{html.escape(self._REPORT_TITLE)}</h1>",
+            f"<p>Total de alumnos: {len(rows)}</p>",
+        ]
+        if not rows:
+            sections.append(f"<p>{html.escape(self._EMPTY_MESSAGE)}</p>")
+            return "".join(sections)
+
+        sections.append("<table border='1' cellspacing='0' cellpadding='4'><tr>")
+        sections.extend(f"<th>{html.escape(header)}</th>" for header in self._HEADERS)
+        sections.append("</tr>")
+        for row in rows:
+            sections.append("<tr>")
+            sections.extend(f"<td>{html.escape(self._display(value))}</td>" for value in row)
+            sections.append("</tr>")
+        sections.append("</table>")
+        return "".join(sections)
+
+    def _build_markdown(self):
+        rows = list(self._flat_rows())
+        lines = [f"# {self._REPORT_TITLE}", "", f"Total de alumnos: {len(rows)}", ""]
+        if not rows:
+            lines.append(self._EMPTY_MESSAGE)
+            return "\n".join(lines) + "\n"
+
+        lines.append("| " + " | ".join(self._HEADERS) + " |")
+        lines.append("| " + " | ".join("---" for _header in self._HEADERS) + " |")
+        for row in rows:
+            values = [self._display(value).replace("|", "\\|").replace("\n", " ") for value in row]
+            lines.append("| " + " | ".join(values) + " |")
+        return "\n".join(lines) + "\n"
