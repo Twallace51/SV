@@ -42,6 +42,7 @@ try:
     )
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
+    from dialogs.reportes_cuentas import ReporteCuentasTotalDialog
 except (ModuleNotFoundError, ImportError):
     # Support running this file directly from the windows/ directory.
     project_root = Path(__file__).resolve().parent.parent
@@ -73,6 +74,7 @@ except (ModuleNotFoundError, ImportError):
     )
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
+    from dialogs.reportes_cuentas import ReporteCuentasTotalDialog
 
 # endregion
 
@@ -592,7 +594,7 @@ class MainWindow(QMainWindow):
     def on_cuentas_reportes(self):
         """Handle the Cuentas > Reportes menu action."""
         log.info("Menú: Cuentas > Reportes")
-        QMessageBox.information(self, "Reportes de Cuentas", "Reportes de cuentas próximamente.")
+        ReporteCuentasTotalDialog(self).exec()
 
     def on_about(self):
         """Display application About information."""
