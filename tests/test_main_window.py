@@ -39,6 +39,13 @@ class TestMainWindowInit:
         assert window.welcome_label.text() == "¡Bienvenido!"
 
     def test_current_alumno_id_defaults_to_dash(self, window):
+        # Reset globals to None before checking defaults
+        from dialogs.alumnos import current_alumno_id as _, current_alumno_name as __
+        import dialogs.alumnos as alumnos_dialogs
+        alumnos_dialogs.current_alumno_id = None
+        alumnos_dialogs.current_alumno_name = None
+        window._refresh_current_alumno_id_label()
+
         assert window.current_alumno_id_label.text() == "ID de alumno actual:"
         assert window.current_alumno_id_value.text() == "-"
 
@@ -48,9 +55,10 @@ class TestMainWindowInit:
 
     def test_refresh_current_alumno_id_label_uses_shared_state(self, window, monkeypatch):
         monkeypatch.setattr("windows.main_window.alumnos_dialogs.current_alumno_id", 23)
+        monkeypatch.setattr("windows.main_window.alumnos_dialogs.current_alumno_name", "Ana Lopez")
         window._refresh_current_alumno_id_label()
 
-        assert window.current_alumno_id_value.text() == "23"
+        assert window.current_alumno_id_value.text() == "23 - Ana Lopez"
 
     def test_refresh_current_adulto_id_label_uses_shared_state(self, window, monkeypatch):
         monkeypatch.setattr("windows.main_window.parientes_dialogs.current_adulto_id", 41)

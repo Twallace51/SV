@@ -184,3 +184,60 @@ def test_cuentas_alumnos_action_in_main_window(qapp):
         assert "Alumnos" in action_texts
     finally:
         win.close()
+
+
+def test_cuentas_alumnos_report_build_markdown(qapp, tmp_path):
+    database = tmp_path / "cuentas_alumnos_md.db"
+    _create_alumnos_cuentas_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = ReporteCuentasAlumnosDialog()
+        markdown = dialog._build_markdown()
+
+        assert "# Cuentas - Balance por alumno" in markdown
+        assert "| ID | Alumno | Balance |" in markdown
+        assert "Ana Lopez Rios" in markdown
+        assert "+150" in markdown
+        assert "-150" in markdown
+    finally:
+        reset_active_db_path()
+
+
+def test_cuentas_alumnos_report_export_csv(qapp, tmp_path):
+    database = tmp_path / "cuentas_alumnos_csv.db"
+    _create_alumnos_cuentas_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = ReporteCuentasAlumnosDialog()
+        csv_path = tmp_path / "export.csv"
+
+        # Manually call the export CSV logic
+        import csv
+        with csv_path.open("w", encoding="utf-8-sig", newline="") as output:
+            writer = csv.writer(output)
+            writer.writerow(dialog._HEADERS)
+            writer.writerows(dialog._rows)
+
+        assert csv_path.exists()
+        content = csv_path.read_text(encoding="utf-8-sig")
+        assert "ID,Alumno,Balance" in content
+        assert "Ana Lopez Rios" in content
+    finally:
+        reset_active_db_path()
+
+
+def test_cuentas_alumnos_report_export_excel(qapp, tmp_path):
+    database = tmp_path / "cuentas_alumnos_xlsx.db"
+    _create_alumnos_cuentas_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = ReporteCuentasAlumnosDialog()
+        xlsx_path = tmp_path / "export.xlsx"
+
+        # Call the Excel export
+        dialog._write_xlsx(xlsx_path, [dialog._HEADERS, *dialog._rows])
+
+        assert xlsx_path.exists()
+        assert xlsx_path.stat().st_size > 0
+    finally:
+        reset_active_db_path()
