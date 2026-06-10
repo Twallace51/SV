@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QDateEdit, QSpinBox, QHeaderView, QComboBox,
     QAbstractSpinBox,
 )
-from PySide6.QtCore import QDate
+from PySide6.QtCore import QDate, Qt
 
 from __init__ import get_active_db_path
 
@@ -378,7 +378,7 @@ class EditCuentaDialog(QDialog):
 class BuscarCuentaDialog(QDialog):
     """Search dialog for cuentas."""
 
-    _HEADERS = ["ID", "Alumno", "Débito", "Crédito", "Aclaración", "Fecha", "Factura"]
+    _HEADERS = ["ID Alumno", "Alumno", "Débito", "Crédito", "Aclaración", "Fecha", "Factura"]
 
     def __init__(self, parent=None, is_admin: bool = False):
         super().__init__(parent)
@@ -411,10 +411,13 @@ class BuscarCuentaDialog(QDialog):
         self._load("")
 
     def _on_double_click(self, row: int, _col: int):
-        id_item = self.table.item(row, 0)
-        if id_item is None:
+        alumno_id_item = self.table.item(row, 0)
+        if alumno_id_item is None:
             return
-        dlg = EditCuentaDialog(int(id_item.text()), self, is_admin=self._is_admin)
+        cuenta_id = alumno_id_item.data(Qt.UserRole)
+        if cuenta_id is None:
+            return
+        dlg = EditCuentaDialog(int(cuenta_id), self, is_admin=self._is_admin)
         if dlg.exec() == QDialog.Accepted:
             self._load(self.search_edit.text())
 
@@ -423,7 +426,7 @@ class BuscarCuentaDialog(QDialog):
         try:
             conn = sqlite3.connect(get_active_db_path())
             rows = conn.execute(
-                "SELECT c.id, a.paterno || ', ' || a.nombres,"
+                "SELECT c.id, a.id, a.paterno || ', ' || a.nombres,"
                 " c.debito, c.credito, c.aclaracion, c.fecha, c.factura"
                 " FROM ctas c JOIN alumnos a ON c.id_alumno = a.id"
                 " WHERE a.nombres LIKE ? OR a.paterno LIKE ?"
@@ -436,8 +439,11 @@ class BuscarCuentaDialog(QDialog):
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(rows))
         for r, row in enumerate(rows):
-            for c, val in enumerate(row):
+            cuenta_id = row[0]
+            for c, val in enumerate(row[1:]):
                 text = "" if val is None else str(val)
                 item = NumericTableWidgetItem(text) if c == 0 else QTableWidgetItem(text)
+                if c == 0:
+                    item.setData(Qt.UserRole, cuenta_id)
                 self.table.setItem(r, c, item)
         self.table.setSortingEnabled(True)
