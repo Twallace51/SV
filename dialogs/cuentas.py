@@ -558,7 +558,10 @@ class BuscarCuentaDialog(QDialog):
             alumno_columns = {
                 row[1] for row in conn.execute("PRAGMA table_info(alumnos)").fetchall()
             }
-            creditor_id_expr = "a.id_adulto" if "id_adulto" in alumno_columns else "NULL"
+            ctas_columns = {
+                row[1] for row in conn.execute("PRAGMA table_info(ctas)").fetchall()
+            }
+            creditor_id_expr = "c.id_creditor" if "id_creditor" in ctas_columns else "NULL"
             tables = {
                 row[0] for row in conn.execute(
                     "SELECT name FROM sqlite_master WHERE type='table'"
@@ -588,8 +591,8 @@ class BuscarCuentaDialog(QDialog):
 
             if creditor_search:
                 creditor_filters = []
-                if "id_adulto" in alumno_columns:
-                    creditor_filters.append("CAST(a.id_adulto AS TEXT) LIKE ?")
+                if "id_creditor" in ctas_columns:
+                    creditor_filters.append("CAST(c.id_creditor AS TEXT) LIKE ?")
                     params.append(creditor_like)
                 if has_creditor_name:
                     creditor_filters.append(f"{creditor_name_expr} LIKE ?")
