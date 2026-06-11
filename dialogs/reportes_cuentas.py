@@ -148,6 +148,8 @@ class ReporteCuentasAlumnosDialog(QDialog):
 
     @staticmethod
     def _fmt(value: float) -> str:
+        if not value:
+            return ""
         sign = "+" if value >= 0 else ""
         return f"{sign}{value:,.0f}"
 
@@ -494,6 +496,8 @@ class ReporteCuentasDetallesDialog(QDialog):
 
     @staticmethod
     def _fmt(value: float) -> str:
+        if not value:
+            return ""
         sign = "+" if value >= 0 else ""
         return f"{sign}{value:,.0f}"
 
