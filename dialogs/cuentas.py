@@ -518,6 +518,7 @@ class BuscarCuentaDialog(QDialog):
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setSortingEnabled(True)
         self.table.cellDoubleClicked.connect(self._on_double_click)
+        self.table.itemSelectionChanged.connect(self._on_selection_changed)
         layout.addWidget(self.table)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
@@ -532,12 +533,52 @@ class BuscarCuentaDialog(QDialog):
         alumno_id_item = self.table.item(row, 0)
         if alumno_id_item is None:
             return
+        self._update_current_from_row(row)
         cuenta_id = alumno_id_item.data(Qt.UserRole)
         if cuenta_id is None:
             return
         dlg = EditCuentaDialog(int(cuenta_id), self, is_admin=self._is_admin)
         if dlg.exec() == QDialog.Accepted:
             self._load()
+            self._refresh_current_alumno_label()
+            self._refresh_current_creditor_label()
+
+    def _on_selection_changed(self):
+        rows = self.table.selectionModel().selectedRows()
+        if not rows:
+            return
+        self._update_current_from_row(rows[0].row())
+        self._refresh_current_alumno_label()
+        self._refresh_current_creditor_label()
+
+    def _update_current_from_row(self, row: int):
+        """Update the current alumno/adulto globals from the selected ctas row."""
+        alumno_id_item = self.table.item(row, 0)
+        alumno_name_item = self.table.item(row, 1)
+        creditor_id_item = self.table.item(row, 2)
+        creditor_name_item = self.table.item(row, 3)
+
+        if alumno_id_item is not None:
+            alumno_text = alumno_id_item.text().strip()
+            if alumno_text:
+                try:
+                    alumnos_dialogs.current_alumno_id = int(alumno_text)
+                except ValueError:
+                    alumnos_dialogs.current_alumno_id = None
+                alumnos_dialogs.current_alumno_name = (
+                    alumno_name_item.text().strip() if alumno_name_item is not None else None
+                ) or None
+
+        if creditor_id_item is not None:
+            creditor_text = creditor_id_item.text().strip()
+            if creditor_text:
+                try:
+                    parientes_dialogs.current_adulto_id = int(creditor_text)
+                except ValueError:
+                    parientes_dialogs.current_adulto_id = None
+                parientes_dialogs.current_adulto_name = (
+                    creditor_name_item.text().strip() if creditor_name_item is not None else None
+                ) or None
 
     def _apply_current_alumno_filter(self):
         if alumnos_dialogs.current_alumno_id is not None:
