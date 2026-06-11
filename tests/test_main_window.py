@@ -118,7 +118,7 @@ class TestMainWindowMenuBar:
         action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
         assert all("Salir" not in t for t in action_texts)
 
-    @pytest.mark.parametrize("menu_name", ["alumnos_menu", "parientes_menu", "cuentas_menu"])
+    @pytest.mark.parametrize("menu_name", ["alumnos_menu", "adultos_menu", "cuentas_menu"])
     def test_domain_menu_has_reportes_action(self, window, menu_name):
         menu = getattr(window, menu_name)
         action_texts = [action.text().replace("&", "") for action in menu.actions()]

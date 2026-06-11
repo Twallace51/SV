@@ -326,16 +326,16 @@ class MainWindow(QMainWindow):
         self.alumnos_reportes_menu.addAction(self.alumnos_parientes_action)
 
         # Parientes menu
-        self.parientes_menu = menu_bar.addMenu("&Parientes")
+        self.adultos_menu = menu_bar.addMenu("&Adultos")
         parientes_nuevo_action = QAction("&Nuevo", self)
         parientes_nuevo_action.triggered.connect(self.on_parientes_nuevo)
-        self.parientes_menu.addAction(parientes_nuevo_action)
+        self.adultos_menu.addAction(parientes_nuevo_action)
         parientes_buscar_action = QAction("&Buscar", self)
         parientes_buscar_action.triggered.connect(self.on_parientes_buscar)
-        self.parientes_menu.addAction(parientes_buscar_action)
+        self.adultos_menu.addAction(parientes_buscar_action)
         self.parientes_reportes_action = QAction("&Reportes", self)
         self.parientes_reportes_action.triggered.connect(self.on_parientes_reportes)
-        self.parientes_menu.addAction(self.parientes_reportes_action)
+        self.adultos_menu.addAction(self.parientes_reportes_action)
 
         # Cuentas menu
         self.cuentas_menu = menu_bar.addMenu("&Cuentas")
