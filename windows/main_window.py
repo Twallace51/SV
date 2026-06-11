@@ -593,11 +593,15 @@ class MainWindow(QMainWindow):
         """Handle the Cuentas > Nuevo menu action."""
         log.info("Menú: Cuentas > Nuevo")
         NuevoCuentaDialog(self).exec()
+        self._refresh_current_alumno_id_label()
+        self._refresh_current_adulto_id_label()
 
     def on_cuentas_buscar(self):
         """Handle the Cuentas > Buscar menu action."""
         log.info("Menú: Cuentas > Buscar")
         BuscarCuentaDialog(self, is_admin=self._username.strip().lower() == "admin").exec()
+        self._refresh_current_alumno_id_label()
+        self._refresh_current_adulto_id_label()
 
     def on_cuentas_reportes(self):
         """Handle the Cuentas > Reportes > Total menu action."""
