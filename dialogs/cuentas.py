@@ -156,7 +156,7 @@ class NuevoCuentaDialog(QDialog):
         debito_has_value = self.debito.value() > 0
         credito_has_value = self.credito.value() > 0
         self.factura.setEnabled(credito_has_value)
-        self.id_creditor.setEnabled(not debito_has_value)
+        self.id_creditor.setEnabled(debito_has_value is False)
         if not debito_has_value and not credito_has_value:
             self.debito.setEnabled(True)
             self.credito.setEnabled(True)
@@ -370,7 +370,7 @@ class EditCuentaDialog(QDialog):
         debito_has_value = self.debito.value() > 0
         credito_has_value = self.credito.value() > 0
         self.factura.setEnabled(credito_has_value)
-        self.id_creditor.setEnabled(not debito_has_value)
+        self.id_creditor.setEnabled(debito_has_value is False)
         if not debito_has_value and not credito_has_value:
             self.debito.setEnabled(True)
             self.credito.setEnabled(True)
