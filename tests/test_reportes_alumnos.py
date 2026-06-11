@@ -19,6 +19,347 @@ from dialogs.reportes_alumnos import (
 )
 
 
+# ---------------------------------------------------------------------------
+# Shared DB helper
+# ---------------------------------------------------------------------------
+
+def _create_report_db(path: Path):
+    with sqlite3.connect(path) as conn:
+        conn.execute("CREATE TABLE grados (id INTEGER PRIMARY KEY, grado TEXT)")
+        conn.execute(
+            "CREATE TABLE adultos "
+            "(id INTEGER PRIMARY KEY, a_nombres TEXT, a_paterno TEXT, a_materno TEXT)"
+        )
+        conn.execute(
+            "CREATE TABLE alumnos ("
+            "id INTEGER PRIMARY KEY, nombres TEXT, paterno TEXT, materno TEXT, "
+            "cumpleanos TEXT, rude TEXT, Carnet TEXT, pension REAL, id_grado TEXT, "
+            "id_padre TEXT, id_madre TEXT)"
+        )
+        conn.executemany(
+            "INSERT INTO grados (id, grado) VALUES (?, ?)",
+            [(1, "Primero A"), (2, "Segundo A")],
+        )
+        conn.executemany(
+            "INSERT INTO adultos (id, a_nombres, a_paterno, a_materno) VALUES (?, ?, ?, ?)",
+            [
+                (1, "Pedro", "Lopez", "Diaz"),
+                (2, "Marta", "Lopez", "Rios"),
+                (3, "Juan",  "Perez", "Quispe"),
+                (4, "Ana",   "Perez", "Mamani"),
+            ],
+        )
+        conn.executemany(
+            "INSERT INTO alumnos VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (1, "Ana",   "Lopez", "Rios", "2010-01-15", "R-1", "C-1", 300, "1", "1", "2"),
+                (2, "Beto",  "Perez", "",     "2011-07-20", "R-2", "C-2", 320, "2", "3", "4"),
+                (3, "Celia", "Vega",  "",     "2010-08-30", "R-3", "C-3", 0,   "0", "",  ""),
+                (4, "Dario", "Soto",  "",     "",           "R-4", "C-4", 0,   None, None, None),
+                (5, "Elena", "Mora",  "",     "2009-12-03", "R-5", "C-5", 0,   "2", "",  ""),
+                (6, "Fabio", "Ruiz",  "",     "2010-02-28", "R-6", "C-6", 0,   "1", "1", "2"),
+            ],
+        )
+
+
+# ---------------------------------------------------------------------------
+# Common: title includes current date
+# ---------------------------------------------------------------------------
+
+class TestReportTitleDate:
+    @pytest.mark.parametrize(
+        "dialog_cls",
+        [
+            ReporteAlumnosPorGradoDialog,
+            ReporteAlumnosBecadosDialog,
+            ReporteAlumnosRudeDialog,
+            ReporteAlumnosCarnetDialog,
+            ReporteAlumnosCumpleanosDialog,
+            ReporteAlumnosParientesDialog,
+        ],
+    )
+    def test_title_includes_current_date(self, qapp, tmp_path, dialog_cls):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = dialog_cls()
+            markdown = dlg._build_markdown()
+            assert f"# {dlg._REPORT_TITLE} - {date.today():%Y-%m-%d}" in markdown
+        finally:
+            reset_active_db_path()
+
+
+# ---------------------------------------------------------------------------
+# ReporteAlumnosPorGradoDialog
+# ---------------------------------------------------------------------------
+
+class TestReportePorGrado:
+    def test_groups_only_alumnos_with_positive_grade(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosPorGradoDialog()
+            assert list(dlg._groups) == [(1, "Primero A"), (2, "Segundo A")]
+            student_ids = [s[0] for students in dlg._groups.values() for s in students]
+            assert student_ids == [1, 6, 5, 2]
+            assert "Celia" not in dlg.viewer.toPlainText()
+            assert "Dario" not in dlg.viewer.toPlainText()
+        finally:
+            reset_active_db_path()
+
+    def test_markdown_export_is_grouped(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosPorGradoDialog()
+            md = dlg._build_markdown()
+            assert "## Primero A (ID 1)" in md
+            assert "## Segundo A (ID 2)" in md
+            assert "| 1 | Ana | Lopez | Rios | R-1 | C-1 | 300.0 |" in md
+        finally:
+            reset_active_db_path()
+
+    def test_defaults_to_continuous_output(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosPorGradoDialog()
+            assert dlg.continuous_output_checkbox.isChecked()
+            assert "page-break-before: always" not in dlg._build_html()
+        finally:
+            reset_active_db_path()
+
+    def test_disabling_continuous_output_adds_page_break(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosPorGradoDialog()
+            dlg.continuous_output_checkbox.setChecked(False)
+            assert dlg._build_html().count("page-break-before: always") == 1
+            second_grade = dlg._document.find("Segundo A (ID 2)")
+            assert not second_grade.isNull()
+            assert second_grade.blockFormat().pageBreakPolicy() & (
+                QTextFormat.PageBreakFlag.PageBreak_AlwaysBefore
+            )
+        finally:
+            reset_active_db_path()
+
+    def test_excel_writer_creates_valid_xlsx(self, tmp_path):
+        output = tmp_path / "report.xlsx"
+        ReporteAlumnosPorGradoDialog._write_xlsx(
+            output, [("ID Grado", "Grado"), (1, "Primero A")]
+        )
+        with ZipFile(output) as wb:
+            assert wb.testzip() is None
+            assert "xl/workbook.xml" in wb.namelist()
+            sheet = wb.read("xl/worksheets/sheet1.xml").decode("utf-8")
+            assert "ID Grado" in sheet
+            assert "Primero A" in sheet
+
+
+# ---------------------------------------------------------------------------
+# ReporteAlumnosBecadosDialog
+# ---------------------------------------------------------------------------
+
+class TestReporteBecados:
+    def test_filters_zero_pension_with_positive_grade(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosBecadosDialog()
+            ids = [s[0] for students in dlg._groups.values() for s in students]
+            assert ids == [6, 5]
+        finally:
+            reset_active_db_path()
+
+    def test_html_is_single_flat_table(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosBecadosDialog()
+            html = dlg._build_html()
+            assert "<h2>" not in html
+            assert html.count("<table") == 1
+        finally:
+            reset_active_db_path()
+
+    def test_markdown_has_no_grade_sections(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosBecadosDialog()
+            md = dlg._build_markdown()
+            assert "## Primero A" not in md
+            assert "## Segundo A" not in md
+            assert md.count("| Grado | ID | Nombres | Paterno | Materno | Pension |") == 1
+            assert "ID Grado" not in md
+            assert "RUDE" not in md
+            assert "Carnet" not in md
+        finally:
+            reset_active_db_path()
+
+
+# ---------------------------------------------------------------------------
+# ReporteAlumnosCumpleanosDialog
+# ---------------------------------------------------------------------------
+
+class TestReporteCumpleanos:
+    def test_sorted_student_ids(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosCumpleanosDialog()
+            ids = [s[0] for students in dlg._groups.values() for s in students]
+            assert ids == [1, 6, 2, 5]
+        finally:
+            reset_active_db_path()
+
+    def test_has_mm_dd_column_and_no_group_sections(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosCumpleanosDialog()
+            assert not hasattr(dlg, "continuous_output_checkbox")
+            plain = dlg.viewer.toPlainText()
+            assert "Cumpleanos MM-dd" in plain
+            assert "ID Grado" not in plain
+            assert "01-15" in plain
+            assert "02-28" in plain
+        finally:
+            reset_active_db_path()
+
+    def test_markdown_has_mm_dd_sorted_rows(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosCumpleanosDialog()
+            md = dlg._build_markdown()
+            assert "| Cumpleanos MM-dd | Grado | ID | Nombres | Paterno | Materno | Cumpleanos |" in md
+            assert "| 01-15 | Primero A | 1 | Ana | Lopez | Rios | 2010-01-15 |" in md
+            assert md.index("| 02-28 |") < md.index("| 07-20 |") < md.index("| 12-03 |")
+        finally:
+            reset_active_db_path()
+
+
+# ---------------------------------------------------------------------------
+# ReporteAlumnosRudeDialog
+# ---------------------------------------------------------------------------
+
+class TestReporteRude:
+    def test_has_rude_column_no_pension_or_grade_sections(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosRudeDialog()
+            ids = [s[0] for students in dlg._groups.values() for s in students]
+            assert ids == [1, 6, 5, 2]
+            assert not hasattr(dlg, "continuous_output_checkbox")
+            plain = dlg.viewer.toPlainText()
+            assert "RUDE" in plain
+            assert "Pension" not in plain
+            assert "Carnet" not in plain
+            assert "ID Grado" not in plain
+        finally:
+            reset_active_db_path()
+
+    def test_markdown_row_format(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosRudeDialog()
+            md = dlg._build_markdown()
+            assert "| Grado | ID | Nombres | Paterno | Materno | RUDE |" in md
+            assert "| Primero A | 1 | Ana | Lopez | Rios | R-1 |" in md
+            assert "Pension" not in md
+        finally:
+            reset_active_db_path()
+
+
+# ---------------------------------------------------------------------------
+# ReporteAlumnosCarnetDialog
+# ---------------------------------------------------------------------------
+
+class TestReporteCarnet:
+    def test_has_carnet_column_no_rude_or_pension(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosCarnetDialog()
+            ids = [s[0] for students in dlg._groups.values() for s in students]
+            assert ids == [1, 6, 5, 2]
+            assert not hasattr(dlg, "continuous_output_checkbox")
+            plain = dlg.viewer.toPlainText()
+            assert "Carnet" in plain
+            assert "RUDE" not in plain
+            assert "Pension" not in plain
+        finally:
+            reset_active_db_path()
+
+    def test_markdown_row_format(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosCarnetDialog()
+            md = dlg._build_markdown()
+            assert "| Grado | ID | Nombres | Paterno | Materno | Carnet |" in md
+            assert "| Primero A | 1 | Ana | Lopez | Rios | C-1 |" in md
+            assert "RUDE" not in md
+        finally:
+            reset_active_db_path()
+
+
+# ---------------------------------------------------------------------------
+# ReporteAlumnosParientesDialog
+# ---------------------------------------------------------------------------
+
+class TestReporteParientes:
+    def test_flat_rows_contain_parent_ids_and_names(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosParientesDialog()
+            rows = list(dlg._flat_rows())
+            assert rows[0] == (1, "Ana Lopez Rios",  "1", "Pedro Lopez Diaz",  "2", "Marta Lopez Rios")
+            assert rows[1] == (2, "Beto Perez",       "3", "Juan Perez Quispe", "4", "Ana Perez Mamani")
+            assert rows[2] == (5, "Elena Mora",        "",  "",                  "",  "")
+            assert rows[3] == (6, "Fabio Ruiz",        "1", "Pedro Lopez Diaz",  "2", "Marta Lopez Rios")
+        finally:
+            reset_active_db_path()
+
+    def test_viewer_shows_parent_names_excludes_no_grade(self, qapp, tmp_path):
+        db = tmp_path / "report.db"
+        _create_report_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = ReporteAlumnosParientesDialog()
+            plain = dlg.viewer.toPlainText()
+            assert "ID Padre" in plain
+            assert "ID Madre" in plain
+            assert "Pedro Lopez Diaz" in plain
+            assert "Marta Lopez Rios" in plain
+            assert "Celia" not in plain
+            assert "Dario" not in plain
+        finally:
+            reset_active_db_path()
+
+
+
 def _create_report_database(path: Path):
     with sqlite3.connect(path) as connection:
         connection.execute("CREATE TABLE grados (id INTEGER PRIMARY KEY, grado TEXT)")

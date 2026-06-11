@@ -1,258 +1,299 @@
-"""Tests for alumnos dialogs."""
+"""Tests for alumnos dialogs: NuevoAlumnoDialog, EditAlumnoDialog."""
 
 import sqlite3
 from pathlib import Path
+
+import pytest
 
 from __init__ import reset_active_db_path, set_active_db_path
 from dialogs.alumnos import EditAlumnoDialog, NuevoAlumnoDialog
 
 
-def _create_alumnos_dialog_database(path: Path):
-    with sqlite3.connect(path) as connection:
-        connection.execute("CREATE TABLE grados (id INTEGER PRIMARY KEY, grado TEXT)")
-        connection.execute(
-            "CREATE TABLE adultos ("
-            "id INTEGER PRIMARY KEY, a_nombres TEXT, a_paterno TEXT, a_materno TEXT)"
+# ---------------------------------------------------------------------------
+# Shared DB helpers
+# ---------------------------------------------------------------------------
+
+def _create_alumnos_db(path: Path):
+    with sqlite3.connect(path) as conn:
+        conn.execute("CREATE TABLE grados (id INTEGER PRIMARY KEY, grado TEXT)")
+        conn.execute(
+            "CREATE TABLE adultos "
+            "(id INTEGER PRIMARY KEY, a_nombres TEXT, a_paterno TEXT, a_materno TEXT)"
         )
-        connection.execute(
+        conn.execute(
             "CREATE TABLE alumnos ("
             "id INTEGER PRIMARY KEY, nombres TEXT, paterno TEXT, materno TEXT, "
             "cumpleanos TEXT, rude TEXT, Carnet TEXT, id_grado TEXT, pension REAL, "
             "id_padre TEXT, id_madre TEXT)"
         )
-
-        connection.executemany(
+        conn.executemany(
             "INSERT INTO grados (id, grado) VALUES (?, ?)",
             [(1, "Primero"), (2, "Segundo")],
         )
-        connection.executemany(
+        conn.executemany(
             "INSERT INTO adultos (id, a_nombres, a_paterno, a_materno) VALUES (?, ?, ?, ?)",
             [
                 (10, "Pedro", "Lopez", "Diaz"),
                 (20, "Marta", "Lopez", "Rios"),
-                (30, "Juan", "Perez", "Quispe"),
-                (40, "Ana", "Perez", "Mamani"),
+                (30, "Juan",  "Perez", "Quispe"),
+                (40, "Ana",   "Perez", "Mamani"),
             ],
         )
-        connection.execute(
-            "INSERT INTO alumnos (id, nombres, paterno, materno, cumpleanos, rude, Carnet, id_grado, pension, id_padre, id_madre) "
+        conn.execute(
+            "INSERT INTO alumnos "
+            "(id, nombres, paterno, materno, cumpleanos, rude, Carnet, id_grado, pension, id_padre, id_madre) "
             "VALUES (1, 'Ana', 'Lopez', 'Rios', '2010-01-15', 'R-1', 'C-1', '1', 300, '10', '20')"
         )
 
 
-def _create_alumnos_dialog_duplicate_database(path: Path):
-    with sqlite3.connect(path) as connection:
-        connection.execute("CREATE TABLE grados (id INTEGER PRIMARY KEY, grado TEXT)")
-        connection.execute(
-            "CREATE TABLE adultos ("
-            "id INTEGER PRIMARY KEY, a_nombres TEXT, a_paterno TEXT, a_materno TEXT)"
+def _create_duplicate_alumnos_db(path: Path):
+    with sqlite3.connect(path) as conn:
+        conn.execute("CREATE TABLE grados (id INTEGER PRIMARY KEY, grado TEXT)")
+        conn.execute(
+            "CREATE TABLE adultos "
+            "(id INTEGER PRIMARY KEY, a_nombres TEXT, a_paterno TEXT, a_materno TEXT)"
         )
-        connection.execute(
+        conn.execute(
             "CREATE TABLE alumnos ("
             "id INTEGER PRIMARY KEY, nombres TEXT, paterno TEXT, materno TEXT, "
             "cumpleanos TEXT, rude TEXT, Carnet TEXT, id_grado TEXT, pension REAL, "
             "id_padre TEXT, id_madre TEXT)"
         )
-
-        connection.executemany(
-            "INSERT INTO grados (id, grado) VALUES (?, ?)",
-            [(1, "Primero")],
+        conn.executemany(
+            "INSERT INTO grados (id, grado) VALUES (?, ?)", [(1, "Primero")]
         )
-        connection.executemany(
-            "INSERT INTO adultos (id, a_nombres, a_paterno, a_materno) VALUES (?, ?, ?, ?)",
-            [
-                (10, "Pedro", "Lopez", "Diaz"),
-            ],
+        conn.execute(
+            "INSERT INTO adultos (id, a_nombres, a_paterno, a_materno) "
+            "VALUES (10, 'Pedro', 'Lopez', 'Diaz')"
         )
-        connection.executemany(
-            "INSERT INTO alumnos (id, nombres, paterno, materno, cumpleanos, rude, Carnet, id_grado, pension, id_padre, id_madre) "
+        conn.executemany(
+            "INSERT INTO alumnos "
+            "(id, nombres, paterno, materno, cumpleanos, rude, Carnet, id_grado, pension, id_padre, id_madre) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
-                (1, "Ana", "Lopez", "Rios", "2010-01-15", "R-1", "C-1", "1", 300, "10", None),
+                (1, "Ana",  "Lopez", "Rios", "2010-01-15", "R-1", "C-1", "1", 300, "10", None),
                 (2, "Beto", "Perez", "Vega", "2011-02-20", "R-2", "C-2", "1", 200, "10", None),
             ],
         )
 
 
-def test_edit_alumno_shows_parent_lookups(qapp, tmp_path):
-    database = tmp_path / "alumnos_dialog.db"
-    _create_alumnos_dialog_database(database)
-    set_active_db_path(database)
-    try:
-        dialog = EditAlumnoDialog(1)
+# ---------------------------------------------------------------------------
+# EditAlumnoDialog – parent lookups
+# ---------------------------------------------------------------------------
 
-        assert dialog.id_padre.text() == "10"
-        assert dialog.padre_lookup.text() == "Pedro Lopez Diaz"
-        assert dialog.id_madre.text() == "20"
-        assert dialog.madre_lookup.text() == "Marta Lopez Rios"
-    finally:
-        reset_active_db_path()
+class TestEditAlumnoParentLookups:
+    def test_shows_padre_lookup_name(self, qapp, tmp_path):
+        db = tmp_path / "alumnos.db"
+        _create_alumnos_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = EditAlumnoDialog(1)
+            assert dlg.id_padre.text() == "10"
+            assert dlg.padre_lookup.text() == "Pedro Lopez Diaz"
+        finally:
+            reset_active_db_path()
 
+    def test_shows_madre_lookup_name(self, qapp, tmp_path):
+        db = tmp_path / "alumnos.db"
+        _create_alumnos_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = EditAlumnoDialog(1)
+            assert dlg.id_madre.text() == "20"
+            assert dlg.madre_lookup.text() == "Marta Lopez Rios"
+        finally:
+            reset_active_db_path()
 
-def test_nuevo_alumno_shows_parent_lookup_and_pension_format(qapp, tmp_path):
-    database = tmp_path / "alumnos_dialog_new_fields.db"
-    _create_alumnos_dialog_database(database)
-    set_active_db_path(database)
-    try:
-        dialog = NuevoAlumnoDialog()
+    def test_save_updates_parent_ids(self, qapp, tmp_path, monkeypatch):
+        db = tmp_path / "alumnos.db"
+        _create_alumnos_db(db)
+        set_active_db_path(db)
+        try:
+            monkeypatch.setattr("dialogs.alumnos.QMessageBox.information", lambda *a, **kw: None)
+            dlg = EditAlumnoDialog(1)
+            dlg.id_padre.setText("30")
+            dlg.id_madre.setText("40")
+            dlg._save()
 
-        assert dialog.pension.text() == "0"
+            with sqlite3.connect(db) as conn:
+                row = conn.execute(
+                    "SELECT id_padre, id_madre FROM alumnos WHERE id = 1"
+                ).fetchone()
+            assert row == ("30", "40")
+            assert dlg.padre_lookup.text() == "Juan Perez Quispe"
+            assert dlg.madre_lookup.text() == "Ana Perez Mamani"
+        finally:
+            reset_active_db_path()
 
-        dialog.id_padre.setText("10")
-        dialog.id_madre.setText("20")
+    def test_save_allows_keeping_same_rude_and_carnet(self, qapp, tmp_path, monkeypatch):
+        db = tmp_path / "dup.db"
+        _create_duplicate_alumnos_db(db)
+        set_active_db_path(db)
+        try:
+            monkeypatch.setattr("dialogs.alumnos.QMessageBox.information", lambda *a, **kw: None)
+            dlg = EditAlumnoDialog(1)
+            dlg._save()
 
-        assert dialog.padre_lookup.text() == "Pedro Lopez Diaz"
-        assert dialog.madre_lookup.text() == "Marta Lopez Rios"
-    finally:
-        reset_active_db_path()
-
-
-def test_nuevo_alumno_save_persists_parent_ids_and_integer_pension(qapp, tmp_path, monkeypatch):
-    database = tmp_path / "alumnos_dialog_new_save.db"
-    _create_alumnos_dialog_database(database)
-    set_active_db_path(database)
-    try:
-        monkeypatch.setattr("dialogs.alumnos.QMessageBox.information", lambda *args, **kwargs: None)
-
-        dialog = NuevoAlumnoDialog()
-        dialog.nombres.setText("Lia")
-        dialog.paterno.setText("Mora")
-        dialog.id_padre.setText("10")
-        dialog.id_madre.setText("20")
-        dialog.pension.setText("450")
-        dialog._save()
-
-        with sqlite3.connect(database) as connection:
-            row = connection.execute(
-                "SELECT nombres, paterno, pension, id_padre, id_madre FROM alumnos WHERE nombres = 'Lia' AND paterno = 'Mora'"
-            ).fetchone()
-
-        assert row == ("Lia", "Mora", 450.0, "10", "20")
-    finally:
-        reset_active_db_path()
-
-
-def test_nuevo_alumno_save_rejects_missing_parent_id(qapp, tmp_path, monkeypatch):
-    database = tmp_path / "alumnos_dialog_missing_parent.db"
-    _create_alumnos_dialog_database(database)
-    set_active_db_path(database)
-    try:
-        warnings = []
-        monkeypatch.setattr("dialogs.alumnos.QMessageBox.warning", lambda *args: warnings.append(args))
-        monkeypatch.setattr("dialogs.alumnos.QMessageBox.information", lambda *args, **kwargs: None)
-
-        dialog = NuevoAlumnoDialog()
-        dialog.nombres.setText("Lia")
-        dialog.paterno.setText("Mora")
-        dialog.id_padre.setText("999")
-        dialog.id_madre.setText("20")
-        dialog._save()
-
-        with sqlite3.connect(database) as connection:
-            count = connection.execute(
-                "SELECT COUNT(*) FROM alumnos WHERE nombres = 'Lia' AND paterno = 'Mora'"
-            ).fetchone()[0]
-
-        assert count == 0
-        assert warnings
-        assert "ID de padre no existe" in warnings[0][2]
-    finally:
-        reset_active_db_path()
+            with sqlite3.connect(db) as conn:
+                row = conn.execute(
+                    "SELECT rude, Carnet FROM alumnos WHERE id = 1"
+                ).fetchone()
+            assert row == ("R-1", "C-1")
+        finally:
+            reset_active_db_path()
 
 
-def test_nuevo_alumno_save_rejects_duplicate_rude_and_carnet(qapp, tmp_path, monkeypatch):
-    database = tmp_path / "alumnos_dialog_duplicate_values.db"
-    _create_alumnos_dialog_duplicate_database(database)
-    set_active_db_path(database)
-    try:
-        warnings = []
-        monkeypatch.setattr("dialogs.alumnos.QMessageBox.warning", lambda *args: warnings.append(args))
-        monkeypatch.setattr("dialogs.alumnos.QMessageBox.information", lambda *args, **kwargs: None)
+# ---------------------------------------------------------------------------
+# EditAlumnoDialog – pension field
+# ---------------------------------------------------------------------------
 
-        dialog = NuevoAlumnoDialog()
-        dialog.nombres.setText("Lia")
-        dialog.paterno.setText("Mora")
-        dialog.rude.setText("R-1")
-        dialog.carnet.setText("C-1")
-        dialog.id_padre.setText("10")
-        dialog._save()
+class TestEditAlumnoPension:
+    def test_pension_loaded_correctly(self, qapp, tmp_path):
+        db = tmp_path / "alumnos.db"
+        _create_alumnos_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = EditAlumnoDialog(1)
+            assert dlg.pension.text() == "300"
+        finally:
+            reset_active_db_path()
 
-        with sqlite3.connect(database) as connection:
-            count = connection.execute(
-                "SELECT COUNT(*) FROM alumnos WHERE nombres = 'Lia' AND paterno = 'Mora'"
-            ).fetchone()[0]
+    def test_empty_pension_defaults_to_zero_on_save(self, qapp, tmp_path, monkeypatch):
+        db = tmp_path / "alumnos.db"
+        _create_alumnos_db(db)
+        set_active_db_path(db)
+        try:
+            monkeypatch.setattr("dialogs.alumnos.QMessageBox.information", lambda *a, **kw: None)
+            dlg = EditAlumnoDialog(1)
+            dlg.pension.setText("")
+            dlg._save()
 
-        assert count == 0
-        assert warnings
-        warning_text = warnings[0][2]
-        assert "RUDE ya existe" in warning_text
-        assert "Carnet ya existe" in warning_text
-    finally:
-        reset_active_db_path()
-
-
-def test_edit_alumno_save_updates_parent_ids(qapp, tmp_path, monkeypatch):
-    database = tmp_path / "alumnos_dialog_save.db"
-    _create_alumnos_dialog_database(database)
-    set_active_db_path(database)
-    try:
-        monkeypatch.setattr("dialogs.alumnos.QMessageBox.information", lambda *args, **kwargs: None)
-
-        dialog = EditAlumnoDialog(1)
-        dialog.id_padre.setText("30")
-        dialog.id_madre.setText("40")
-        dialog._save()
-
-        with sqlite3.connect(database) as connection:
-            row = connection.execute(
-                "SELECT id_padre, id_madre FROM alumnos WHERE id = 1"
-            ).fetchone()
-
-        assert row == ("30", "40")
-        assert dialog.padre_lookup.text() == "Juan Perez Quispe"
-        assert dialog.madre_lookup.text() == "Ana Perez Mamani"
-    finally:
-        reset_active_db_path()
+            with sqlite3.connect(db) as conn:
+                pension = conn.execute(
+                    "SELECT pension FROM alumnos WHERE id = 1"
+                ).fetchone()[0]
+            assert pension == 0
+            assert dlg.pension.text() == "0"
+        finally:
+            reset_active_db_path()
 
 
-def test_edit_alumno_save_allows_keeping_same_rude_and_carnet(qapp, tmp_path, monkeypatch):
-    database = tmp_path / "alumnos_dialog_edit_same_values.db"
-    _create_alumnos_dialog_duplicate_database(database)
-    set_active_db_path(database)
-    try:
-        monkeypatch.setattr("dialogs.alumnos.QMessageBox.information", lambda *args, **kwargs: None)
+# ---------------------------------------------------------------------------
+# NuevoAlumnoDialog – parent lookups and pension format
+# ---------------------------------------------------------------------------
 
-        dialog = EditAlumnoDialog(1)
-        dialog._save()
+class TestNuevoAlumnoParentLookup:
+    def test_pension_starts_at_zero(self, qapp, tmp_path):
+        db = tmp_path / "alumnos.db"
+        _create_alumnos_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = NuevoAlumnoDialog()
+            assert dlg.pension.text() == "0"
+        finally:
+            reset_active_db_path()
 
-        with sqlite3.connect(database) as connection:
-            row = connection.execute(
-                "SELECT rude, Carnet FROM alumnos WHERE id = 1"
-            ).fetchone()
+    def test_padre_lookup_syncs_on_id_entry(self, qapp, tmp_path):
+        db = tmp_path / "alumnos.db"
+        _create_alumnos_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = NuevoAlumnoDialog()
+            dlg.id_padre.setText("10")
+            assert dlg.padre_lookup.text() == "Pedro Lopez Diaz"
+        finally:
+            reset_active_db_path()
 
-        assert row == ("R-1", "C-1")
-    finally:
-        reset_active_db_path()
+    def test_madre_lookup_syncs_on_id_entry(self, qapp, tmp_path):
+        db = tmp_path / "alumnos.db"
+        _create_alumnos_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = NuevoAlumnoDialog()
+            dlg.id_madre.setText("20")
+            assert dlg.madre_lookup.text() == "Marta Lopez Rios"
+        finally:
+            reset_active_db_path()
 
 
-def test_edit_alumno_pension_is_non_negative_integer_with_default_zero(qapp, tmp_path):
-    database = tmp_path / "alumnos_dialog_pension.db"
-    _create_alumnos_dialog_database(database)
-    set_active_db_path(database)
-    try:
-        dialog = EditAlumnoDialog(1)
+# ---------------------------------------------------------------------------
+# NuevoAlumnoDialog – save validation and persistence
+# ---------------------------------------------------------------------------
 
-        assert dialog.pension.text() == "300"
+class TestNuevoAlumnoSave:
+    def test_save_persists_parent_ids_and_pension(self, qapp, tmp_path, monkeypatch):
+        db = tmp_path / "save.db"
+        _create_alumnos_db(db)
+        set_active_db_path(db)
+        try:
+            monkeypatch.setattr("dialogs.alumnos.QMessageBox.information", lambda *a, **kw: None)
+            dlg = NuevoAlumnoDialog()
+            dlg.nombres.setText("Lia")
+            dlg.paterno.setText("Mora")
+            dlg.id_padre.setText("10")
+            dlg.id_madre.setText("20")
+            dlg.pension.setText("450")
+            dlg._save()
 
-        dialog.pension.setText("")
-        dialog._save()
+            with sqlite3.connect(db) as conn:
+                row = conn.execute(
+                    "SELECT nombres, paterno, pension, id_padre, id_madre "
+                    "FROM alumnos WHERE nombres = 'Lia' AND paterno = 'Mora'"
+                ).fetchone()
+            assert row == ("Lia", "Mora", 450.0, "10", "20")
+        finally:
+            reset_active_db_path()
 
-        with sqlite3.connect(database) as connection:
-            pension = connection.execute(
-                "SELECT pension FROM alumnos WHERE id = 1"
-            ).fetchone()[0]
+    def test_save_rejects_missing_parent_id(self, qapp, tmp_path, monkeypatch):
+        db = tmp_path / "bad_parent.db"
+        _create_alumnos_db(db)
+        set_active_db_path(db)
+        try:
+            warnings = []
+            monkeypatch.setattr("dialogs.alumnos.QMessageBox.warning", lambda *a: warnings.append(a))
+            monkeypatch.setattr("dialogs.alumnos.QMessageBox.information", lambda *a, **kw: None)
+            dlg = NuevoAlumnoDialog()
+            dlg.nombres.setText("Lia")
+            dlg.paterno.setText("Mora")
+            dlg.id_padre.setText("999")
+            dlg.id_madre.setText("20")
+            dlg._save()
 
-        assert pension == 0
-        assert dialog.pension.text() == "0"
-    finally:
-        reset_active_db_path()
+            with sqlite3.connect(db) as conn:
+                count = conn.execute(
+                    "SELECT COUNT(*) FROM alumnos WHERE nombres = 'Lia'"
+                ).fetchone()[0]
+            assert count == 0
+            assert warnings
+            assert "ID de padre no existe" in warnings[0][2]
+        finally:
+            reset_active_db_path()
+
+    def test_save_rejects_duplicate_rude_and_carnet(self, qapp, tmp_path, monkeypatch):
+        db = tmp_path / "dup.db"
+        _create_duplicate_alumnos_db(db)
+        set_active_db_path(db)
+        try:
+            warnings = []
+            monkeypatch.setattr("dialogs.alumnos.QMessageBox.warning", lambda *a: warnings.append(a))
+            monkeypatch.setattr("dialogs.alumnos.QMessageBox.information", lambda *a, **kw: None)
+            dlg = NuevoAlumnoDialog()
+            dlg.nombres.setText("Lia")
+            dlg.paterno.setText("Mora")
+            dlg.rude.setText("R-1")
+            dlg.carnet.setText("C-1")
+            dlg.id_padre.setText("10")
+            dlg._save()
+
+            with sqlite3.connect(db) as conn:
+                count = conn.execute(
+                    "SELECT COUNT(*) FROM alumnos WHERE nombres = 'Lia'"
+                ).fetchone()[0]
+            assert count == 0
+            assert warnings
+            warning_text = warnings[0][2]
+            assert "RUDE ya existe" in warning_text
+            assert "Carnet ya existe" in warning_text
+        finally:
+            reset_active_db_path()
+

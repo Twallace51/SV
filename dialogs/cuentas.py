@@ -10,11 +10,13 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QFormLayout, QMessageBox, QHBoxLayout,
     QDialogButtonBox, QTableWidget, QTableWidgetItem,
     QDateEdit, QSpinBox, QHeaderView, QComboBox,
-    QAbstractSpinBox,
+    QAbstractSpinBox, QPushButton,
 )
 from PySide6.QtCore import QDate, Qt
 
 from __init__ import get_active_db_path
+from dialogs import alumnos as alumnos_dialogs
+from dialogs import parientes as parientes_dialogs
 
 # endregion
 
@@ -420,7 +422,17 @@ class EditCuentaDialog(QDialog):
 class BuscarCuentaDialog(QDialog):
     """Search dialog for cuentas."""
 
-    _HEADERS = ["ID Alumno", "Alumno", "Débito", "Crédito", "Aclaración", "Fecha", "Factura"]
+    _HEADERS = [
+        "ID Alumno",
+        "Alumno",
+        "ID Creditor",
+        "Creditor",
+        "Débito",
+        "Crédito",
+        "Aclaración",
+        "Fecha",
+        "Factura",
+    ]
 
     def __init__(self, parent=None, is_admin: bool = False):
         super().__init__(parent)
@@ -429,13 +441,27 @@ class BuscarCuentaDialog(QDialog):
         self.resize(800, 400)
         layout = QVBoxLayout(self)
 
-        search_row = QHBoxLayout()
-        search_row.addWidget(QLabel("Alumno:"))
+        alumno_search_row = QHBoxLayout()
+        alumno_search_row.addWidget(QLabel("Alumno:"))
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Nombre o apellido del alumno…")
         self.search_edit.textChanged.connect(self._load)
-        search_row.addWidget(self.search_edit)
-        layout.addLayout(search_row)
+        alumno_search_row.addWidget(self.search_edit)
+        self.current_alumno_btn = QPushButton("Usar actual")
+        self.current_alumno_btn.clicked.connect(self._apply_current_alumno_filter)
+        alumno_search_row.addWidget(self.current_alumno_btn)
+        layout.addLayout(alumno_search_row)
+
+        creditor_search_row = QHBoxLayout()
+        creditor_search_row.addWidget(QLabel("Creditor:"))
+        self.search_creditor_edit = QLineEdit()
+        self.search_creditor_edit.setPlaceholderText("ID o nombre del creditor…")
+        self.search_creditor_edit.textChanged.connect(self._load)
+        creditor_search_row.addWidget(self.search_creditor_edit)
+        self.current_creditor_btn = QPushButton("Usar actual")
+        self.current_creditor_btn.clicked.connect(self._apply_current_creditor_filter)
+        creditor_search_row.addWidget(self.current_creditor_btn)
+        layout.addLayout(creditor_search_row)
 
         self.table = QTableWidget(0, len(self._HEADERS))
         self.table.setHorizontalHeaderLabels(self._HEADERS)
@@ -450,7 +476,7 @@ class BuscarCuentaDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-        self._load("")
+        self._load()
 
     def _on_double_click(self, row: int, _col: int):
         alumno_id_item = self.table.item(row, 0)
@@ -461,19 +487,82 @@ class BuscarCuentaDialog(QDialog):
             return
         dlg = EditCuentaDialog(int(cuenta_id), self, is_admin=self._is_admin)
         if dlg.exec() == QDialog.Accepted:
-            self._load(self.search_edit.text())
+            self._load()
 
-    def _load(self, text: str):
-        like = f"%{text}%"
+    def _apply_current_alumno_filter(self):
+        if alumnos_dialogs.current_alumno_id is not None:
+            self.search_edit.setText(str(alumnos_dialogs.current_alumno_id))
+            return
+        if alumnos_dialogs.current_alumno_name:
+            self.search_edit.setText(str(alumnos_dialogs.current_alumno_name))
+
+    def _apply_current_creditor_filter(self):
+        if parientes_dialogs.current_adulto_id is not None:
+            self.search_creditor_edit.setText(str(parientes_dialogs.current_adulto_id))
+            return
+        if parientes_dialogs.current_adulto_name:
+            self.search_creditor_edit.setText(str(parientes_dialogs.current_adulto_name))
+
+    def _load(self, _text: str = ""):
+        alumno_search = self.search_edit.text().strip()
+        creditor_search = self.search_creditor_edit.text().strip()
+        alumno_like = f"%{alumno_search}%"
+        creditor_like = f"%{creditor_search}%"
         try:
             conn = sqlite3.connect(get_active_db_path())
+            alumno_columns = {
+                row[1] for row in conn.execute("PRAGMA table_info(alumnos)").fetchall()
+            }
+            creditor_id_expr = "a.id_adulto" if "id_adulto" in alumno_columns else "NULL"
+            tables = {
+                row[0] for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+            creditor_name_expr = "''"
+            creditor_join = ""
+            has_creditor_name = False
+            if "adultos" in tables:
+                adulto_columns = {
+                    row[1] for row in conn.execute("PRAGMA table_info(adultos)").fetchall()
+                }
+                adultos_name_parts = []
+                if "a_paterno" in adulto_columns:
+                    adultos_name_parts.append("COALESCE(ad.a_paterno, '')")
+                if "a_nombres" in adulto_columns:
+                    adultos_name_parts.append("COALESCE(ad.a_nombres, '')")
+                if "a_materno" in adulto_columns:
+                    adultos_name_parts.append("COALESCE(ad.a_materno, '')")
+                if adultos_name_parts:
+                    creditor_name_expr = "TRIM(" + " || ' ' || ".join(adultos_name_parts) + ")"
+                    has_creditor_name = True
+                creditor_join = f" LEFT JOIN adultos ad ON ad.id = CAST({creditor_id_expr} AS INTEGER)"
+
+            where_clauses = ["(CAST(a.id AS TEXT) LIKE ? OR a.nombres LIKE ? OR a.paterno LIKE ?)"]
+            params = [alumno_like, alumno_like, alumno_like]
+
+            if creditor_search:
+                creditor_filters = []
+                if "id_adulto" in alumno_columns:
+                    creditor_filters.append("CAST(a.id_adulto AS TEXT) LIKE ?")
+                    params.append(creditor_like)
+                if has_creditor_name:
+                    creditor_filters.append(f"{creditor_name_expr} LIKE ?")
+                    params.append(creditor_like)
+                if creditor_filters:
+                    where_clauses.append("(" + " OR ".join(creditor_filters) + ")")
+                else:
+                    where_clauses.append("1 = 0")
+
             rows = conn.execute(
                 "SELECT c.id, a.id, a.paterno || ', ' || a.nombres,"
+                f" {creditor_id_expr}, {creditor_name_expr},"
                 " c.debito, c.credito, c.aclaracion, c.fecha, c.factura"
                 " FROM ctas c JOIN alumnos a ON c.id_alumno = a.id"
-                " WHERE a.nombres LIKE ? OR a.paterno LIKE ?"
+                f"{creditor_join}"
+                f" WHERE {' AND '.join(where_clauses)}"
                 " ORDER BY c.fecha DESC",
-                (like, like),
+                params,
             ).fetchall()
             conn.close()
         except Exception:
