@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog
 
 from __init__ import reset_active_db_path, set_active_db_path
-from dialogs.cuentas import BuscarCuentaDialog
+from dialogs.cuentas import BuscarCuentaDialog, NuevoCuentaDialog
 
 
 def _create_cuentas_dialog_database(path: Path):
@@ -57,5 +57,50 @@ def test_buscar_cuenta_dialog_shows_alumno_id_first_and_uses_hidden_cuenta_id(qa
         dialog._on_double_click(0, 0)
 
         assert calls == [("created", 1, dialog, True), ("exec", None)]
+    finally:
+        reset_active_db_path()
+
+
+def _create_nuevo_cuenta_creditor_database(path: Path):
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            "CREATE TABLE adultos ("
+            "id INTEGER PRIMARY KEY, a_nombres TEXT, a_paterno TEXT, a_materno TEXT)"
+        )
+        connection.execute(
+            "CREATE TABLE alumnos ("
+            "id INTEGER PRIMARY KEY, nombres TEXT, paterno TEXT, materno TEXT)"
+        )
+        connection.execute(
+            "CREATE TABLE ctas ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "id_alumno INTEGER, id_creditor INTEGER, debito REAL, credito REAL, "
+            "aclaracion TEXT, fecha TEXT, factura TEXT)"
+        )
+        connection.execute(
+            "INSERT INTO adultos (id, a_nombres, a_paterno, a_materno) VALUES (5, 'Pedro', 'Gomez', 'Diaz')"
+        )
+        connection.execute(
+            "INSERT INTO alumnos (id, nombres, paterno, materno) VALUES (3, 'Ana', 'Lopez', 'Rios')"
+        )
+
+
+def test_nuevo_cuenta_dialog_syncs_creditor_name(qapp, tmp_path):
+    database = tmp_path / "nuevo_cta_creditor.db"
+    _create_nuevo_cuenta_creditor_database(database)
+    set_active_db_path(database)
+    try:
+        dialog = NuevoCuentaDialog()
+
+        assert dialog.creditor.text() == "-"
+
+        dialog.id_creditor.setText("5")
+        assert dialog.creditor.text() == "Pedro Gomez"
+
+        dialog.id_creditor.setText("99")
+        assert dialog.creditor.text() == "No encontrado"
+
+        dialog.id_creditor.clear()
+        assert dialog.creditor.text() == "-"
     finally:
         reset_active_db_path()
