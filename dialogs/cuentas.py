@@ -663,7 +663,7 @@ class BuscarCuentaDialog(QDialog):
                 creditor_filters = []
                 if "id_creditor" in ctas_columns:
                     creditor_filters.append("CAST(c.id_creditor AS TEXT) LIKE ?")
-                    params.append(creditor_like)
+                    params.append(creditor_search)
                 if has_creditor_name:
                     creditor_filters.append(f"{creditor_name_expr} LIKE ?")
                     params.append(creditor_like)
