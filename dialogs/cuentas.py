@@ -510,6 +510,8 @@ class BuscarCuentaDialog(QDialog):
         self.current_creditor_btn = QPushButton("Usar actual")
         self.current_creditor_btn.clicked.connect(self._apply_current_creditor_filter)
         creditor_search_row.addWidget(self.current_creditor_btn)
+        self.current_creditor_label = QLabel()
+        creditor_search_row.addWidget(self.current_creditor_label)
         layout.addLayout(creditor_search_row)
 
         self.table = QTableWidget(0, len(self._HEADERS))
@@ -527,6 +529,7 @@ class BuscarCuentaDialog(QDialog):
         layout.addWidget(buttons)
 
         self._refresh_current_alumno_label()
+        self._refresh_current_creditor_label()
         self._load()
 
     def _on_double_click(self, row: int, _col: int):
@@ -565,6 +568,18 @@ class BuscarCuentaDialog(QDialog):
             return
         if parientes_dialogs.current_adulto_name:
             self.search_creditor_edit.setText(str(parientes_dialogs.current_adulto_name))
+
+    def _refresh_current_creditor_label(self):
+        creditor_id = parientes_dialogs.current_adulto_id
+        creditor_name = parientes_dialogs.current_adulto_name
+        parts = []
+        if creditor_id is not None:
+            parts.append(str(creditor_id))
+        if creditor_name:
+            parts.append(str(creditor_name))
+        self.current_creditor_label.setText(
+            f"Creditor Actual: {' - '.join(parts)}" if parts else "Creditor Actual: -"
+        )
 
     def _load(self, _text: str = ""):
         alumno_search = self.search_edit.text().strip()
