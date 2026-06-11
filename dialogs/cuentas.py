@@ -494,11 +494,9 @@ class BuscarCuentaDialog(QDialog):
         self.search_edit.setPlaceholderText("Nombre o apellido del alumno…")
         self.search_edit.textChanged.connect(self._load)
         alumno_search_row.addWidget(self.search_edit)
-        self.current_alumno_btn = QPushButton("Usar actual")
+        self.current_alumno_btn = QPushButton()
         self.current_alumno_btn.clicked.connect(self._apply_current_alumno_filter)
         alumno_search_row.addWidget(self.current_alumno_btn)
-        self.current_alumno_label = QLabel()
-        alumno_search_row.addWidget(self.current_alumno_label)
         layout.addLayout(alumno_search_row)
 
         creditor_search_row = QHBoxLayout()
@@ -558,7 +556,7 @@ class BuscarCuentaDialog(QDialog):
             parts.append(str(alumno_id))
         if alumno_name:
             parts.append(str(alumno_name))
-        self.current_alumno_label.setText(
+        self.current_alumno_btn.setText(
             f"Alumno Actual: {' - '.join(parts)}" if parts else "Alumno Actual: -"
         )
 
