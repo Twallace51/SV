@@ -290,17 +290,6 @@ class MainWindow(QMainWindow):
         menu_bar = self.menuBar()
         menu_bar.setStyleSheet("QMenuBar::item { font-size: 14px; }")
 
-        # Navegación menu
-        self.navigation_menu = menu_bar.addMenu("&Navegación")
-        self.logout_action = QAction("&Cerrar sesión", self)
-        self.logout_action.triggered.connect(self.on_logout)
-        self.navigation_menu.addAction(self.logout_action)
-
-        self.exit_action = QAction("&Salir", self)
-        self.exit_action.setShortcut("Ctrl+Q")
-        self.exit_action.triggered.connect(self.close)
-        self.navigation_menu.addAction(self.exit_action)
-
         # Archivo menu
         self.file_menu = menu_bar.addMenu("&Archivo")
         backup_action = QAction("Crear &Backup de Base de Datos", self)

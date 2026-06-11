@@ -86,10 +86,6 @@ class TestMainWindowMenuBar:
     def test_menu_bar_exists(self, window):
         assert window.menuBar() is not None
 
-    def test_navigation_menu_comes_before_file_menu(self, window):
-        titles = [action.text().replace("&", "") for action in window.menuBar().actions()]
-        assert titles.index("Navegación") < titles.index("Archivo")
-
     def test_file_menu_present(self, window):
         titles = [a.text() for a in window.menuBar().actions()]
         assert any("Archivo" in t for t in titles)
@@ -98,9 +94,9 @@ class TestMainWindowMenuBar:
         titles = [a.text() for a in window.menuBar().actions()]
         assert all("Editar" not in t for t in titles)
 
-    def test_navigation_menu_present(self, window):
+    def test_navigation_menu_not_present(self, window):
         titles = [a.text() for a in window.menuBar().actions()]
-        assert any("Navegación" in t for t in titles)
+        assert all("Navegación" not in t for t in titles)
 
     def test_help_menu_present(self, window):
         titles = [a.text() for a in window.menuBar().actions()]
@@ -121,14 +117,6 @@ class TestMainWindowMenuBar:
     def test_file_menu_does_not_have_exit_action(self, window):
         action_texts = [a.text() for a in window.file_menu.actions() if not a.isSeparator()]
         assert all("Salir" not in t for t in action_texts)
-
-    def test_navigation_menu_has_logout_action(self, window):
-        action_texts = [a.text() for a in window.navigation_menu.actions() if not a.isSeparator()]
-        assert any("Cerrar sesión" in t for t in action_texts)
-
-    def test_navigation_menu_has_exit_action(self, window):
-        action_texts = [a.text() for a in window.navigation_menu.actions() if not a.isSeparator()]
-        assert any("Salir" in t for t in action_texts)
 
     @pytest.mark.parametrize("menu_name", ["alumnos_menu", "parientes_menu", "cuentas_menu"])
     def test_domain_menu_has_reportes_action(self, window, menu_name):
@@ -330,7 +318,7 @@ class TestMainWindowMenuBar:
         monkeypatch.setattr(window, "hide", lambda: hidden.append(True))
         monkeypatch.setattr(window, "close", lambda: closed.append(True))
 
-        window.logout_action.trigger()
+        window.on_logout()
 
         assert hidden == [True]
         assert shown == [True]
@@ -353,7 +341,7 @@ class TestMainWindowMenuBar:
         monkeypatch.setattr(window, "hide", lambda: hidden.append(True))
         monkeypatch.setattr(window, "close", lambda: closed.append(True))
 
-        window.logout_action.trigger()
+        window.on_logout()
 
         assert hidden == [True]
         assert closed == [True]
@@ -374,7 +362,7 @@ class TestMainWindowMenuBar:
         monkeypatch.setattr(window, "hide", lambda: None)
         monkeypatch.setattr(window, "close", lambda: None)
 
-        window.logout_action.trigger()
+        window.on_logout()
 
         assert created_parents == [None]
 class TestMainWindowTitleUpdate:
