@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QFormLayout, QMessageBox, QHBoxLayout,
     QDialogButtonBox, QTableWidget, QTableWidgetItem,
     QDateEdit, QComboBox, QHeaderView,
-    QCheckBox, QWidget,
+    QCheckBox, QWidget, QAbstractSpinBox,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIntValidator
@@ -126,6 +126,7 @@ class NuevoAlumnoDialog(QDialog):
         self.cumpleanos = QDateEdit()
         self.cumpleanos.setCalendarPopup(True)
         self.cumpleanos.setDisplayFormat("yyyy-MM-dd")
+        self.cumpleanos.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         self.rude = QLineEdit()
         self.carnet = QLineEdit()
         self.pension = QLineEdit()
@@ -318,6 +319,7 @@ class EditAlumnoDialog(QDialog):
         self.cumpleanos = QDateEdit()
         self.cumpleanos.setCalendarPopup(True)
         self.cumpleanos.setDisplayFormat("yyyy-MM-dd")
+        self.cumpleanos.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         self.rude = QLineEdit()
         self.carnet = QLineEdit()
         self.pension = QLineEdit()

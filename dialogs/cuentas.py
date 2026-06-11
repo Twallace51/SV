@@ -238,10 +238,15 @@ class EditCuentaDialog(QDialog):
         self.id_alumno.textChanged.connect(self._sync_alumno_nombre)
         self.alumno = QLabel("-")
 
+        self.id_creditor = QLineEdit()
+        self.id_creditor.setPlaceholderText("Ingrese ID de creditor")
+        self.id_creditor.textChanged.connect(self._sync_creditor_nombre)
+        self.creditor = QLabel("-")
+
         try:
             conn = sqlite3.connect(get_active_db_path())
             row = conn.execute(
-                "SELECT id_alumno, debito, credito, aclaracion, fecha, factura"
+                "SELECT id_alumno, id_creditor, debito, credito, aclaracion, fecha, factura"
                 " FROM ctas WHERE id = ?", (self._id,)
             ).fetchone()
             conn.close()
@@ -275,19 +280,22 @@ class EditCuentaDialog(QDialog):
 
         if row:
             self.id_alumno.setText(str(row[0] or ""))
-            self.debito.setValue(row[1] or 0)
-            self.credito.setValue(row[2] or 0)
-            self.aclaracion.setText(row[3] or "")
-            d = QDate.fromString(row[4] or "", "yyyy-MM-dd")
+            self.id_creditor.setText(str(row[1] or ""))
+            self.debito.setValue(row[2] or 0)
+            self.credito.setValue(row[3] or 0)
+            self.aclaracion.setText(row[4] or "")
+            d = QDate.fromString(row[5] or "", "yyyy-MM-dd")
             if d.isValid():
                 self.fecha.setDate(d)
-            self.factura.setText(row[5] or "")
+            self.factura.setText(row[6] or "")
             aclaracion_idx = self.aclaracion_select.findText(self.aclaracion.text())
             if aclaracion_idx >= 0:
                 self.aclaracion_select.setCurrentIndex(aclaracion_idx)
 
         form.addRow("ID Alumno *:", self.id_alumno)
         form.addRow("Alumno:", self.alumno)
+        form.addRow("ID Creditor:", self.id_creditor)
+        form.addRow("Creditor:", self.creditor)
         form.addRow("Débito:", self.debito)
         form.addRow("Crédito:", self.credito)
         form.addRow("Aclaración:", aclaracion_row)
@@ -296,6 +304,7 @@ class EditCuentaDialog(QDialog):
         layout.addLayout(form)
 
         self._sync_alumno_nombre()
+        self._sync_creditor_nombre()
         self._sync_amount_fields()
 
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=self)
@@ -331,6 +340,30 @@ class EditCuentaDialog(QDialog):
             row = None
 
         self.alumno.setText(f"{row[0]}, {row[1]}" if row else "No encontrado")
+
+    def _sync_creditor_nombre(self):
+        raw_id = self.id_creditor.text().strip()
+        if not raw_id:
+            self.creditor.setText("-")
+            return
+
+        try:
+            creditor_id = int(raw_id)
+        except ValueError:
+            self.creditor.setText("ID inválido")
+            return
+
+        try:
+            conn = sqlite3.connect(get_active_db_path())
+            row = conn.execute(
+                "SELECT a_nombres, a_paterno FROM adultos WHERE id = ?",
+                (creditor_id,),
+            ).fetchone()
+            conn.close()
+        except Exception:
+            row = None
+
+        self.creditor.setText(f"{row[0]} {row[1]}" if row else "No encontrado")
 
     def _sync_amount_fields(self):
         debito_has_value = self.debito.value() > 0
@@ -370,12 +403,24 @@ class EditCuentaDialog(QDialog):
             QMessageBox.warning(self, "Validación", "Debe ingresar solo Débito o solo Crédito (uno es obligatorio).")
             return
 
+        raw_creditor = self.id_creditor.text().strip()
+        creditor_id: int | None = None
+        if raw_creditor:
+            try:
+                creditor_id = int(raw_creditor)
+            except ValueError:
+                QMessageBox.warning(self, "Validación", "ID Creditor debe ser un número entero.")
+                return
+            if self.creditor.text() in {"No encontrado", "ID inválido"}:
+                QMessageBox.warning(self, "Validación", "El ID Creditor no existe.")
+                return
+
         try:
             conn = sqlite3.connect(get_active_db_path())
             conn.execute(
-                "UPDATE ctas SET id_alumno=?, debito=?, credito=?, aclaracion=?,"
+                "UPDATE ctas SET id_alumno=?, id_creditor=?, debito=?, credito=?, aclaracion=?,"
                 " fecha=?, factura=? WHERE id=?",
-                (alumno_id, debito, credito,
+                (alumno_id, creditor_id, debito, credito,
                  self.aclaracion.text().strip(),
                  self.fecha.date().toString("yyyy-MM-dd"),
                  self.factura.text().strip(), self._id),

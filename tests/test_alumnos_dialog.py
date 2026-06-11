@@ -296,4 +296,3 @@ class TestNuevoAlumnoSave:
             assert "Carnet ya existe" in warning_text
         finally:
             reset_active_db_path()
-

@@ -403,6 +403,7 @@ class ReporteCuentasDetallesDialog(QDialog):
         spinbox = QSpinBox(dialog)
         spinbox.setMinimum(1)
         spinbox.setMaximum(999999)
+        spinbox.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
         layout.addWidget(spinbox)
 
         buttons = QDialogButtonBox(

@@ -620,4 +620,3 @@ class TestNuevoCuentaSaveCreditor:
             assert warnings
         finally:
             reset_active_db_path()
-
