@@ -315,7 +315,7 @@ class ReporteCuentasDetallesDialog(QDialog):
     _REPORT_TITLE = "Cuentas - Detalles por alumno"
     _PREVIEW_TITLE = "Vista previa - Cuentas detalles"
     _DEFAULT_FILENAME = "cuentas_detalles"
-    _HEADERS = ("Fecha", "Aclaración", "Débito", "Crédito")
+    _HEADERS = ("Fecha", "Aclaración", "ID Creditor", "Creditor", "Débito", "Crédito")
 
     def __init__(self, parent=None, alumno_id=None):
         super().__init__(parent)
@@ -433,25 +433,63 @@ class ReporteCuentasDetallesDialog(QDialog):
         return ""
 
     def _load_rows(self) -> list[tuple]:
-        """Return [(fecha, aclaracion, debito, credito), ...] for the alumno."""
-        query = (
-            "SELECT fecha, aclaracion, debito, credito "
-            "FROM ctas "
-            "WHERE id_alumno = ? "
-            "ORDER BY fecha DESC"
-        )
+        """Return [(fecha, aclaracion, id_creditor, creditor_nombre, debito, credito), ...]."""
         try:
             with sqlite3.connect(get_active_db_path()) as conn:
+                ctas_columns = {
+                    row[1] for row in conn.execute("PRAGMA table_info(ctas)").fetchall()
+                }
+                has_creditor = "id_creditor" in ctas_columns
+                creditor_id_expr = "c.id_creditor" if has_creditor else "NULL"
+
+                tables = {
+                    row[0] for row in conn.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'"
+                    ).fetchall()
+                }
+                creditor_name_expr = "''"
+                creditor_join = ""
+                if has_creditor and "adultos" in tables:
+                    adulto_columns = {
+                        row[1] for row in conn.execute("PRAGMA table_info(adultos)").fetchall()
+                    }
+                    name_parts = []
+                    if "a_nombres" in adulto_columns:
+                        name_parts.append("COALESCE(ad.a_nombres, '')")
+                    if "a_paterno" in adulto_columns:
+                        name_parts.append("COALESCE(ad.a_paterno, '')")
+                    if name_parts:
+                        creditor_name_expr = "TRIM(" + " || ' ' || ".join(name_parts) + ")"
+                    creditor_join = " LEFT JOIN adultos ad ON ad.id = CAST(c.id_creditor AS INTEGER)"
+
+                query = (
+                    f"SELECT c.fecha, c.aclaracion, {creditor_id_expr}, {creditor_name_expr}, "
+                    "c.debito, c.credito "
+                    "FROM ctas c"
+                    f"{creditor_join} "
+                    "WHERE c.id_alumno = ? "
+                    "ORDER BY c.fecha DESC"
+                )
                 rows = conn.execute(query, (self._alumno_id,)).fetchall()
-                return [(row[0] or "", row[1] or "", float(row[2] or 0), float(row[3] or 0)) for row in rows]
+                return [
+                    (
+                        row[0] or "",
+                        row[1] or "",
+                        "" if row[2] is None else row[2],
+                        row[3] or "",
+                        float(row[4] or 0),
+                        float(row[5] or 0),
+                    )
+                    for row in rows
+                ]
         except sqlite3.Error as exc:
             QMessageBox.critical(None, self._WINDOW_TITLE, f"No se pudo cargar el reporte:\n{exc}")
             return []
 
     def _compute_balance(self) -> float:
         """Return SUM(credito) - SUM(debito)."""
-        total_credito = sum(row[3] for row in self._rows)
-        total_debito = sum(row[2] for row in self._rows)
+        total_credito = sum(row[5] for row in self._rows)
+        total_debito = sum(row[4] for row in self._rows)
         return total_credito - total_debito
 
     @staticmethod
@@ -474,13 +512,15 @@ class ReporteCuentasDetallesDialog(QDialog):
         else:
             sections.append(
                 "<table border='1' cellspacing='0' cellpadding='4'>"
-                "<tr><th>Fecha</th><th>Aclaración</th><th>Débito</th><th>Crédito</th></tr>"
+                "<tr><th>Fecha</th><th>Aclaración</th><th>ID Creditor</th><th>Creditor</th><th>Débito</th><th>Crédito</th></tr>"
             )
-            for fecha, aclaracion, debito, credito in self._rows:
+            for fecha, aclaracion, id_creditor, creditor, debito, credito in self._rows:
                 sections.append(
                     f"<tr>"
                     f"<td>{html.escape(str(fecha))}</td>"
                     f"<td>{html.escape(str(aclaracion))}</td>"
+                    f"<td>{html.escape(str(id_creditor))}</td>"
+                    f"<td>{html.escape(str(creditor))}</td>"
                     f"<td align='right'>{html.escape(self._fmt(debito))}</td>"
                     f"<td align='right'>{html.escape(self._fmt(credito))}</td>"
                     "</tr>"
@@ -511,10 +551,12 @@ class ReporteCuentasDetallesDialog(QDialog):
 
         lines.append("| " + " | ".join(self._HEADERS) + " |")
         lines.append("| " + " | ".join("---" for _header in self._HEADERS) + " |")
-        for fecha, aclaracion, debito, credito in self._rows:
+        for fecha, aclaracion, id_creditor, creditor, debito, credito in self._rows:
             values = [
                 str(fecha),
                 aclaracion.replace("|", "\\|").replace("\n", " "),
+                str(id_creditor),
+                str(creditor).replace("|", "\\|").replace("\n", " "),
                 self._fmt(debito),
                 self._fmt(credito),
             ]

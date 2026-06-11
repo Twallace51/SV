@@ -300,7 +300,7 @@ class TestReporteCuentasDetalles:
             assert "# Cuentas - Detalles por alumno" in md
             assert "**Alumno ID:** 1" in md
             assert "**Alumno:** Ana Lopez Rios" in md
-            assert "| Fecha | Aclaración | Débito | Crédito |" in md
+            assert "| Fecha | Aclaración | ID Creditor | Creditor | Débito | Crédito |" in md
             assert "2026-01-01" in md
             assert "pago" in md
         finally:
