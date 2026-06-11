@@ -657,7 +657,7 @@ class BuscarCuentaDialog(QDialog):
                 creditor_join = f" LEFT JOIN adultos ad ON ad.id = CAST({creditor_id_expr} AS INTEGER)"
 
             where_clauses = ["(CAST(a.id AS TEXT) LIKE ? OR a.nombres LIKE ? OR a.paterno LIKE ?)"]
-            params = [alumno_like, alumno_like, alumno_like]
+            params = [alumno_search, alumno_like, alumno_like]
 
             if creditor_search:
                 creditor_filters = []
