@@ -505,11 +505,9 @@ class BuscarCuentaDialog(QDialog):
         self.search_creditor_edit.setPlaceholderText("ID o nombre del creditor…")
         self.search_creditor_edit.textChanged.connect(self._load)
         creditor_search_row.addWidget(self.search_creditor_edit)
-        self.current_creditor_btn = QPushButton("Usar actual")
+        self.current_creditor_btn = QPushButton()
         self.current_creditor_btn.clicked.connect(self._apply_current_creditor_filter)
         creditor_search_row.addWidget(self.current_creditor_btn)
-        self.current_creditor_label = QLabel()
-        creditor_search_row.addWidget(self.current_creditor_label)
         layout.addLayout(creditor_search_row)
 
         self.table = QTableWidget(0, len(self._HEADERS))
@@ -575,7 +573,7 @@ class BuscarCuentaDialog(QDialog):
             parts.append(str(creditor_id))
         if creditor_name:
             parts.append(str(creditor_name))
-        self.current_creditor_label.setText(
+        self.current_creditor_btn.setText(
             f"Creditor Actual: {' - '.join(parts)}" if parts else "Creditor Actual: -"
         )
 
