@@ -1,4 +1,7 @@
 {
+  "python.defaultInterpreterPath": "C:\\Users\\tw\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\python.exe",
+  "python.terminal.activateEnvironment": true
+}{
     "git.confirmSync": false,
     "git.enableSmartCommit": true,
     "git.postCommitCommand": "none",
