@@ -10,12 +10,13 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QFormLayout, QMessageBox, QHBoxLayout,
     QDialogButtonBox, QTableWidget, QTableWidgetItem,
     QDateEdit, QComboBox, QHeaderView,
-    QCheckBox, QWidget, QAbstractSpinBox,
+    QCheckBox, QWidget, QAbstractSpinBox, QPushButton,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIntValidator
 
 from __init__ import get_active_db_path
+from dialogs import parientes as parientes_dialogs
 
 # endregion
 
@@ -137,6 +138,8 @@ class NuevoAlumnoDialog(QDialog):
         self.id_padre.setPlaceholderText("ID")
         self.id_padre.setValidator(QIntValidator(1, 999999999, self))
         self.id_padre.setMaximumWidth(100)
+        self.current_padre_btn = QPushButton("Adulto Actual")
+        self.current_padre_btn.clicked.connect(self._apply_current_adulto_to_padre)
         self.padre_lookup = QLineEdit()
         self.padre_lookup.setReadOnly(True)
         self.padre_lookup.setPlaceholderText("a_nombres a_paterno a_materno")
@@ -146,6 +149,8 @@ class NuevoAlumnoDialog(QDialog):
         self.id_madre.setPlaceholderText("ID")
         self.id_madre.setValidator(QIntValidator(1, 999999999, self))
         self.id_madre.setMaximumWidth(100)
+        self.current_madre_btn = QPushButton("Adulto Actual")
+        self.current_madre_btn.clicked.connect(self._apply_current_adulto_to_madre)
         self.madre_lookup = QLineEdit()
         self.madre_lookup.setReadOnly(True)
         self.madre_lookup.setPlaceholderText("a_nombres a_paterno a_materno")
@@ -173,6 +178,7 @@ class NuevoAlumnoDialog(QDialog):
         padre_layout = QHBoxLayout(padre_row)
         padre_layout.setContentsMargins(0, 0, 0, 0)
         padre_layout.addWidget(self.id_padre)
+        padre_layout.addWidget(self.current_padre_btn)
         padre_layout.addWidget(self.padre_lookup, 1)
         form.addRow("ID Padre:", padre_row)
 
@@ -180,6 +186,7 @@ class NuevoAlumnoDialog(QDialog):
         madre_layout = QHBoxLayout(madre_row)
         madre_layout.setContentsMargins(0, 0, 0, 0)
         madre_layout.addWidget(self.id_madre)
+        madre_layout.addWidget(self.current_madre_btn)
         madre_layout.addWidget(self.madre_lookup, 1)
         form.addRow("ID Madre:", madre_row)
 
@@ -187,6 +194,7 @@ class NuevoAlumnoDialog(QDialog):
         form.addRow("Pensión:", self.pension)
         layout.addLayout(form)
 
+        self._refresh_current_adulto_buttons()
         self._refresh_padre_lookup()
         self._refresh_madre_lookup()
 
@@ -194,6 +202,23 @@ class NuevoAlumnoDialog(QDialog):
         buttons.accepted.connect(self._save)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+
+    def _refresh_current_adulto_buttons(self):
+        enabled = parientes_dialogs.current_adulto_id is not None
+        self.current_padre_btn.setEnabled(enabled)
+        self.current_madre_btn.setEnabled(enabled)
+
+    def _apply_current_adulto_to_padre(self):
+        current_id = parientes_dialogs.current_adulto_id
+        if current_id is None:
+            return
+        self.id_padre.setText(str(current_id))
+
+    def _apply_current_adulto_to_madre(self):
+        current_id = parientes_dialogs.current_adulto_id
+        if current_id is None:
+            return
+        self.id_madre.setText(str(current_id))
 
     def _save(self):
         nombres = self.nombres.text().strip().title()
@@ -330,6 +355,8 @@ class EditAlumnoDialog(QDialog):
         self.id_padre.setPlaceholderText("ID")
         self.id_padre.setValidator(QIntValidator(1, 999999999, self))
         self.id_padre.setMaximumWidth(100)
+        self.current_padre_btn = QPushButton("Adulto Actual")
+        self.current_padre_btn.clicked.connect(self._apply_current_adulto_to_padre)
         self.padre_lookup = QLineEdit()
         self.padre_lookup.setReadOnly(True)
         self.padre_lookup.setPlaceholderText("a_nombres a_paterno a_materno")
@@ -339,6 +366,8 @@ class EditAlumnoDialog(QDialog):
         self.id_madre.setPlaceholderText("ID")
         self.id_madre.setValidator(QIntValidator(1, 999999999, self))
         self.id_madre.setMaximumWidth(100)
+        self.current_madre_btn = QPushButton("Adulto Actual")
+        self.current_madre_btn.clicked.connect(self._apply_current_adulto_to_madre)
         self.madre_lookup = QLineEdit()
         self.madre_lookup.setReadOnly(True)
         self.madre_lookup.setPlaceholderText("a_nombres a_paterno a_materno")
@@ -413,6 +442,7 @@ class EditAlumnoDialog(QDialog):
         padre_layout = QHBoxLayout(padre_row)
         padre_layout.setContentsMargins(0, 0, 0, 0)
         padre_layout.addWidget(self.id_padre)
+        padre_layout.addWidget(self.current_padre_btn)
         padre_layout.addWidget(self.padre_lookup, 1)
         form.addRow("ID Padre:", padre_row)
 
@@ -420,12 +450,15 @@ class EditAlumnoDialog(QDialog):
         madre_layout = QHBoxLayout(madre_row)
         madre_layout.setContentsMargins(0, 0, 0, 0)
         madre_layout.addWidget(self.id_madre)
+        madre_layout.addWidget(self.current_madre_btn)
         madre_layout.addWidget(self.madre_lookup, 1)
         form.addRow("ID Madre:", madre_row)
 
         form.addRow("Grado:", self.grado)
         form.addRow("Pensión:", self.pension)
         layout.addLayout(form)
+
+        self._refresh_current_adulto_buttons()
 
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=self)
         self.delete_btn = buttons.addButton("Borrar", QDialogButtonBox.ActionRole)
@@ -436,6 +469,23 @@ class EditAlumnoDialog(QDialog):
         buttons.rejected.connect(self.reject)
         self.delete_btn.clicked.connect(self._delete)
         layout.addWidget(buttons)
+
+    def _refresh_current_adulto_buttons(self):
+        enabled = parientes_dialogs.current_adulto_id is not None
+        self.current_padre_btn.setEnabled(enabled)
+        self.current_madre_btn.setEnabled(enabled)
+
+    def _apply_current_adulto_to_padre(self):
+        current_id = parientes_dialogs.current_adulto_id
+        if current_id is None:
+            return
+        self.id_padre.setText(str(current_id))
+
+    def _apply_current_adulto_to_madre(self):
+        current_id = parientes_dialogs.current_adulto_id
+        if current_id is None:
+            return
+        self.id_madre.setText(str(current_id))
 
     def _save(self):
         nombres = self.nombres.text().strip().title()

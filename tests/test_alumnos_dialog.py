@@ -7,6 +7,7 @@ import pytest
 
 from __init__ import reset_active_db_path, set_active_db_path
 from dialogs.alumnos import EditAlumnoDialog, NuevoAlumnoDialog
+from dialogs import parientes as parientes_dialogs
 
 
 # ---------------------------------------------------------------------------
@@ -142,6 +143,48 @@ class TestEditAlumnoParentLookups:
         finally:
             reset_active_db_path()
 
+    def test_current_adulto_buttons_autoload_padre_and_madre(self, qapp, tmp_path):
+        db = tmp_path / "alumnos.db"
+        _create_alumnos_db(db)
+        set_active_db_path(db)
+        saved_id, saved_name = parientes_dialogs.current_adulto_id, parientes_dialogs.current_adulto_name
+        try:
+            parientes_dialogs.current_adulto_id = 30
+            parientes_dialogs.current_adulto_name = "Juan Perez Quispe"
+            dlg = EditAlumnoDialog(1)
+
+            assert dlg.current_padre_btn.isEnabled() is True
+            assert dlg.current_madre_btn.isEnabled() is True
+
+            dlg.current_padre_btn.click()
+            assert dlg.id_padre.text() == "30"
+            assert dlg.padre_lookup.text() == "Juan Perez Quispe"
+
+            dlg.current_madre_btn.click()
+            assert dlg.id_madre.text() == "30"
+            assert dlg.madre_lookup.text() == "Juan Perez Quispe"
+        finally:
+            parientes_dialogs.current_adulto_id = saved_id
+            parientes_dialogs.current_adulto_name = saved_name
+            reset_active_db_path()
+
+    def test_current_adulto_buttons_disabled_without_shared_id(self, qapp, tmp_path):
+        db = tmp_path / "alumnos.db"
+        _create_alumnos_db(db)
+        set_active_db_path(db)
+        saved_id, saved_name = parientes_dialogs.current_adulto_id, parientes_dialogs.current_adulto_name
+        try:
+            parientes_dialogs.current_adulto_id = None
+            parientes_dialogs.current_adulto_name = None
+            dlg = EditAlumnoDialog(1)
+
+            assert dlg.current_padre_btn.isEnabled() is False
+            assert dlg.current_madre_btn.isEnabled() is False
+        finally:
+            parientes_dialogs.current_adulto_id = saved_id
+            parientes_dialogs.current_adulto_name = saved_name
+            reset_active_db_path()
+
 
 # ---------------------------------------------------------------------------
 # EditAlumnoDialog – pension field
@@ -213,6 +256,48 @@ class TestNuevoAlumnoParentLookup:
             dlg.id_madre.setText("20")
             assert dlg.madre_lookup.text() == "Marta Lopez Rios"
         finally:
+            reset_active_db_path()
+
+    def test_current_adulto_buttons_autoload_padre_and_madre(self, qapp, tmp_path):
+        db = tmp_path / "alumnos.db"
+        _create_alumnos_db(db)
+        set_active_db_path(db)
+        saved_id, saved_name = parientes_dialogs.current_adulto_id, parientes_dialogs.current_adulto_name
+        try:
+            parientes_dialogs.current_adulto_id = 40
+            parientes_dialogs.current_adulto_name = "Ana Perez Mamani"
+            dlg = NuevoAlumnoDialog()
+
+            assert dlg.current_padre_btn.isEnabled() is True
+            assert dlg.current_madre_btn.isEnabled() is True
+
+            dlg.current_padre_btn.click()
+            assert dlg.id_padre.text() == "40"
+            assert dlg.padre_lookup.text() == "Ana Perez Mamani"
+
+            dlg.current_madre_btn.click()
+            assert dlg.id_madre.text() == "40"
+            assert dlg.madre_lookup.text() == "Ana Perez Mamani"
+        finally:
+            parientes_dialogs.current_adulto_id = saved_id
+            parientes_dialogs.current_adulto_name = saved_name
+            reset_active_db_path()
+
+    def test_current_adulto_buttons_disabled_without_shared_id(self, qapp, tmp_path):
+        db = tmp_path / "alumnos.db"
+        _create_alumnos_db(db)
+        set_active_db_path(db)
+        saved_id, saved_name = parientes_dialogs.current_adulto_id, parientes_dialogs.current_adulto_name
+        try:
+            parientes_dialogs.current_adulto_id = None
+            parientes_dialogs.current_adulto_name = None
+            dlg = NuevoAlumnoDialog()
+
+            assert dlg.current_padre_btn.isEnabled() is False
+            assert dlg.current_madre_btn.isEnabled() is False
+        finally:
+            parientes_dialogs.current_adulto_id = saved_id
+            parientes_dialogs.current_adulto_name = saved_name
             reset_active_db_path()
 
 
