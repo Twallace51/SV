@@ -63,6 +63,7 @@ class NuevoCuentaDialog(QDialog):
         self.id_creditor = QLineEdit()
         self.id_creditor.setPlaceholderText("Ingrese ID de creditor")
         self.id_creditor.textChanged.connect(self._sync_creditor_nombre)
+        self.id_creditor.textChanged.connect(self._sync_amount_fields)
         self.current_adulto_btn = QPushButton("Adulto Actual")
         self.current_adulto_btn.clicked.connect(self._apply_current_adulto)
         creditor_row = QHBoxLayout()
@@ -184,14 +185,23 @@ class NuevoCuentaDialog(QDialog):
     def _sync_amount_fields(self):
         debito_has_value = self.debito.value() > 0
         credito_has_value = self.credito.value() > 0
+        creditor_has_value = bool(self.id_creditor.text().strip())
+
         self.factura.setEnabled(credito_has_value)
-        self.id_creditor.setEnabled(debito_has_value is False)
+        id_creditor_enabled = not debito_has_value
+        self.id_creditor.setEnabled(id_creditor_enabled)
+        self.current_adulto_btn.setEnabled(
+            id_creditor_enabled and parientes_dialogs.current_adulto_id is not None
+        )
+
         if not debito_has_value and not credito_has_value:
-            self.debito.setEnabled(True)
+            self.debito.setEnabled(not creditor_has_value)
             self.credito.setEnabled(True)
             return
+
         self.credito.setEnabled(not debito_has_value)
-        self.debito.setEnabled(not credito_has_value)
+        debito_locked_by_creditor = creditor_has_value and not debito_has_value
+        self.debito.setEnabled((not credito_has_value) and (not debito_locked_by_creditor))
 
     def _apply_aclaracion_option(self, option: str):
         current = self.aclaracion.text().strip()
@@ -277,6 +287,7 @@ class EditCuentaDialog(QDialog):
         self.id_creditor = QLineEdit()
         self.id_creditor.setPlaceholderText("Ingrese ID de creditor")
         self.id_creditor.textChanged.connect(self._sync_creditor_nombre)
+        self.id_creditor.textChanged.connect(self._sync_amount_fields)
         self.current_adulto_btn = QPushButton("Adulto Actual")
         self.current_adulto_btn.clicked.connect(self._apply_current_adulto)
         creditor_row = QHBoxLayout()
@@ -427,14 +438,23 @@ class EditCuentaDialog(QDialog):
     def _sync_amount_fields(self):
         debito_has_value = self.debito.value() > 0
         credito_has_value = self.credito.value() > 0
+        creditor_has_value = bool(self.id_creditor.text().strip())
+
         self.factura.setEnabled(credito_has_value)
-        self.id_creditor.setEnabled(debito_has_value is False)
+        id_creditor_enabled = not debito_has_value
+        self.id_creditor.setEnabled(id_creditor_enabled)
+        self.current_adulto_btn.setEnabled(
+            id_creditor_enabled and parientes_dialogs.current_adulto_id is not None
+        )
+
         if not debito_has_value and not credito_has_value:
-            self.debito.setEnabled(True)
+            self.debito.setEnabled(not creditor_has_value)
             self.credito.setEnabled(True)
             return
+
         self.credito.setEnabled(not debito_has_value)
-        self.debito.setEnabled(not credito_has_value)
+        debito_locked_by_creditor = creditor_has_value and not debito_has_value
+        self.debito.setEnabled((not credito_has_value) and (not debito_locked_by_creditor))
 
     def _apply_aclaracion_option(self, option: str):
         current = self.aclaracion.text().strip()

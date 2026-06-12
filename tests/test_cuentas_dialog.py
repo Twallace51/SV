@@ -621,6 +621,55 @@ class TestCuentaCurrentIdButtons:
             reset_active_db_path()
 
 
+class TestCuentaAmountFieldInterlocks:
+    def test_nuevo_debito_disables_creditor_field_and_current_adulto_button(self, qapp, tmp_path):
+        db = tmp_path / "interlocks_nuevo.db"
+        _create_nuevo_cuentas_db(db)
+        set_active_db_path(db)
+        saved_adulto_id, saved_adulto_name = parientes_dialogs.current_adulto_id, parientes_dialogs.current_adulto_name
+        try:
+            parientes_dialogs.current_adulto_id = 5
+            parientes_dialogs.current_adulto_name = "Pedro Gomez"
+            dlg = NuevoCuentaDialog()
+
+            assert dlg.id_creditor.isEnabled() is True
+            assert dlg.current_adulto_btn.isEnabled() is True
+
+            dlg.debito.setValue(100)
+
+            assert dlg.id_creditor.isEnabled() is False
+            assert dlg.current_adulto_btn.isEnabled() is False
+        finally:
+            parientes_dialogs.current_adulto_id = saved_adulto_id
+            parientes_dialogs.current_adulto_name = saved_adulto_name
+            reset_active_db_path()
+
+    def test_nuevo_creditor_id_disables_debito_when_debito_is_zero(self, qapp, tmp_path):
+        db = tmp_path / "interlocks_nuevo.db"
+        _create_nuevo_cuentas_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = NuevoCuentaDialog()
+            dlg.id_creditor.setText("5")
+
+            assert dlg.debito.isEnabled() is False
+        finally:
+            reset_active_db_path()
+
+    def test_edit_creditor_id_disables_debito_when_debito_is_zero(self, qapp, tmp_path):
+        db = tmp_path / "interlocks_edit.db"
+        _create_full_cuentas_db(db)
+        set_active_db_path(db)
+        try:
+            dlg = EditCuentaDialog(1)
+            dlg.debito.setValue(0)
+            dlg.id_creditor.setText("20")
+
+            assert dlg.debito.isEnabled() is False
+        finally:
+            reset_active_db_path()
+
+
 # ---------------------------------------------------------------------------
 # NuevoCuentaDialog – save persists id_creditor
 # ---------------------------------------------------------------------------
