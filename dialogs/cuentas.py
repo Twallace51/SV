@@ -52,11 +52,23 @@ class NuevoCuentaDialog(QDialog):
         self.id_alumno = QLineEdit()
         self.id_alumno.setPlaceholderText("Ingrese ID de alumno")
         self.id_alumno.textChanged.connect(self._sync_alumno_nombre)
+        self.current_alumno_btn = QPushButton("Alumno Actual")
+        self.current_alumno_btn.clicked.connect(self._apply_current_alumno)
+        alumno_row = QHBoxLayout()
+        alumno_row.setContentsMargins(0, 0, 0, 0)
+        alumno_row.addWidget(self.id_alumno)
+        alumno_row.addWidget(self.current_alumno_btn)
         self.alumno = QLabel("-")
 
         self.id_creditor = QLineEdit()
         self.id_creditor.setPlaceholderText("Ingrese ID de creditor")
         self.id_creditor.textChanged.connect(self._sync_creditor_nombre)
+        self.current_adulto_btn = QPushButton("Adulto Actual")
+        self.current_adulto_btn.clicked.connect(self._apply_current_adulto)
+        creditor_row = QHBoxLayout()
+        creditor_row.setContentsMargins(0, 0, 0, 0)
+        creditor_row.addWidget(self.id_creditor)
+        creditor_row.addWidget(self.current_adulto_btn)
         self.creditor = QLabel("-")
 
         self.debito = QSpinBox()
@@ -84,9 +96,9 @@ class NuevoCuentaDialog(QDialog):
         self.fecha.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         self.factura = QLineEdit()
 
-        form.addRow("ID Alumno *:", self.id_alumno)
+        form.addRow("ID Alumno *:", alumno_row)
         form.addRow("Alumno:", self.alumno)
-        form.addRow("ID Creditor:", self.id_creditor)
+        form.addRow("ID Creditor:", creditor_row)
         form.addRow("Creditor:", self.creditor)
         form.addRow("Débito:", self.debito)
         form.addRow("Crédito:", self.credito)
@@ -95,6 +107,7 @@ class NuevoCuentaDialog(QDialog):
         form.addRow("Numero Factura:", self.factura)
         layout.addLayout(form)
 
+        self._refresh_current_id_buttons()
         self._sync_alumno_nombre()
         self._sync_creditor_nombre()
         self._sync_amount_fields()
@@ -103,6 +116,22 @@ class NuevoCuentaDialog(QDialog):
         buttons.accepted.connect(self._save)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+
+    def _refresh_current_id_buttons(self):
+        self.current_alumno_btn.setEnabled(alumnos_dialogs.current_alumno_id is not None)
+        self.current_adulto_btn.setEnabled(parientes_dialogs.current_adulto_id is not None)
+
+    def _apply_current_alumno(self):
+        current_id = alumnos_dialogs.current_alumno_id
+        if current_id is None:
+            return
+        self.id_alumno.setText(str(current_id))
+
+    def _apply_current_adulto(self):
+        current_id = parientes_dialogs.current_adulto_id
+        if current_id is None:
+            return
+        self.id_creditor.setText(str(current_id))
 
     def _sync_alumno_nombre(self):
         raw_id = self.id_alumno.text().strip()
@@ -237,11 +266,23 @@ class EditCuentaDialog(QDialog):
         self.id_alumno = QLineEdit()
         self.id_alumno.setPlaceholderText("Ingrese ID de alumno")
         self.id_alumno.textChanged.connect(self._sync_alumno_nombre)
+        self.current_alumno_btn = QPushButton("Alumno Actual")
+        self.current_alumno_btn.clicked.connect(self._apply_current_alumno)
+        alumno_row = QHBoxLayout()
+        alumno_row.setContentsMargins(0, 0, 0, 0)
+        alumno_row.addWidget(self.id_alumno)
+        alumno_row.addWidget(self.current_alumno_btn)
         self.alumno = QLabel("-")
 
         self.id_creditor = QLineEdit()
         self.id_creditor.setPlaceholderText("Ingrese ID de creditor")
         self.id_creditor.textChanged.connect(self._sync_creditor_nombre)
+        self.current_adulto_btn = QPushButton("Adulto Actual")
+        self.current_adulto_btn.clicked.connect(self._apply_current_adulto)
+        creditor_row = QHBoxLayout()
+        creditor_row.setContentsMargins(0, 0, 0, 0)
+        creditor_row.addWidget(self.id_creditor)
+        creditor_row.addWidget(self.current_adulto_btn)
         self.creditor = QLabel("-")
 
         try:
@@ -293,9 +334,9 @@ class EditCuentaDialog(QDialog):
             if aclaracion_idx >= 0:
                 self.aclaracion_select.setCurrentIndex(aclaracion_idx)
 
-        form.addRow("ID Alumno *:", self.id_alumno)
+        form.addRow("ID Alumno *:", alumno_row)
         form.addRow("Alumno:", self.alumno)
-        form.addRow("ID Creditor:", self.id_creditor)
+        form.addRow("ID Creditor:", creditor_row)
         form.addRow("Creditor:", self.creditor)
         form.addRow("Débito:", self.debito)
         form.addRow("Crédito:", self.credito)
@@ -304,6 +345,7 @@ class EditCuentaDialog(QDialog):
         form.addRow("Numero Factura:", self.factura)
         layout.addLayout(form)
 
+        self._refresh_current_id_buttons()
         self._sync_alumno_nombre()
         self._sync_creditor_nombre()
         self._sync_amount_fields()
@@ -317,6 +359,22 @@ class EditCuentaDialog(QDialog):
         buttons.rejected.connect(self.reject)
         self.delete_btn.clicked.connect(self._delete)
         layout.addWidget(buttons)
+
+    def _refresh_current_id_buttons(self):
+        self.current_alumno_btn.setEnabled(alumnos_dialogs.current_alumno_id is not None)
+        self.current_adulto_btn.setEnabled(parientes_dialogs.current_adulto_id is not None)
+
+    def _apply_current_alumno(self):
+        current_id = alumnos_dialogs.current_alumno_id
+        if current_id is None:
+            return
+        self.id_alumno.setText(str(current_id))
+
+    def _apply_current_adulto(self):
+        current_id = parientes_dialogs.current_adulto_id
+        if current_id is None:
+            return
+        self.id_creditor.setText(str(current_id))
 
     def _sync_alumno_nombre(self):
         raw_id = self.id_alumno.text().strip()

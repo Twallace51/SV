@@ -30,7 +30,7 @@ class TestLoginDialogInit:
 
     def test_fixed_size(self, dialog):
         assert dialog.width() == 500
-        assert dialog.height() == 160
+        assert dialog.height() == 190
 
     def test_password_echo_mode_default(self, dialog):
         assert dialog.password_edit.echoMode() == QLineEdit.Password
@@ -43,6 +43,9 @@ class TestLoginDialogInit:
 
     def test_has_training_mode_button(self, dialog):
         assert dialog.training_mode_btn.text() == "Modo Entrenamiento"
+
+    def test_has_normal_user_mode_button(self, dialog):
+        assert dialog.normal_user_mode_btn.text() == "Modo Usuario Normal"
 
 class TestQuitButton:
     def test_quit_button_rejects_dialog(self, dialog):
@@ -67,6 +70,20 @@ class TestTrainingModeButton:
         assert dialog.logged_in_username == "trainee"
         assert dialog.username_edit.text() == "trainee"
         assert dialog.password_edit.text() == "trainee"
+
+
+class TestNormalUserModeButton:
+    def test_normal_user_mode_button_logs_in_as_user(self, dialog):
+        accepted = []
+        original_accept = dialog.accept
+        dialog.accept = lambda: accepted.append(True) or original_accept()
+
+        dialog.normal_user_mode_btn.click()
+
+        assert accepted == [True]
+        assert dialog.logged_in_username == "user"
+        assert dialog.username_edit.text() == "user"
+        assert dialog.password_edit.text() == "user"
 
 class TestPasswordToggle:
     def test_toggle_show(self, dialog):

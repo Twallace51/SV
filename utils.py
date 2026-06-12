@@ -82,6 +82,27 @@ def check_pytest_available() -> None:
     """Confirm that pytest is installed and report its version."""
 
 
+def is_running_from_project_venv() -> bool:
+    """Return True when the active interpreter comes from the repo .venv."""
+    interpreter_path = Path(sys.executable).resolve()
+    return ".venv" in interpreter_path.parts
+
+
+def warn_if_not_running_from_project_venv(parent: QMainWindow | None = None) -> bool:
+    """Warn the user when the app is not running from the repository .venv."""
+    if is_running_from_project_venv():
+        return False
+
+    message = (
+        "Este proyecto debe ejecutarse con la virtualenv del repositorio (.venv).\n"
+        f"Intérprete actual: {sys.executable}\n"
+        "Seleccione la opción .venv en VS Code o active esa virtualenv antes de iniciar."
+    )
+    log.warning(message.replace("\n", " "))
+    QMessageBox.warning(parent, f"{PROJECT_NAME} - Entorno recomendado", message)
+    return True
+
+
 def show_training_mode_notice(parent: QMainWindow) -> QMessageBox:
     """Show the trainee session notice and auto-close it after 8 seconds."""
     message_box = QMessageBox(parent)

@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QDialog
 from __init__ import reset_active_db_path, set_active_db_path
 from dialogs import alumnos as alumnos_dialogs
 from dialogs import parientes as parientes_dialogs
-from dialogs.cuentas import BuscarCuentaDialog, NuevoCuentaDialog
+from dialogs.cuentas import BuscarCuentaDialog, EditCuentaDialog, NuevoCuentaDialog
 
 
 # ---------------------------------------------------------------------------
@@ -530,6 +530,94 @@ class TestNuevoCuentaCreditorSync:
             dlg.id_creditor.clear()
             assert dlg.creditor.text() == "-"
         finally:
+            reset_active_db_path()
+
+
+class TestCuentaCurrentIdButtons:
+    def test_nuevo_current_alumno_button_autoloads_shared_alumno_id(self, qapp, tmp_path):
+        db = tmp_path / "current_btns.db"
+        _create_nuevo_cuentas_db(db)
+        set_active_db_path(db)
+        saved_id, saved_name = alumnos_dialogs.current_alumno_id, alumnos_dialogs.current_alumno_name
+        try:
+            alumnos_dialogs.current_alumno_id = 3
+            alumnos_dialogs.current_alumno_name = "Lopez, Ana"
+            dlg = NuevoCuentaDialog()
+
+            assert dlg.current_alumno_btn.isEnabled() is True
+
+            dlg.current_alumno_btn.click()
+
+            assert dlg.id_alumno.text() == "3"
+            assert dlg.alumno.text() == "Lopez, Ana"
+        finally:
+            alumnos_dialogs.current_alumno_id = saved_id
+            alumnos_dialogs.current_alumno_name = saved_name
+            reset_active_db_path()
+
+    def test_nuevo_current_adulto_button_autoloads_shared_adulto_id(self, qapp, tmp_path):
+        db = tmp_path / "current_btns.db"
+        _create_nuevo_cuentas_db(db)
+        set_active_db_path(db)
+        saved_id, saved_name = parientes_dialogs.current_adulto_id, parientes_dialogs.current_adulto_name
+        try:
+            parientes_dialogs.current_adulto_id = 5
+            parientes_dialogs.current_adulto_name = "Pedro Gomez"
+            dlg = NuevoCuentaDialog()
+
+            assert dlg.current_adulto_btn.isEnabled() is True
+
+            dlg.current_adulto_btn.click()
+
+            assert dlg.id_creditor.text() == "5"
+            assert dlg.creditor.text() == "Pedro Gomez"
+        finally:
+            parientes_dialogs.current_adulto_id = saved_id
+            parientes_dialogs.current_adulto_name = saved_name
+            reset_active_db_path()
+
+    def test_nuevo_current_buttons_disable_when_shared_ids_missing(self, qapp, tmp_path):
+        db = tmp_path / "current_btns.db"
+        _create_nuevo_cuentas_db(db)
+        set_active_db_path(db)
+        saved_alumno_id, saved_alumno_name = alumnos_dialogs.current_alumno_id, alumnos_dialogs.current_alumno_name
+        saved_adulto_id, saved_adulto_name = parientes_dialogs.current_adulto_id, parientes_dialogs.current_adulto_name
+        try:
+            alumnos_dialogs.current_alumno_id = None
+            alumnos_dialogs.current_alumno_name = None
+            parientes_dialogs.current_adulto_id = None
+            parientes_dialogs.current_adulto_name = None
+            dlg = NuevoCuentaDialog()
+
+            assert dlg.current_alumno_btn.isEnabled() is False
+            assert dlg.current_adulto_btn.isEnabled() is False
+        finally:
+            alumnos_dialogs.current_alumno_id = saved_alumno_id
+            alumnos_dialogs.current_alumno_name = saved_alumno_name
+            parientes_dialogs.current_adulto_id = saved_adulto_id
+            parientes_dialogs.current_adulto_name = saved_adulto_name
+            reset_active_db_path()
+
+    def test_edit_current_buttons_disable_when_shared_ids_missing(self, qapp, tmp_path):
+        db = tmp_path / "edit_current_btns.db"
+        _create_full_cuentas_db(db)
+        set_active_db_path(db)
+        saved_alumno_id, saved_alumno_name = alumnos_dialogs.current_alumno_id, alumnos_dialogs.current_alumno_name
+        saved_adulto_id, saved_adulto_name = parientes_dialogs.current_adulto_id, parientes_dialogs.current_adulto_name
+        try:
+            alumnos_dialogs.current_alumno_id = None
+            alumnos_dialogs.current_alumno_name = None
+            parientes_dialogs.current_adulto_id = None
+            parientes_dialogs.current_adulto_name = None
+            dlg = EditCuentaDialog(1)
+
+            assert dlg.current_alumno_btn.isEnabled() is False
+            assert dlg.current_adulto_btn.isEnabled() is False
+        finally:
+            alumnos_dialogs.current_alumno_id = saved_alumno_id
+            alumnos_dialogs.current_alumno_name = saved_alumno_name
+            parientes_dialogs.current_adulto_id = saved_adulto_id
+            parientes_dialogs.current_adulto_name = saved_adulto_name
             reset_active_db_path()
 
 

@@ -1,4 +1,4 @@
-"""Tests for utility functions: setup_logging and acquire_single_instance_lock."""
+"""Tests for utility functions: setup_logging, venv checks, and acquire_single_instance_lock."""
 
 # region - imports
 import sys
@@ -8,7 +8,12 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils import setup_logging, acquire_single_instance_lock
+from utils import (
+    setup_logging,
+    acquire_single_instance_lock,
+    is_running_from_project_venv,
+    warn_if_not_running_from_project_venv,
+)
 # endregion
 
 
@@ -51,3 +56,45 @@ class TestAcquireSingleInstanceLock:
             assert lock2 is None
         finally:
             lock1.unlock()
+
+
+class TestProjectVenvWarning:
+    def test_detects_project_venv(self, monkeypatch):
+        monkeypatch.setattr(
+            "utils.sys.executable",
+            r"G:\SendasVida\SV-1.3\.venv\Scripts\python.exe",
+            raising=False,
+        )
+        assert is_running_from_project_venv() is True
+
+    def test_detects_non_project_venv(self, monkeypatch):
+        monkeypatch.setattr(
+            "utils.sys.executable",
+            r"C:\Python313\python.exe",
+            raising=False,
+        )
+        assert is_running_from_project_venv() is False
+
+    def test_warns_when_not_running_from_project_venv(self, monkeypatch):
+        monkeypatch.setattr(
+            "utils.sys.executable",
+            r"C:\Python313\python.exe",
+            raising=False,
+        )
+        warnings = []
+        monkeypatch.setattr("utils.QMessageBox.warning", lambda *args: warnings.append(args))
+
+        assert warn_if_not_running_from_project_venv() is True
+        assert warnings
+
+    def test_does_not_warn_when_running_from_project_venv(self, monkeypatch):
+        monkeypatch.setattr(
+            "utils.sys.executable",
+            r"G:\SendasVida\SV-1.3\.venv\Scripts\python.exe",
+            raising=False,
+        )
+        warnings = []
+        monkeypatch.setattr("utils.QMessageBox.warning", lambda *args: warnings.append(args))
+
+        assert warn_if_not_running_from_project_venv() is False
+        assert not warnings

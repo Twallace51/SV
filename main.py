@@ -15,6 +15,7 @@ except ModuleNotFoundError:
 
 from utils import setup_logging, check_latest_pip_available, check_pytest_available
 from utils import acquire_single_instance_lock, show_training_mode_notice, clear_terminal
+from utils import warn_if_not_running_from_project_venv
 from dialogs.login import LoginDialog
 from windows.main_window import MainWindow
 
@@ -26,6 +27,7 @@ def main() -> int:
     # region - stratup checks
 
     clear_terminal()
+    warn_if_not_running_from_project_venv()
     check_latest_pip_available()
     check_pytest_available()
 

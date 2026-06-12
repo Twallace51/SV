@@ -25,7 +25,7 @@ class LoginDialog(QDialog):
         """Initialize login UI controls and interaction state."""
         super().__init__(parent)
         self.setWindowTitle(f"{PROJECT_NAME} - Versión: {VERSION}")
-        self.setFixedSize(500, 160)
+        self.setFixedSize(500, 190)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout(self)
@@ -41,12 +41,16 @@ class LoginDialog(QDialog):
 
         self.username_edit = QLineEdit()
         self.username_edit.setPlaceholderText("Ingrese: admin, user o trainee")
+        self.normal_user_mode_btn = QPushButton("Modo Usuario Normal")
+        self.normal_user_mode_btn.clicked.connect(self.login_as_user)
         self.training_mode_btn = QPushButton("Modo Entrenamiento")
         self.training_mode_btn.clicked.connect(self.login_as_trainee)
-        username_layout = QHBoxLayout()
-        username_layout.setContentsMargins(0, 0, 0, 0)
-        username_layout.addWidget(self.username_edit)
-        username_layout.addWidget(self.training_mode_btn)
+
+        quick_login_layout = QHBoxLayout()
+        quick_login_layout.setContentsMargins(0, 0, 0, 0)
+        quick_login_layout.addWidget(self.normal_user_mode_btn)
+        quick_login_layout.addWidget(self.training_mode_btn)
+        layout.addLayout(quick_login_layout)
 
         self.password_edit = QLineEdit()
         self.password_edit.setPlaceholderText("Ingrese contraseña")
@@ -62,7 +66,7 @@ class LoginDialog(QDialog):
         password_layout.addWidget(self.password_edit)
         password_layout.addWidget(self.password_toggle_btn)
 
-        form.addRow("Usuario:", username_layout)
+        form.addRow("Usuario:", self.username_edit)
         form.addRow("Contraseña:", password_layout)
         layout.addLayout(form)
 
@@ -126,9 +130,17 @@ class LoginDialog(QDialog):
 
     def login_as_trainee(self):
         """Quick-login shortcut for training mode user."""
-        self.username_edit.setText("trainee")
-        self.password_edit.setText("trainee")
-        self.logged_in_username = "trainee"
+        self._quick_login_as("trainee")
+
+    def login_as_user(self):
+        """Quick-login shortcut for normal user mode."""
+        self._quick_login_as("user")
+
+    def _quick_login_as(self, username: str):
+        """Fill credentials for a built-in user and accept the dialog."""
+        self.username_edit.setText(username)
+        self.password_edit.setText(username)
+        self.logged_in_username = username
         self.accept()
 
     def toggle_password_visibility(self, checked: bool):
