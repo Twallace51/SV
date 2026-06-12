@@ -545,6 +545,7 @@ class TestCuentaCurrentIdButtons:
             dlg = NuevoCuentaDialog()
 
             assert dlg.current_alumno_btn.isEnabled() is True
+            assert dlg.current_alumno_btn.text() == "Alumno Actual: 3 - Lopez, Ana"
 
             dlg.current_alumno_btn.click()
 
@@ -566,6 +567,7 @@ class TestCuentaCurrentIdButtons:
             dlg = NuevoCuentaDialog()
 
             assert dlg.current_adulto_btn.isEnabled() is True
+            assert dlg.current_adulto_btn.text() == "Adulto Actual: 5 - Pedro Gomez"
 
             dlg.current_adulto_btn.click()
 
@@ -591,6 +593,8 @@ class TestCuentaCurrentIdButtons:
 
             assert dlg.current_alumno_btn.isEnabled() is False
             assert dlg.current_adulto_btn.isEnabled() is False
+            assert dlg.current_alumno_btn.text() == "Alumno Actual: -"
+            assert dlg.current_adulto_btn.text() == "Adulto Actual: -"
         finally:
             alumnos_dialogs.current_alumno_id = saved_alumno_id
             alumnos_dialogs.current_alumno_name = saved_alumno_name
@@ -613,6 +617,8 @@ class TestCuentaCurrentIdButtons:
 
             assert dlg.current_alumno_btn.isEnabled() is False
             assert dlg.current_adulto_btn.isEnabled() is False
+            assert dlg.current_alumno_btn.text() == "Alumno Actual: -"
+            assert dlg.current_adulto_btn.text() == "Adulto Actual: -"
         finally:
             alumnos_dialogs.current_alumno_id = saved_alumno_id
             alumnos_dialogs.current_alumno_name = saved_alumno_name

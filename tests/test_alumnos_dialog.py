@@ -155,6 +155,8 @@ class TestEditAlumnoParentLookups:
 
             assert dlg.current_padre_btn.isEnabled() is True
             assert dlg.current_madre_btn.isEnabled() is True
+            assert dlg.current_padre_btn.text() == "Adulto Actual: 30 - Juan Perez Quispe"
+            assert dlg.current_madre_btn.text() == "Adulto Actual: 30 - Juan Perez Quispe"
 
             dlg.current_padre_btn.click()
             assert dlg.id_padre.text() == "30"
@@ -180,6 +182,8 @@ class TestEditAlumnoParentLookups:
 
             assert dlg.current_padre_btn.isEnabled() is False
             assert dlg.current_madre_btn.isEnabled() is False
+            assert dlg.current_padre_btn.text() == "Adulto Actual: -"
+            assert dlg.current_madre_btn.text() == "Adulto Actual: -"
         finally:
             parientes_dialogs.current_adulto_id = saved_id
             parientes_dialogs.current_adulto_name = saved_name
@@ -270,6 +274,8 @@ class TestNuevoAlumnoParentLookup:
 
             assert dlg.current_padre_btn.isEnabled() is True
             assert dlg.current_madre_btn.isEnabled() is True
+            assert dlg.current_padre_btn.text() == "Adulto Actual: 40 - Ana Perez Mamani"
+            assert dlg.current_madre_btn.text() == "Adulto Actual: 40 - Ana Perez Mamani"
 
             dlg.current_padre_btn.click()
             assert dlg.id_padre.text() == "40"
@@ -295,6 +301,8 @@ class TestNuevoAlumnoParentLookup:
 
             assert dlg.current_padre_btn.isEnabled() is False
             assert dlg.current_madre_btn.isEnabled() is False
+            assert dlg.current_padre_btn.text() == "Adulto Actual: -"
+            assert dlg.current_madre_btn.text() == "Adulto Actual: -"
         finally:
             parientes_dialogs.current_adulto_id = saved_id
             parientes_dialogs.current_adulto_name = saved_name

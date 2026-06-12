@@ -204,6 +204,15 @@ class NuevoAlumnoDialog(QDialog):
         layout.addWidget(buttons)
 
     def _refresh_current_adulto_buttons(self):
+        parts = []
+        if parientes_dialogs.current_adulto_id is not None:
+            parts.append(str(parientes_dialogs.current_adulto_id))
+        if parientes_dialogs.current_adulto_name:
+            parts.append(str(parientes_dialogs.current_adulto_name))
+        text = f"Adulto Actual: {' - '.join(parts)}" if parts else "Adulto Actual: -"
+        self.current_padre_btn.setText(text)
+        self.current_madre_btn.setText(text)
+
         enabled = parientes_dialogs.current_adulto_id is not None
         self.current_padre_btn.setEnabled(enabled)
         self.current_madre_btn.setEnabled(enabled)
@@ -471,6 +480,15 @@ class EditAlumnoDialog(QDialog):
         layout.addWidget(buttons)
 
     def _refresh_current_adulto_buttons(self):
+        parts = []
+        if parientes_dialogs.current_adulto_id is not None:
+            parts.append(str(parientes_dialogs.current_adulto_id))
+        if parientes_dialogs.current_adulto_name:
+            parts.append(str(parientes_dialogs.current_adulto_name))
+        text = f"Adulto Actual: {' - '.join(parts)}" if parts else "Adulto Actual: -"
+        self.current_padre_btn.setText(text)
+        self.current_madre_btn.setText(text)
+
         enabled = parientes_dialogs.current_adulto_id is not None
         self.current_padre_btn.setEnabled(enabled)
         self.current_madre_btn.setEnabled(enabled)

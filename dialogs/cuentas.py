@@ -119,6 +119,24 @@ class NuevoCuentaDialog(QDialog):
         layout.addWidget(buttons)
 
     def _refresh_current_id_buttons(self):
+        alumno_parts = []
+        if alumnos_dialogs.current_alumno_id is not None:
+            alumno_parts.append(str(alumnos_dialogs.current_alumno_id))
+        if alumnos_dialogs.current_alumno_name:
+            alumno_parts.append(str(alumnos_dialogs.current_alumno_name))
+        self.current_alumno_btn.setText(
+            f"Alumno Actual: {' - '.join(alumno_parts)}" if alumno_parts else "Alumno Actual: -"
+        )
+
+        adulto_parts = []
+        if parientes_dialogs.current_adulto_id is not None:
+            adulto_parts.append(str(parientes_dialogs.current_adulto_id))
+        if parientes_dialogs.current_adulto_name:
+            adulto_parts.append(str(parientes_dialogs.current_adulto_name))
+        self.current_adulto_btn.setText(
+            f"Adulto Actual: {' - '.join(adulto_parts)}" if adulto_parts else "Adulto Actual: -"
+        )
+
         self.current_alumno_btn.setEnabled(alumnos_dialogs.current_alumno_id is not None)
         self.current_adulto_btn.setEnabled(parientes_dialogs.current_adulto_id is not None)
 
@@ -372,6 +390,24 @@ class EditCuentaDialog(QDialog):
         layout.addWidget(buttons)
 
     def _refresh_current_id_buttons(self):
+        alumno_parts = []
+        if alumnos_dialogs.current_alumno_id is not None:
+            alumno_parts.append(str(alumnos_dialogs.current_alumno_id))
+        if alumnos_dialogs.current_alumno_name:
+            alumno_parts.append(str(alumnos_dialogs.current_alumno_name))
+        self.current_alumno_btn.setText(
+            f"Alumno Actual: {' - '.join(alumno_parts)}" if alumno_parts else "Alumno Actual: -"
+        )
+
+        adulto_parts = []
+        if parientes_dialogs.current_adulto_id is not None:
+            adulto_parts.append(str(parientes_dialogs.current_adulto_id))
+        if parientes_dialogs.current_adulto_name:
+            adulto_parts.append(str(parientes_dialogs.current_adulto_name))
+        self.current_adulto_btn.setText(
+            f"Adulto Actual: {' - '.join(adulto_parts)}" if adulto_parts else "Adulto Actual: -"
+        )
+
         self.current_alumno_btn.setEnabled(alumnos_dialogs.current_alumno_id is not None)
         self.current_adulto_btn.setEnabled(parientes_dialogs.current_adulto_id is not None)
 
