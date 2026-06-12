@@ -39,7 +39,7 @@ try:
         ReporteAlumnosParientesDialog,
         ReporteAlumnosPorGradoDialog,
         ReporteAlumnosRudeDialog,
-    )
+        )
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
     from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog, ReporteCuentasDetallesDialog
@@ -58,7 +58,7 @@ except (ModuleNotFoundError, ImportError):
         get_active_db_path,
         set_active_db_path,
         reset_active_db_path,
-    )
+        )
     from utils import show_training_mode_notice
     from dialogs.login import LoginDialog
     import dialogs.alumnos as alumnos_dialogs
@@ -71,7 +71,7 @@ except (ModuleNotFoundError, ImportError):
         ReporteAlumnosParientesDialog,
         ReporteAlumnosPorGradoDialog,
         ReporteAlumnosRudeDialog,
-    )
+        )
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
     from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog, ReporteCuentasDetallesDialog
