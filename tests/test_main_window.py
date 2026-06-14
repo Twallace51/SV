@@ -128,7 +128,7 @@ class TestMainWindowMenuBar:
     @pytest.mark.parametrize(
         ("action_name", "handler_name"),
         [
-            ("parientes_reportes_action", "on_parientes_reportes"),
+            ("adultos_alumnos_action", "on_adultos_alumnos"),
         ],
     )
     def test_reportes_action_calls_handler(self, window, monkeypatch, action_name, handler_name):
@@ -146,6 +146,12 @@ class TestMainWindowMenuBar:
             action.text().replace("&", "") for action in window.cuentas_reportes_menu.actions()
         ]
         assert "Total" in action_texts
+
+    def test_adultos_reportes_menu_exists(self, window):
+        action_texts = [
+            action.text().replace("&", "") for action in window.adultos_reportes_menu.actions()
+        ]
+        assert "Alumnos relacionados" in action_texts
 
     def test_cuentas_total_action_calls_handler(self, window, monkeypatch):
         calls = []
