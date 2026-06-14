@@ -65,10 +65,8 @@ def _normalize_related_adulto_id(value):
 class _AlumnoFormDialog(QDialog):
     """Shared widgets and behaviour for the Nuevo/Editar alumno forms."""
 
-    # Label prefix for the "Adulto Actual" buttons and whether those buttons
-    # are placed after the lookup field (last widget in their row).
+    # Label prefix for the "Adulto Actual" buttons.
     _ADULTO_BUTTON_PREFIX = "Adulto Actual"
-    _ADULTO_BUTTON_LAST = False
 
     # --- Widget construction ---------------------------------------------
 
@@ -132,13 +130,10 @@ class _AlumnoFormDialog(QDialog):
             row_layout = QHBoxLayout(row)
             row_layout.setContentsMargins(0, 0, 0, 0)
             row_layout.addWidget(id_field)
-            if self._ADULTO_BUTTON_LAST:
-                row_layout.addWidget(lookup, 1)
-                row_layout.addWidget(button)
-            else:
-                row_layout.addWidget(button)
-                row_layout.addWidget(lookup, 1)
+            row_layout.addWidget(button)
+            row_layout.addStretch(1)
             form.addRow(label, row)
+            form.addRow("", lookup)
 
         form.addRow("Grado:", self.grado)
         form.addRow("Pensión:", self.pension)
@@ -237,12 +232,11 @@ class NuevoAlumnoDialog(_AlumnoFormDialog):
     """Form dialog to insert a new alumno into SV.db."""
 
     _ADULTO_BUTTON_PREFIX = "<< Adulto Actual"
-    _ADULTO_BUTTON_LAST = True
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Alumnos - Nuevo")
-        self.setMinimumWidth(420)
+        self.setMinimumWidth(800)
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
@@ -287,14 +281,13 @@ class EditAlumnoDialog(_AlumnoFormDialog):
     """Edit form pre-populated with an existing alumno record."""
 
     _ADULTO_BUTTON_PREFIX = "<< Adulto Actual"
-    _ADULTO_BUTTON_LAST = True
 
     def __init__(self, record_id: int, parent=None, is_admin: bool = False):
         super().__init__(parent)
         self._id = record_id
         self._is_admin = is_admin
         self.setWindowTitle("Alumnos - Editar")
-        self.setMinimumWidth(420)
+        self.setMinimumWidth(800)
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
