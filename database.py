@@ -171,6 +171,26 @@ def search_adultos(text: str) -> list[tuple]:
         return []
 
 
+def list_adultos_con_celular() -> list[tuple]:
+    """Return ``(id, a_nombres, a_paterno, a_materno, cell1, cell2)`` rows for
+    every adulto that has at least one non-empty mobile number."""
+    try:
+        conn = connect()
+        try:
+            return conn.execute(
+                "SELECT id, a_nombres, a_paterno, a_materno, cell1, cell2"
+                " FROM adultos"
+                " WHERE COALESCE(TRIM(cell1), '') <> ''"
+                " OR COALESCE(TRIM(cell2), '') <> ''"
+                " ORDER BY a_paterno, a_nombres",
+            ).fetchall()
+        finally:
+            conn.close()
+    except Exception:
+        return []
+
+
+
 # --- Alumnos lookups ------------------------------------------------------
 
 def fetch_alumno_name_pair(alumno_id: int) -> tuple | None:

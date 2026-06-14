@@ -44,6 +44,7 @@ try:
         ReporteAlumnosRudeDialog,
         )
     from dialogs.reportes_adultos import ReporteAdultosConAlumnosDialog
+    from dialogs.whatsapp import EnviarWhatsAppDialog
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
     from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog, ReporteCuentasDetallesDialog
@@ -78,6 +79,7 @@ except (ModuleNotFoundError, ImportError):
         ReporteAlumnosRudeDialog,
         )
     from dialogs.reportes_adultos import ReporteAdultosConAlumnosDialog
+    from dialogs.whatsapp import EnviarWhatsAppDialog
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
     from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog, ReporteCuentasDetallesDialog
@@ -362,6 +364,9 @@ class MainWindow(QMainWindow):
         self.adultos_alumnos_action = QAction("Alumnos &relacionados", self)
         self.adultos_alumnos_action.triggered.connect(self.on_adultos_alumnos)
         self.adultos_reportes_menu.addAction(self.adultos_alumnos_action)
+        self.adultos_whatsapp_action = QAction("Enviar &WhatsApp", self)
+        self.adultos_whatsapp_action.triggered.connect(self.on_adultos_whatsapp)
+        self.adultos_menu.addAction(self.adultos_whatsapp_action)
 
         # Cuentas menu
         self.cuentas_menu = menu_bar.addMenu("&Cuentas")
@@ -613,6 +618,11 @@ class MainWindow(QMainWindow):
         """Handle the Adultos > Reportes > Alumnos relacionados menu action."""
         log.info("Menú: Adultos > Reportes > Alumnos relacionados")
         ReporteAdultosConAlumnosDialog(self).exec()
+
+    def on_adultos_whatsapp(self):
+        """Handle the Adultos > Enviar WhatsApp menu action."""
+        log.info("Menú: Adultos > Enviar WhatsApp")
+        EnviarWhatsAppDialog(self).exec()
 
     def on_cuentas_nuevo_credito(self):
         """Handle the Cuentas > Nuevo Crédito menu action."""

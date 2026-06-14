@@ -124,6 +124,39 @@ def clear_terminal() -> None:
     os.system("cls" if os.name == "nt" else "clear")
 
 
+BOLIVIA_COUNTRY_CODE = "591"
+
+
+def normalize_bolivia_phone(raw: str, country_code: str = BOLIVIA_COUNTRY_CODE) -> str | None:
+    """Return a wa.me-ready phone number (digits only) for a Bolivian number.
+
+    Strips spaces, dashes, parentheses and a leading ``+``/``00``. A bare
+    local mobile (8 digits) is prefixed with ``country_code``. Returns ``None``
+    when the input has no usable digits.
+    """
+    digits = "".join(ch for ch in str(raw or "") if ch.isdigit())
+    if not digits:
+        return None
+    if digits.startswith("00"):
+        digits = digits[2:]
+    if digits.startswith(country_code):
+        return digits
+    return f"{country_code}{digits}"
+
+
+def build_whatsapp_url(phone: str, message: str = "", country_code: str = BOLIVIA_COUNTRY_CODE) -> str | None:
+    """Return a ``https://wa.me/...`` click-to-chat URL, or ``None`` if invalid."""
+    from urllib.parse import quote
+
+    number = normalize_bolivia_phone(phone, country_code)
+    if number is None:
+        return None
+    url = f"https://wa.me/{number}"
+    if message:
+        url += f"?text={quote(message)}"
+    return url
+
+
 def acquire_single_instance_lock() -> QLockFile | None:
     """Acquire and return an instance lock, or None if already running."""
     temp_dir = Path(QStandardPaths.writableLocation(QStandardPaths.TempLocation))
