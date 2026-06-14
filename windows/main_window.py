@@ -7,6 +7,8 @@ import sqlite3
 import shutil
 import tempfile
 import sys
+import gc
+import time
 from pathlib import Path
 from datetime import datetime
 
@@ -168,6 +170,7 @@ class MainWindow(QMainWindow):
         aclaracion = f"Pension para {mes_actual}"
         fecha_actual = current.strftime("%Y-%m-%d")
 
+        conn = None
         try:
             conn = sqlite3.connect(get_active_db_path())
             alumnos_con_pension = conn.execute(
@@ -193,9 +196,11 @@ class MainWindow(QMainWindow):
             if inserted > 0:
                 conn.commit()
                 log.info("Pensión mensual: %s registros agregados para %s.", inserted, mes_actual)
-            conn.close()
         except Exception:
             log.exception("No se pudo confirmar/agregar registros de pensión mensual en ctas")
+        finally:
+            if conn is not None:
+                conn.close()
 
     def _apply_window_title(self):
         """Apply the current title text to the native window."""
@@ -279,11 +284,28 @@ class MainWindow(QMainWindow):
         if temp_db is None:
             return
 
-        try:
-            temp_db.unlink(missing_ok=True)
-            log.info("Base temporal de trainee eliminada: %s", temp_db)
-        except OSError:
-            log.exception("No se pudo eliminar base temporal de trainee: %s", temp_db)
+        # On Windows a recently closed sqlite3 connection may still hold the
+        # file briefly, and an unclosed connection object only releases its
+        # handle once it is garbage collected. Force a collection and retry a
+        # few times before giving up.
+        last_error = None
+        for attempt in range(5):
+            try:
+                temp_db.unlink(missing_ok=True)
+                log.info("Base temporal de trainee eliminada: %s", temp_db)
+                return
+            except PermissionError as exc:
+                last_error = exc
+                gc.collect()
+                time.sleep(0.2)
+            except OSError as exc:
+                last_error = exc
+                break
+        log.warning(
+            "No se pudo eliminar base temporal de trainee: %s (%s)",
+            temp_db,
+            last_error,
+        )
 
     def _build_menu_bar(self):
         """Create the menu bar and connect actions to handlers."""
