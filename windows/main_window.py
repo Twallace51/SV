@@ -107,7 +107,6 @@ class MainWindow(QMainWindow):
         self._handling_close_flow = False
         self._apply_window_title()
         self.resize(800, 600)
-        self.setStyleSheet("font-size: 14px;")
         self._build_menu_bar()
         self._build_central()
         self._configure_session_database(self._username)
@@ -287,7 +286,10 @@ class MainWindow(QMainWindow):
     def _build_menu_bar(self):
         """Create the menu bar and connect actions to handlers."""
         menu_bar = self.menuBar()
-        menu_bar.setStyleSheet("QMenuBar::item { font-size: 14px; }")
+        menu_font = menu_bar.font()
+        menu_font.setPixelSize(22)
+        menu_bar.setFont(menu_font)
+        menu_bar.setStyleSheet("QMenu::item { font-size: 18px; }")
 
         # Archivo menu
         self.file_menu = menu_bar.addMenu("&Archivo")
@@ -368,6 +370,7 @@ class MainWindow(QMainWindow):
     def _build_central(self):
         """Create and attach the central welcome/status widget."""
         central = QWidget(self)
+        central.setStyleSheet("font-size: 18px;")
         layout = QVBoxLayout(central)
 
         self.welcome_label = QLabel("¡Bienvenido!", self)
@@ -429,9 +432,9 @@ class MainWindow(QMainWindow):
             return
 
         if self._username.strip().lower() == "trainee":
-            central_widget.setStyleSheet("background-color: #ffd6d6;")
+            central_widget.setStyleSheet("font-size: 18px; background-color: #ffd6d6;")
         else:
-            central_widget.setStyleSheet("")
+            central_widget.setStyleSheet("font-size: 18px;")
 
     def _clear_training_mode_notice(self):
         """Close and forget any visible training mode notice."""
