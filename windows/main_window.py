@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QTextEdit, QDialogButtonBox, QMessageBox,
     QHBoxLayout,
 )
-from PySide6.QtGui import QAction, QShowEvent, QCloseEvent
+from PySide6.QtGui import QAction, QShowEvent, QCloseEvent, QColor, QPalette
 from PySide6.QtCore import Qt, QEvent, QTimer, QCoreApplication
 
 try:
@@ -371,7 +371,10 @@ class MainWindow(QMainWindow):
         """Create and attach the central welcome/status widget."""
         central = QWidget(self)
         central.setObjectName("sessionCentral")
-        central.setStyleSheet("QLabel { font-size: 18px; }")
+        central.setAutoFillBackground(True)
+        body_font = central.font()
+        body_font.setPixelSize(18)
+        central.setFont(body_font)
         layout = QVBoxLayout(central)
 
         self.welcome_label = QLabel("¡Bienvenido!", self)
@@ -432,13 +435,12 @@ class MainWindow(QMainWindow):
         if central_widget is None:
             return
 
+        palette = central_widget.palette()
         if self._username.strip().lower() == "trainee":
-            central_widget.setStyleSheet(
-                "#sessionCentral { background-color: #ffd6d6; }"
-                "QLabel { font-size: 18px; }"
-            )
+            palette.setColor(QPalette.Window, QColor("#ffd6d6"))
         else:
-            central_widget.setStyleSheet("QLabel { font-size: 18px; }")
+            palette.setColor(QPalette.Window, QColor(Qt.transparent))
+        central_widget.setPalette(palette)
 
     def _clear_training_mode_notice(self):
         """Close and forget any visible training mode notice."""
