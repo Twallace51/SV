@@ -27,13 +27,16 @@ def main() -> int:
     # region - stratup checks
 
     clear_terminal()
-    warn_if_not_running_from_project_venv()
+    #warn_if_not_running_from_project_venv()
     check_latest_pip_available()
     check_pytest_available()
 
     # endregion
 
     app = QApplication(sys.argv)
+
+    # Enlarge text in all dialogs (and their child widgets).
+    app.setStyleSheet("QDialog, QDialog * { font-size: 14px; }")
 
     # region - instance_lock
 
@@ -62,4 +65,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
