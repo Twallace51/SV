@@ -42,6 +42,9 @@ class NumericTableWidgetItem(QTableWidgetItem):
 class NuevoCuentaDialog(QDialog):
     """Form dialog to insert a new cuenta into SV.db."""
 
+    DEBITO_ACLARACIONES = ["Pension", "Comedor", "Insumos"]
+    CREDITO_ACLARACIONES = ["Efectivo", "Deposito"]
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Cuentas - Nuevo")
@@ -84,9 +87,10 @@ class NuevoCuentaDialog(QDialog):
 
         self.aclaracion = QLineEdit()
         self.aclaracion_select = QComboBox()
-        self.aclaracion_select.addItems(["Pension", "Comedor", "Insumos"])
-        self.aclaracion_select.setCurrentIndex(-1)
         self.aclaracion_select.currentTextChanged.connect(self._apply_aclaracion_option)
+        self.debito.valueChanged.connect(self._update_aclaracion_options)
+        self.credito.valueChanged.connect(self._update_aclaracion_options)
+        self._update_aclaracion_options()
         aclaracion_row = QHBoxLayout()
         aclaracion_row.addWidget(self.aclaracion)
         aclaracion_row.addWidget(self.aclaracion_select)
@@ -221,9 +225,28 @@ class NuevoCuentaDialog(QDialog):
         debito_locked_by_creditor = creditor_has_value and not debito_has_value
         self.debito.setEnabled((not credito_has_value) and (not debito_locked_by_creditor))
 
+    def _update_aclaracion_options(self):
+        if self.credito.value() > 0:
+            options = self.CREDITO_ACLARACIONES
+        else:
+            options = self.DEBITO_ACLARACIONES
+
+        current_items = [
+            self.aclaracion_select.itemText(i)
+            for i in range(self.aclaracion_select.count())
+        ]
+        if current_items == options:
+            return
+
+        self.aclaracion_select.blockSignals(True)
+        self.aclaracion_select.clear()
+        self.aclaracion_select.addItems(options)
+        self.aclaracion_select.setCurrentIndex(-1)
+        self.aclaracion_select.blockSignals(False)
+
     def _apply_aclaracion_option(self, option: str):
         current = self.aclaracion.text().strip()
-        preset_values = {"Pension", "Comedor", "Insumos"}
+        preset_values = set(self.DEBITO_ACLARACIONES) | set(self.CREDITO_ACLARACIONES)
         if option and (not current or current in preset_values):
             self.aclaracion.setText(option)
 
