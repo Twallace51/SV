@@ -370,7 +370,8 @@ class MainWindow(QMainWindow):
     def _build_central(self):
         """Create and attach the central welcome/status widget."""
         central = QWidget(self)
-        central.setStyleSheet("font-size: 18px;")
+        central.setObjectName("sessionCentral")
+        central.setStyleSheet("QLabel { font-size: 18px; }")
         layout = QVBoxLayout(central)
 
         self.welcome_label = QLabel("¡Bienvenido!", self)
@@ -432,9 +433,12 @@ class MainWindow(QMainWindow):
             return
 
         if self._username.strip().lower() == "trainee":
-            central_widget.setStyleSheet("font-size: 18px; background-color: #ffd6d6;")
+            central_widget.setStyleSheet(
+                "#sessionCentral { background-color: #ffd6d6; }"
+                "QLabel { font-size: 18px; }"
+            )
         else:
-            central_widget.setStyleSheet("font-size: 18px;")
+            central_widget.setStyleSheet("QLabel { font-size: 18px; }")
 
     def _clear_training_mode_notice(self):
         """Close and forget any visible training mode notice."""
