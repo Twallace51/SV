@@ -3,7 +3,6 @@
 # region - imports
 
 import logging
-import sqlite3
 
 from PySide6.QtWidgets import (
     QDialog, QLabel, QLineEdit,
@@ -11,7 +10,8 @@ from PySide6.QtWidgets import (
     QDialogButtonBox, QTableWidget, QTableWidgetItem, QHeaderView,
 )
 
-from __init__ import get_active_db_path
+import database
+from dialogs.widgets import NumericTableWidgetItem
 
 # endregion
 
@@ -21,18 +21,6 @@ log = logging.getLogger("app")
 # set to None when the corresponding record is deleted.
 current_adulto_id: int | None = None
 current_adulto_name: str | None = None
-
-
-class NumericTableWidgetItem(QTableWidgetItem):
-    """Table item that compares by integer value for proper numeric sorting."""
-
-    def __lt__(self, other):
-        if isinstance(other, QTableWidgetItem):
-            try:
-                return int(self.text()) < int(other.text())
-            except (TypeError, ValueError):
-                pass
-        return super().__lt__(other)
 
 
 class NuevoParienteDialog(QDialog):
@@ -76,20 +64,15 @@ class NuevoParienteDialog(QDialog):
             QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
             return
         try:
-            conn = sqlite3.connect(get_active_db_path())
-            cur = conn.execute(
-                "INSERT INTO adultos (a_nombres, a_paterno, a_materno, cell1, cell2, email, a_carnet, NIT)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (nombres, paterno, self.materno.text().strip().title(),
-                 self.cell1.text().strip(), self.cell2.text().strip(),
-                 self.email.text().strip(), self.carnet.text().strip(),
-                 self.nit.text().strip()),
-            )
-            conn.commit()
+            new_id = database.insert_adulto((
+                nombres, paterno, self.materno.text().strip().title(),
+                self.cell1.text().strip(), self.cell2.text().strip(),
+                self.email.text().strip(), self.carnet.text().strip(),
+                self.nit.text().strip(),
+            ))
             global current_adulto_id, current_adulto_name
-            current_adulto_id = cur.lastrowid
+            current_adulto_id = new_id
             current_adulto_name = f"{paterno}, {nombres}"
-            conn.close()
             self.accept()
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
@@ -116,15 +99,7 @@ class EditParienteDialog(QDialog):
         self.carnet = QLineEdit()
         self.nit = QLineEdit()
 
-        try:
-            conn = sqlite3.connect(get_active_db_path())
-            row = conn.execute(
-                "SELECT a_nombres, a_paterno, a_materno, cell1, cell2, email, a_carnet, NIT"
-                " FROM adultos WHERE id = ?", (self._id,)
-            ).fetchone()
-            conn.close()
-        except Exception:
-            row = None
+        row = database.fetch_adulto(self._id)
 
         if row:
             self.nombres.setText(row[0] or "")
@@ -163,20 +138,15 @@ class EditParienteDialog(QDialog):
             QMessageBox.warning(self, "Validación", "Nombres y apellido paterno son requeridos.")
             return
         try:
-            conn = sqlite3.connect(get_active_db_path())
-            conn.execute(
-                "UPDATE adultos SET a_nombres=?, a_paterno=?, a_materno=?,"
-                " cell1=?, cell2=?, email=?, a_carnet=?, NIT=? WHERE id=?",
-                (nombres, paterno, self.materno.text().strip().title(),
-                 self.cell1.text().strip(), self.cell2.text().strip(),
-                 self.email.text().strip(), self.carnet.text().strip(),
-                 self.nit.text().strip(), self._id),
-            )
-            conn.commit()
+            database.update_adulto(self._id, (
+                nombres, paterno, self.materno.text().strip().title(),
+                self.cell1.text().strip(), self.cell2.text().strip(),
+                self.email.text().strip(), self.carnet.text().strip(),
+                self.nit.text().strip(),
+            ))
             global current_adulto_id, current_adulto_name
             current_adulto_id = self._id
             current_adulto_name = f"{paterno}, {nombres}"
-            conn.close()
             self.accept()
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
@@ -197,10 +167,7 @@ class EditParienteDialog(QDialog):
             return
 
         try:
-            conn = sqlite3.connect(get_active_db_path())
-            conn.execute("DELETE FROM adultos WHERE id = ?", (self._id,))
-            conn.commit()
-            conn.close()
+            database.delete_adulto(self._id)
             global current_adulto_id, current_adulto_name
             current_adulto_id = None
             current_adulto_name = None
@@ -279,19 +246,7 @@ class BuscarParienteDialog(QDialog):
             self._load(self.search_edit.text())
 
     def _load(self, text: str):
-        like = f"%{text}%"
-        try:
-            conn = sqlite3.connect(get_active_db_path())
-            rows = conn.execute(
-                "SELECT id, a_nombres, a_paterno, a_materno, cell1, cell2, email, a_carnet, NIT"
-                " FROM adultos"
-                " WHERE a_nombres LIKE ? OR a_paterno LIKE ? OR a_materno LIKE ?"
-                " ORDER BY a_paterno, a_nombres",
-                (like, like, like),
-            ).fetchall()
-            conn.close()
-        except Exception:
-            rows = []
+        rows = database.search_adultos(text)
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(rows))
         for r, row in enumerate(rows):

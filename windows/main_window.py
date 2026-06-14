@@ -19,6 +19,7 @@ from PySide6.QtGui import QAction, QShowEvent, QCloseEvent
 from PySide6.QtCore import Qt, QEvent, QTimer, QCoreApplication
 
 try:
+    import config
     from __init__ import (
         PROJECT_NAME,
         VERSION,
@@ -51,6 +52,7 @@ except (ModuleNotFoundError, ImportError):
     # A first failed import can cache windows/__init__.py as "__init__".
     # Remove it so the fallback import resolves against project_root.
     sys.modules.pop("__init__", None)
+    import config
     from __init__ import (
         PROJECT_NAME,
         VERSION,
@@ -83,7 +85,7 @@ log = logging.getLogger("app")
 class MainWindow(QMainWindow):
     """Primary application window shown after successful login."""
 
-    _INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000
+    _INACTIVITY_TIMEOUT_MS = config.INACTIVITY_TIMEOUT_MS
     _USER_ACTIVITY_EVENTS = {
         QEvent.Type.MouseMove,
         QEvent.Type.MouseButtonPress,
@@ -157,14 +159,10 @@ class MainWindow(QMainWindow):
     def _ensure_monthly_pension_records(self, now: datetime | None = None):
         """Ensure monthly pension charges exist in ctas on day 1 of Feb-Nov."""
         current = now or datetime.now()
-        if current.day != 1 or current.month < 2 or current.month > 11:
+        if current.day != 1 or current.month < config.PENSION_FIRST_MONTH or current.month > config.PENSION_LAST_MONTH:
             return
 
-        month_names = [
-            "enero", "febrero", "marzo", "abril", "mayo", "junio",
-            "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-        ]
-        mes_actual = month_names[current.month - 1]
+        mes_actual = config.MONTH_NAMES_ES[current.month - 1]
         aclaracion = f"Pension para {mes_actual}"
         fecha_actual = current.strftime("%Y-%m-%d")
 

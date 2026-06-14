@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QMouseEvent, QWheelEvent
 from PySide6.QtCore import Qt
 
+import config
 from __init__ import PROJECT_NAME, VERSION
 
 # endregion
@@ -112,12 +113,7 @@ class LoginDialog(QDialog):
         password = self.password_edit.text()
 
         # Replace this with real authentication logic
-        valid_credentials = {
-            "admin": "admin",
-            "user": "user",
-            "trainee": "trainee",
-        }
-        if valid_credentials.get(username) == password:
+        if config.LOGIN_CREDENTIALS.get(username) == password:
             self.logged_in_username = username
             self.accept()
         else:

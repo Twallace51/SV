@@ -1,9 +1,14 @@
-"""Cuentas dialogs: Nuevo, Editar, Buscar."""
+"""Cuentas dialogs: Nuevo, Editar, Buscar.
+
+``NuevoCuentaDialog`` and ``EditCuentaDialog`` share almost all of their form
+behaviour, so the common pieces live in the private ``_CuentaFormDialog`` base
+class. ``BuscarCuentaDialog`` is the search/list view. All database access is
+delegated to :mod:`database`.
+"""
 
 # region - imports
 
 import logging
-import sqlite3
 
 from PySide6.QtWidgets import (
     QDialog, QLabel, QLineEdit,
@@ -14,7 +19,9 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import QDate, Qt
 
-from __init__ import get_active_db_path
+import config
+import database
+from dialogs.widgets import NumericTableWidgetItem
 from dialogs import alumnos as alumnos_dialogs
 from dialogs import parientes as parientes_dialogs
 
@@ -27,45 +34,25 @@ log = logging.getLogger("app")
 current_cta_id: int | None = None
 
 
-class NumericTableWidgetItem(QTableWidgetItem):
-    """Table item that compares by integer value for proper numeric sorting."""
+class _CuentaFormDialog(QDialog):
+    """Shared form behaviour for creating and editing a cuenta."""
 
-    def __lt__(self, other):
-        if isinstance(other, QTableWidgetItem):
-            try:
-                return int(self.text()) < int(other.text())
-            except (TypeError, ValueError):
-                pass
-        return super().__lt__(other)
+    DEBITO_ACLARACIONES = config.DEBITO_ACLARACIONES
+    CREDITO_ACLARACIONES = config.CREDITO_ACLARACIONES
 
+    # --- field construction ------------------------------------------------
 
-class NuevoCuentaDialog(QDialog):
-    """Form dialog to insert a new cuenta into SV.db."""
-
-    DEBITO_ACLARACIONES = ["Pension", "Comedor", "Insumos"]
-    CREDITO_ACLARACIONES = ["Efectivo", "Deposito"]
-
-    def __init__(self, parent=None, mode: str | None = None):
-        super().__init__(parent)
-        self._mode = mode
-        titles = {
-            "credito": "Cuentas - Nuevo Crédito",
-            "debito": "Cuentas - Nuevo Débito",
-        }
-        self.setWindowTitle(titles.get(mode, "Cuentas - Nuevo"))
-        self.setMinimumWidth(440)
-        layout = QVBoxLayout(self)
-        form = QFormLayout()
-
+    def _create_fields(self):
+        """Build every form widget and wire up its signals."""
         self.id_alumno = QLineEdit()
         self.id_alumno.setPlaceholderText("Ingrese ID de alumno")
         self.id_alumno.textChanged.connect(self._sync_alumno_nombre)
         self.current_alumno_btn = QPushButton("Alumno Actual")
         self.current_alumno_btn.clicked.connect(self._apply_current_alumno)
-        alumno_row = QHBoxLayout()
-        alumno_row.setContentsMargins(0, 0, 0, 0)
-        alumno_row.addWidget(self.id_alumno)
-        alumno_row.addWidget(self.current_alumno_btn)
+        self._alumno_row = QHBoxLayout()
+        self._alumno_row.setContentsMargins(0, 0, 0, 0)
+        self._alumno_row.addWidget(self.id_alumno)
+        self._alumno_row.addWidget(self.current_alumno_btn)
         self.alumno = QLabel("-")
 
         self.id_creditor = QLineEdit()
@@ -74,10 +61,10 @@ class NuevoCuentaDialog(QDialog):
         self.id_creditor.textChanged.connect(self._sync_amount_fields)
         self.current_adulto_btn = QPushButton("Adulto Actual")
         self.current_adulto_btn.clicked.connect(self._apply_current_adulto)
-        creditor_row = QHBoxLayout()
-        creditor_row.setContentsMargins(0, 0, 0, 0)
-        creditor_row.addWidget(self.id_creditor)
-        creditor_row.addWidget(self.current_adulto_btn)
+        self._creditor_row = QHBoxLayout()
+        self._creditor_row.setContentsMargins(0, 0, 0, 0)
+        self._creditor_row.addWidget(self.id_creditor)
+        self._creditor_row.addWidget(self.current_adulto_btn)
         self.creditor = QLabel("-")
 
         self.debito = QSpinBox()
@@ -96,9 +83,10 @@ class NuevoCuentaDialog(QDialog):
         self.debito.valueChanged.connect(self._update_aclaracion_options)
         self.credito.valueChanged.connect(self._update_aclaracion_options)
         self._update_aclaracion_options()
-        aclaracion_row = QHBoxLayout()
-        aclaracion_row.addWidget(self.aclaracion)
-        aclaracion_row.addWidget(self.aclaracion_select)
+        self._aclaracion_row = QHBoxLayout()
+        self._aclaracion_row.addWidget(self.aclaracion)
+        self._aclaracion_row.addWidget(self.aclaracion_select)
+
         self.fecha = QDateEdit()
         self.fecha.setCalendarPopup(True)
         self.fecha.setDisplayFormat("yyyy-MM-dd")
@@ -106,39 +94,37 @@ class NuevoCuentaDialog(QDialog):
         self.fecha.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         self.factura = QLineEdit()
 
-        form.addRow("ID Alumno *:", alumno_row)
+    def _add_form_rows(self, form: QFormLayout):
+        """Append all the cuenta fields to the form layout, in order."""
+        form.addRow("ID Alumno *:", self._alumno_row)
         form.addRow("Alumno:", self.alumno)
-        form.addRow("ID Creditor:", creditor_row)
+        form.addRow("ID Creditor:", self._creditor_row)
         form.addRow("Creditor:", self.creditor)
         form.addRow("Débito:", self.debito)
         form.addRow("Crédito:", self.credito)
-        form.addRow("Aclaración:", aclaracion_row)
+        form.addRow("Aclaración:", self._aclaracion_row)
         form.addRow("Fecha:", self.fecha)
         form.addRow("Numero Factura:", self.factura)
-        layout.addLayout(form)
 
+    def _apply_mode_visibility(self, form: QFormLayout):
+        """Hide the rows that do not apply to a credito/debito-only form."""
         if self._mode == "credito":
             form.setRowVisible(self.debito, False)
-            self.aclaracion_select.blockSignals(True)
-            self.aclaracion_select.clear()
-            self.aclaracion_select.addItems(self.CREDITO_ACLARACIONES)
-            self.aclaracion_select.setCurrentIndex(-1)
-            self.aclaracion_select.blockSignals(False)
         elif self._mode == "debito":
-            form.setRowVisible(creditor_row, False)
+            form.setRowVisible(self._creditor_row, False)
             form.setRowVisible(self.creditor, False)
             form.setRowVisible(self.credito, False)
             form.setRowVisible(self.factura, False)
 
-        self._refresh_current_id_buttons()
-        self._sync_alumno_nombre()
-        self._sync_creditor_nombre()
-        self._sync_amount_fields()
-
+    def _build_buttons(self, layout: QVBoxLayout):
+        """Create the Save/Cancel button box and attach it to ``layout``."""
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=self)
         buttons.accepted.connect(self._save)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+        return buttons
+
+    # --- current-record buttons -------------------------------------------
 
     def _refresh_current_id_buttons(self):
         alumno_parts = []
@@ -174,28 +160,20 @@ class NuevoCuentaDialog(QDialog):
             return
         self.id_creditor.setText(str(current_id))
 
+    # --- name lookups ------------------------------------------------------
+
     def _sync_alumno_nombre(self):
         raw_id = self.id_alumno.text().strip()
         if not raw_id:
             self.alumno.setText("-")
             return
-
         try:
             alumno_id = int(raw_id)
         except ValueError:
             self.alumno.setText("ID inválido")
             return
 
-        try:
-            conn = sqlite3.connect(get_active_db_path())
-            row = conn.execute(
-                "SELECT paterno, nombres FROM alumnos WHERE id = ?",
-                (alumno_id,),
-            ).fetchone()
-            conn.close()
-        except Exception:
-            row = None
-
+        row = database.fetch_alumno_name_pair(alumno_id)
         self.alumno.setText(f"{row[0]}, {row[1]}" if row else "No encontrado")
 
     def _sync_creditor_nombre(self):
@@ -203,24 +181,16 @@ class NuevoCuentaDialog(QDialog):
         if not raw_id:
             self.creditor.setText("-")
             return
-
         try:
             creditor_id = int(raw_id)
         except ValueError:
             self.creditor.setText("ID inválido")
             return
 
-        try:
-            conn = sqlite3.connect(get_active_db_path())
-            row = conn.execute(
-                "SELECT a_nombres, a_paterno FROM adultos WHERE id = ?",
-                (creditor_id,),
-            ).fetchone()
-            conn.close()
-        except Exception:
-            row = None
-
+        row = database.fetch_adulto_name_pair(creditor_id)
         self.creditor.setText(f"{row[0]} {row[1]}" if row else "No encontrado")
+
+    # --- debit/credit interaction -----------------------------------------
 
     def _sync_amount_fields(self):
         debito_has_value = self.debito.value() > 0
@@ -268,26 +238,32 @@ class NuevoCuentaDialog(QDialog):
         if option and (not current or current in preset_values):
             self.aclaracion.setText(option)
 
-    def _save(self):
+    # --- validation --------------------------------------------------------
+
+    def _collect_form_values(self):
+        """Validate the form and return the column values tuple, or None.
+
+        On any validation failure a warning is shown and None is returned.
+        """
         raw_id = self.id_alumno.text().strip()
         if not raw_id:
             QMessageBox.warning(self, "Validación", "ID Alumno es requerido.")
-            return
+            return None
         try:
             alumno_id = int(raw_id)
         except ValueError:
             QMessageBox.warning(self, "Validación", "ID Alumno debe ser un número entero.")
-            return
+            return None
 
         if self.alumno.text() in {"No encontrado", "ID inválido", "-"}:
             QMessageBox.warning(self, "Validación", "El ID Alumno no existe.")
-            return
+            return None
 
         debito = self.debito.value()
         credito = self.credito.value()
         if (debito == 0 and credito == 0) or (debito > 0 and credito > 0):
             QMessageBox.warning(self, "Validación", "Debe ingresar solo Débito o solo Crédito (uno es obligatorio).")
-            return
+            return None
 
         raw_creditor = self.id_creditor.text().strip()
         creditor_id: int | None = None
@@ -296,35 +272,68 @@ class NuevoCuentaDialog(QDialog):
                 creditor_id = int(raw_creditor)
             except ValueError:
                 QMessageBox.warning(self, "Validación", "ID Creditor debe ser un número entero.")
-                return
+                return None
             if self.creditor.text() in {"No encontrado", "ID inválido"}:
                 QMessageBox.warning(self, "Validación", "El ID Creditor no existe.")
-                return
+                return None
 
+        return (
+            alumno_id, creditor_id, debito, credito,
+            self.aclaracion.text().strip(),
+            self.fecha.date().toString("yyyy-MM-dd"),
+            self.factura.text().strip(),
+        )
+
+
+class NuevoCuentaDialog(_CuentaFormDialog):
+    """Form dialog to insert a new cuenta into SV.db."""
+
+    def __init__(self, parent=None, mode: str | None = None):
+        super().__init__(parent)
+        self._mode = mode
+        titles = {
+            "credito": "Cuentas - Nuevo Crédito",
+            "debito": "Cuentas - Nuevo Débito",
+        }
+        self.setWindowTitle(titles.get(mode, "Cuentas - Nuevo"))
+        self.setMinimumWidth(440)
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+
+        self._create_fields()
+        self._add_form_rows(form)
+        layout.addLayout(form)
+
+        self._apply_mode_visibility(form)
+        if self._mode == "credito":
+            self.aclaracion_select.blockSignals(True)
+            self.aclaracion_select.clear()
+            self.aclaracion_select.addItems(self.CREDITO_ACLARACIONES)
+            self.aclaracion_select.setCurrentIndex(-1)
+            self.aclaracion_select.blockSignals(False)
+
+        self._refresh_current_id_buttons()
+        self._sync_alumno_nombre()
+        self._sync_creditor_nombre()
+        self._sync_amount_fields()
+
+        self._build_buttons(layout)
+
+    def _save(self):
+        values = self._collect_form_values()
+        if values is None:
+            return
         try:
-            conn = sqlite3.connect(get_active_db_path())
-            cur = conn.execute(
-                "INSERT INTO ctas (id_alumno, id_creditor, debito, credito, aclaracion, fecha, factura)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (alumno_id, creditor_id, debito, credito,
-                 self.aclaracion.text().strip(),
-                 self.fecha.date().toString("yyyy-MM-dd"),
-                 self.factura.text().strip()),
-            )
-            conn.commit()
+            new_id = database.insert_cuenta(values)
             global current_cta_id
-            current_cta_id = cur.lastrowid
-            conn.close()
+            current_cta_id = new_id
             self.accept()
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
 
 
-class EditCuentaDialog(QDialog):
+class EditCuentaDialog(_CuentaFormDialog):
     """Edit form pre-populated with an existing cuenta record."""
-
-    DEBITO_ACLARACIONES = ["Pension", "Comedor", "Insumos"]
-    CREDITO_ACLARACIONES = ["Efectivo", "Deposito"]
 
     def __init__(self, record_id: int, parent=None, is_admin: bool = False, mode: str | None = None):
         super().__init__(parent)
@@ -336,65 +345,9 @@ class EditCuentaDialog(QDialog):
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
-        self.id_alumno = QLineEdit()
-        self.id_alumno.setPlaceholderText("Ingrese ID de alumno")
-        self.id_alumno.textChanged.connect(self._sync_alumno_nombre)
-        self.current_alumno_btn = QPushButton("Alumno Actual")
-        self.current_alumno_btn.clicked.connect(self._apply_current_alumno)
-        alumno_row = QHBoxLayout()
-        alumno_row.setContentsMargins(0, 0, 0, 0)
-        alumno_row.addWidget(self.id_alumno)
-        alumno_row.addWidget(self.current_alumno_btn)
-        self.alumno = QLabel("-")
+        self._create_fields()
 
-        self.id_creditor = QLineEdit()
-        self.id_creditor.setPlaceholderText("Ingrese ID de creditor")
-        self.id_creditor.textChanged.connect(self._sync_creditor_nombre)
-        self.id_creditor.textChanged.connect(self._sync_amount_fields)
-        self.current_adulto_btn = QPushButton("Adulto Actual")
-        self.current_adulto_btn.clicked.connect(self._apply_current_adulto)
-        creditor_row = QHBoxLayout()
-        creditor_row.setContentsMargins(0, 0, 0, 0)
-        creditor_row.addWidget(self.id_creditor)
-        creditor_row.addWidget(self.current_adulto_btn)
-        self.creditor = QLabel("-")
-
-        try:
-            conn = sqlite3.connect(get_active_db_path())
-            row = conn.execute(
-                "SELECT id_alumno, id_creditor, debito, credito, aclaracion, fecha, factura"
-                " FROM ctas WHERE id = ?", (self._id,)
-            ).fetchone()
-            conn.close()
-        except Exception:
-            row = None
-
-        self.debito = QSpinBox()
-        self.debito.setRange(0, 999999)
-        self.debito.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
-        self.debito.valueChanged.connect(self._sync_amount_fields)
-
-        self.credito = QSpinBox()
-        self.credito.setRange(0, 999999)
-        self.credito.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
-        self.credito.valueChanged.connect(self._sync_amount_fields)
-
-        self.aclaracion = QLineEdit()
-        self.aclaracion_select = QComboBox()
-        self.aclaracion_select.currentTextChanged.connect(self._apply_aclaracion_option)
-        self.debito.valueChanged.connect(self._update_aclaracion_options)
-        self.credito.valueChanged.connect(self._update_aclaracion_options)
-        self._update_aclaracion_options()
-        aclaracion_row = QHBoxLayout()
-        aclaracion_row.addWidget(self.aclaracion)
-        aclaracion_row.addWidget(self.aclaracion_select)
-        self.fecha = QDateEdit()
-        self.fecha.setCalendarPopup(True)
-        self.fecha.setDisplayFormat("yyyy-MM-dd")
-        self.fecha.setDate(QDate.currentDate())
-        self.fecha.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
-        self.factura = QLineEdit()
-
+        row = database.fetch_cuenta(self._id)
         if row:
             self.id_alumno.setText(str(row[0] or ""))
             self.id_creditor.setText(str(row[1] or ""))
@@ -418,24 +371,9 @@ class EditCuentaDialog(QDialog):
         }
         self.setWindowTitle(titles.get(self._mode, "Cuentas - Editar"))
 
-        form.addRow("ID Alumno *:", alumno_row)
-        form.addRow("Alumno:", self.alumno)
-        form.addRow("ID Creditor:", creditor_row)
-        form.addRow("Creditor:", self.creditor)
-        form.addRow("Débito:", self.debito)
-        form.addRow("Crédito:", self.credito)
-        form.addRow("Aclaración:", aclaracion_row)
-        form.addRow("Fecha:", self.fecha)
-        form.addRow("Numero Factura:", self.factura)
+        self._add_form_rows(form)
         layout.addLayout(form)
-
-        if self._mode == "credito":
-            form.setRowVisible(self.debito, False)
-        elif self._mode == "debito":
-            form.setRowVisible(creditor_row, False)
-            form.setRowVisible(self.creditor, False)
-            form.setRowVisible(self.credito, False)
-            form.setRowVisible(self.factura, False)
+        self._apply_mode_visibility(form)
 
         self._refresh_current_id_buttons()
         self._sync_alumno_nombre()
@@ -452,181 +390,14 @@ class EditCuentaDialog(QDialog):
         self.delete_btn.clicked.connect(self._delete)
         layout.addWidget(buttons)
 
-    def _refresh_current_id_buttons(self):
-        alumno_parts = []
-        if alumnos_dialogs.current_alumno_id is not None:
-            alumno_parts.append(str(alumnos_dialogs.current_alumno_id))
-        if alumnos_dialogs.current_alumno_name:
-            alumno_parts.append(str(alumnos_dialogs.current_alumno_name))
-        self.current_alumno_btn.setText(
-            f"Alumno Actual: {' - '.join(alumno_parts)}" if alumno_parts else "Alumno Actual: -"
-        )
-
-        adulto_parts = []
-        if parientes_dialogs.current_adulto_id is not None:
-            adulto_parts.append(str(parientes_dialogs.current_adulto_id))
-        if parientes_dialogs.current_adulto_name:
-            adulto_parts.append(str(parientes_dialogs.current_adulto_name))
-        self.current_adulto_btn.setText(
-            f"Adulto Actual: {' - '.join(adulto_parts)}" if adulto_parts else "Adulto Actual: -"
-        )
-
-        self.current_alumno_btn.setEnabled(alumnos_dialogs.current_alumno_id is not None)
-        self.current_adulto_btn.setEnabled(parientes_dialogs.current_adulto_id is not None)
-
-    def _apply_current_alumno(self):
-        current_id = alumnos_dialogs.current_alumno_id
-        if current_id is None:
-            return
-        self.id_alumno.setText(str(current_id))
-
-    def _apply_current_adulto(self):
-        current_id = parientes_dialogs.current_adulto_id
-        if current_id is None:
-            return
-        self.id_creditor.setText(str(current_id))
-
-    def _sync_alumno_nombre(self):
-        raw_id = self.id_alumno.text().strip()
-        if not raw_id:
-            self.alumno.setText("-")
-            return
-
-        try:
-            alumno_id = int(raw_id)
-        except ValueError:
-            self.alumno.setText("ID inválido")
-            return
-
-        try:
-            conn = sqlite3.connect(get_active_db_path())
-            row = conn.execute(
-                "SELECT paterno, nombres FROM alumnos WHERE id = ?",
-                (alumno_id,),
-            ).fetchone()
-            conn.close()
-        except Exception:
-            row = None
-
-        self.alumno.setText(f"{row[0]}, {row[1]}" if row else "No encontrado")
-
-    def _sync_creditor_nombre(self):
-        raw_id = self.id_creditor.text().strip()
-        if not raw_id:
-            self.creditor.setText("-")
-            return
-
-        try:
-            creditor_id = int(raw_id)
-        except ValueError:
-            self.creditor.setText("ID inválido")
-            return
-
-        try:
-            conn = sqlite3.connect(get_active_db_path())
-            row = conn.execute(
-                "SELECT a_nombres, a_paterno FROM adultos WHERE id = ?",
-                (creditor_id,),
-            ).fetchone()
-            conn.close()
-        except Exception:
-            row = None
-
-        self.creditor.setText(f"{row[0]} {row[1]}" if row else "No encontrado")
-
-    def _sync_amount_fields(self):
-        debito_has_value = self.debito.value() > 0
-        credito_has_value = self.credito.value() > 0
-        creditor_has_value = bool(self.id_creditor.text().strip())
-
-        self.factura.setEnabled(credito_has_value)
-        id_creditor_enabled = not debito_has_value
-        self.id_creditor.setEnabled(id_creditor_enabled)
-        self.current_adulto_btn.setEnabled(
-            id_creditor_enabled and parientes_dialogs.current_adulto_id is not None
-        )
-
-        if not debito_has_value and not credito_has_value:
-            self.debito.setEnabled(not creditor_has_value)
-            self.credito.setEnabled(True)
-            return
-
-        self.credito.setEnabled(not debito_has_value)
-        debito_locked_by_creditor = creditor_has_value and not debito_has_value
-        self.debito.setEnabled((not credito_has_value) and (not debito_locked_by_creditor))
-
-    def _update_aclaracion_options(self):
-        if self.credito.value() > 0:
-            options = self.CREDITO_ACLARACIONES
-        else:
-            options = self.DEBITO_ACLARACIONES
-
-        current_items = [
-            self.aclaracion_select.itemText(i)
-            for i in range(self.aclaracion_select.count())
-        ]
-        if current_items == options:
-            return
-
-        self.aclaracion_select.blockSignals(True)
-        self.aclaracion_select.clear()
-        self.aclaracion_select.addItems(options)
-        self.aclaracion_select.setCurrentIndex(-1)
-        self.aclaracion_select.blockSignals(False)
-
-    def _apply_aclaracion_option(self, option: str):
-        current = self.aclaracion.text().strip()
-        preset_values = set(self.DEBITO_ACLARACIONES) | set(self.CREDITO_ACLARACIONES)
-        if option and (not current or current in preset_values):
-            self.aclaracion.setText(option)
-
     def _save(self):
-        raw_id = self.id_alumno.text().strip()
-        if not raw_id:
-            QMessageBox.warning(self, "Validación", "ID Alumno es requerido.")
+        values = self._collect_form_values()
+        if values is None:
             return
         try:
-            alumno_id = int(raw_id)
-        except ValueError:
-            QMessageBox.warning(self, "Validación", "ID Alumno debe ser un número entero.")
-            return
-
-        if self.alumno.text() in {"No encontrado", "ID inválido", "-"}:
-            QMessageBox.warning(self, "Validación", "El ID Alumno no existe.")
-            return
-
-        debito = self.debito.value()
-        credito = self.credito.value()
-        if (debito == 0 and credito == 0) or (debito > 0 and credito > 0):
-            QMessageBox.warning(self, "Validación", "Debe ingresar solo Débito o solo Crédito (uno es obligatorio).")
-            return
-
-        raw_creditor = self.id_creditor.text().strip()
-        creditor_id: int | None = None
-        if raw_creditor:
-            try:
-                creditor_id = int(raw_creditor)
-            except ValueError:
-                QMessageBox.warning(self, "Validación", "ID Creditor debe ser un número entero.")
-                return
-            if self.creditor.text() in {"No encontrado", "ID inválido"}:
-                QMessageBox.warning(self, "Validación", "El ID Creditor no existe.")
-                return
-
-        try:
-            conn = sqlite3.connect(get_active_db_path())
-            conn.execute(
-                "UPDATE ctas SET id_alumno=?, id_creditor=?, debito=?, credito=?, aclaracion=?,"
-                " fecha=?, factura=? WHERE id=?",
-                (alumno_id, creditor_id, debito, credito,
-                 self.aclaracion.text().strip(),
-                 self.fecha.date().toString("yyyy-MM-dd"),
-                 self.factura.text().strip(), self._id),
-            )
-            conn.commit()
+            database.update_cuenta(self._id, values)
             global current_cta_id
             current_cta_id = self._id
-            conn.close()
             self.accept()
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{exc}")
@@ -647,15 +418,10 @@ class EditCuentaDialog(QDialog):
             return
 
         try:
-            conn = sqlite3.connect(get_active_db_path())
-            conn.execute("DELETE FROM ctas WHERE id = ?", (self._id,))
-            conn.commit()
-            conn.close()
-
+            database.delete_cuenta(self._id)
             global current_cta_id
             if current_cta_id == self._id:
                 current_cta_id = None
-
             QMessageBox.information(self, "Borrado", "Cuenta borrada correctamente.")
             self.accept()
         except Exception as exc:
@@ -820,76 +586,16 @@ class BuscarCuentaDialog(QDialog):
     def _load(self, _text: str = ""):
         alumno_search = self.search_edit.text().strip()
         creditor_search = self.search_creditor_edit.text().strip()
-        alumno_like = f"%{alumno_search}%"
-        creditor_like = f"%{creditor_search}%"
-        try:
-            conn = sqlite3.connect(get_active_db_path())
-            alumno_columns = {
-                row[1] for row in conn.execute("PRAGMA table_info(alumnos)").fetchall()
-            }
-            ctas_columns = {
-                row[1] for row in conn.execute("PRAGMA table_info(ctas)").fetchall()
-            }
-            creditor_id_expr = "c.id_creditor" if "id_creditor" in ctas_columns else "NULL"
-            tables = {
-                row[0] for row in conn.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table'"
-                ).fetchall()
-            }
-            creditor_name_expr = "''"
-            creditor_join = ""
-            has_creditor_name = False
-            if "adultos" in tables:
-                adulto_columns = {
-                    row[1] for row in conn.execute("PRAGMA table_info(adultos)").fetchall()
-                }
-                adultos_name_parts = []
-                if "a_paterno" in adulto_columns:
-                    adultos_name_parts.append("COALESCE(ad.a_paterno, '')")
-                if "a_nombres" in adulto_columns:
-                    adultos_name_parts.append("COALESCE(ad.a_nombres, '')")
-                if "a_materno" in adulto_columns:
-                    adultos_name_parts.append("COALESCE(ad.a_materno, '')")
-                if adultos_name_parts:
-                    creditor_name_expr = "TRIM(" + " || ' ' || ".join(adultos_name_parts) + ")"
-                    has_creditor_name = True
-                creditor_join = f" LEFT JOIN adultos ad ON ad.id = CAST({creditor_id_expr} AS INTEGER)"
-
-            where_clauses = ["(CAST(a.id AS TEXT) LIKE ? OR a.nombres LIKE ? OR a.paterno LIKE ?)"]
-            params = [alumno_search, alumno_like, alumno_like]
-
-            if creditor_search:
-                creditor_filters = []
-                if "id_creditor" in ctas_columns:
-                    creditor_filters.append("CAST(c.id_creditor AS TEXT) LIKE ?")
-                    params.append(creditor_search)
-                if has_creditor_name:
-                    creditor_filters.append(f"{creditor_name_expr} LIKE ?")
-                    params.append(creditor_like)
-                if creditor_filters:
-                    where_clauses.append("(" + " OR ".join(creditor_filters) + ")")
-                else:
-                    where_clauses.append("1 = 0")
-
-            rows = conn.execute(
-                "SELECT c.id, a.id, a.paterno || ', ' || a.nombres,"
-                f" {creditor_id_expr}, {creditor_name_expr},"
-                " c.debito, c.credito, c.aclaracion, c.fecha, c.factura"
-                " FROM ctas c JOIN alumnos a ON c.id_alumno = a.id"
-                f"{creditor_join}"
-                f" WHERE {' AND '.join(where_clauses)}"
-                " ORDER BY c.fecha DESC",
-                params,
-            ).fetchall()
-            conn.close()
-        except Exception:
-            rows = []
+        rows = database.search_cuentas(alumno_search, creditor_search)
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(rows))
         for r, row in enumerate(rows):
             cuenta_id = row[0]
             for c, val in enumerate(row[1:]):
-                text = "" if val is None else str(val)
+                if c in (4, 5) and (val is None or val == 0 or str(val).strip() == "0"):
+                    text = ""
+                else:
+                    text = "" if val is None else str(val)
                 item = NumericTableWidgetItem(text) if c == 0 else QTableWidgetItem(text)
                 if c == 0:
                     item.setData(Qt.UserRole, cuenta_id)
