@@ -1,9 +1,9 @@
-"""Bulk WhatsApp click-to-chat dialog.
+"""WhatsApp click-to-chat dialog.
 
 Lists adultos that have a mobile number and lets the operator open a pre-filled
-WhatsApp chat for each selected recipient. Opening a ``wa.me`` link only
-*prepares* the message in WhatsApp; a human still presses send, so this stays
-within WhatsApp's terms of service (no automated bulk delivery).
+WhatsApp chat for each selected recipient, one at a time. Opening a ``wa.me``
+link only *prepares* the message in WhatsApp; a human still presses send, so
+this stays within WhatsApp's terms of service (no automated bulk delivery).
 """
 
 import logging
@@ -21,21 +21,23 @@ from utils import build_whatsapp_url, normalize_bolivia_phone
 
 log = logging.getLogger("app")
 
-# Opening more chats than this at once is almost always a mistake (it spawns a
-# browser tab/WhatsApp window per recipient), so confirm before proceeding.
-_CONFIRM_THRESHOLD = 10
-
 
 class EnviarWhatsAppDialog(QDialog):
-    """Pick recipients from the adultos list and open a WhatsApp chat for each."""
+    """Pick recipients from the adultos list and open one WhatsApp chat at a time."""
 
     _HEADERS = ["", "Nombre", "Celular"]
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Adultos - Enviar WhatsApp")
-        self.resize(680, 520)
+        self.resize(680, 540)
         layout = QVBoxLayout(self)
+
+        # Pending row indices for the one-at-a-time flow and how many have been
+        # opened so far in the current run.
+        self._queue: list[int] = []
+        self._sent_count = 0
+        self._total_count = 0
 
         layout.addWidget(QLabel("Mensaje (se rellena en cada chat; usted presiona Enviar):"))
         self.message_edit = QPlainTextEdit()
@@ -58,18 +60,25 @@ class EnviarWhatsAppDialog(QDialog):
         self.table = QTableWidget(0, len(self._HEADERS))
         self.table.setHorizontalHeaderLabels(self._HEADERS)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.NoSelection)
         self.table.verticalHeader().setVisible(False)
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.table.itemChanged.connect(self._update_count)
+        self.table.itemChanged.connect(self._on_item_changed)
         layout.addWidget(self.table)
 
+        self.status_label = QLabel("")
+        layout.addWidget(self.status_label)
+
         buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
-        self.send_btn = buttons.addButton("Abrir chats", QDialogButtonBox.AcceptRole)
-        self.send_btn.clicked.connect(self._open_chats)
+        self.next_btn = buttons.addButton("Abrir siguiente chat", QDialogButtonBox.ActionRole)
+        self.next_btn.clicked.connect(self._open_next)
+        self.restart_btn = buttons.addButton("Reiniciar", QDialogButtonBox.ResetRole)
+        self.restart_btn.clicked.connect(self._reset_run)
+        self.restart_btn.setEnabled(False)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
@@ -112,48 +121,76 @@ class EnviarWhatsAppDialog(QDialog):
             if item is not None:
                 item.setCheckState(state)
         self.table.blockSignals(False)
-        self._update_count()
+        self._reset_run()
 
-    def _checked_phones(self) -> list[str]:
-        phones = []
+    def _on_item_changed(self, *_args):
+        # Changing the selection invalidates an in-progress run.
+        self._reset_run()
+
+    def _checked_rows(self) -> list[int]:
+        rows = []
         for r in range(self.table.rowCount()):
             item = self.table.item(r, 0)
             if item is not None and item.checkState() == Qt.Checked:
-                phones.append(item.data(Qt.UserRole))
-        return phones
+                rows.append(r)
+        return rows
 
     def _update_count(self, *_args):
-        self.count_label.setText(f"Seleccionados: {len(self._checked_phones())}")
+        self.count_label.setText(f"Seleccionados: {len(self._checked_rows())}")
 
-    def _open_chats(self):
-        message = self.message_edit.toPlainText().strip()
-        phones = self._checked_phones()
-        if not phones:
-            QMessageBox.information(self, "WhatsApp", "Seleccione al menos un destinatario.")
-            return
+    def _reset_run(self, *_args):
+        self._queue = []
+        self._sent_count = 0
+        self._total_count = 0
+        self.table.clearSelection()
+        self.status_label.setText("")
+        self.next_btn.setText("Abrir siguiente chat")
+        self.restart_btn.setEnabled(False)
+        self._update_count()
 
-        if len(phones) > _CONFIRM_THRESHOLD:
-            reply = QMessageBox.question(
+    def _open_next(self):
+        # Start a new run on the first click (snapshot the current selection).
+        if not self._queue and self._sent_count == 0:
+            self._queue = self._checked_rows()
+            self._total_count = len(self._queue)
+            if not self._queue:
+                QMessageBox.information(self, "WhatsApp", "Seleccione al menos un destinatario.")
+                return
+            self.restart_btn.setEnabled(True)
+
+        if not self._queue:
+            QMessageBox.information(
                 self,
                 "WhatsApp",
-                f"Se abrirán {len(phones)} chats de WhatsApp, uno por destinatario.\n"
-                "Deberá presionar Enviar en cada uno. ¿Desea continuar?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No,
+                f"No quedan destinatarios. Se abrieron {self._sent_count} chat(s).",
             )
-            if reply != QMessageBox.Yes:
-                return
+            self._reset_run()
+            return
 
-        opened = 0
-        for phone in phones:
-            url = build_whatsapp_url(phone, message)
-            if url is None:
-                continue
-            if QDesktopServices.openUrl(QUrl(url)):
-                opened += 1
-        log.info("WhatsApp: %s chats abiertos de %s seleccionados.", opened, len(phones))
-        QMessageBox.information(
-            self,
-            "WhatsApp",
-            f"Se abrieron {opened} chat(s). Presione Enviar en cada ventana de WhatsApp.",
+        message = self.message_edit.toPlainText().strip()
+        row = self._queue.pop(0)
+        check_item = self.table.item(row, 0)
+        phone = check_item.data(Qt.UserRole) if check_item is not None else None
+        name_item = self.table.item(row, 1)
+        name = name_item.text() if name_item is not None else ""
+
+        url = build_whatsapp_url(phone, message)
+        if url is None or not QDesktopServices.openUrl(QUrl(url)):
+            log.warning("WhatsApp: no se pudo abrir el chat para %s (%s).", name, phone)
+            QMessageBox.warning(self, "WhatsApp", f"No se pudo abrir el chat para {name}.")
+        else:
+            self._sent_count += 1
+            self.table.selectRow(row)
+            log.info("WhatsApp: chat abierto para %s (%s).", name, phone)
+
+        remaining = len(self._queue)
+        self.status_label.setText(
+            f"Abierto {self._sent_count} de {self._total_count}: {name}. "
+            f"Presione Enviar en WhatsApp."
+            + (f" Quedan {remaining}." if remaining else " Completado.")
         )
+        if remaining:
+            self.next_btn.setText(f"Abrir siguiente chat ({remaining})")
+        else:
+            self.next_btn.setText("Finalizado")
+            self.next_btn.setEnabled(False)
