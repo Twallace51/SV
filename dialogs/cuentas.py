@@ -646,7 +646,7 @@ class BuscarCuentaDialog(QDialog):
         super().__init__(parent)
         self._is_admin = is_admin
         self.setWindowTitle("Cuentas - Buscar")
-        self.resize(800, 400)
+        self.resize(1200, 650)
         layout = QVBoxLayout(self)
 
         alumno_search_row = QHBoxLayout()
@@ -677,6 +677,9 @@ class BuscarCuentaDialog(QDialog):
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.setColumnWidth(1, 220)  # Alumno
+        self.table.setColumnWidth(3, 220)  # Creditor
+        self.table.setColumnWidth(6, 200)  # Aclaración
         self.table.setSortingEnabled(True)
         self.table.cellDoubleClicked.connect(self._on_double_click)
         self.table.itemSelectionChanged.connect(self._on_selection_changed)
