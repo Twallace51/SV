@@ -45,9 +45,14 @@ class NuevoCuentaDialog(QDialog):
     DEBITO_ACLARACIONES = ["Pension", "Comedor", "Insumos"]
     CREDITO_ACLARACIONES = ["Efectivo", "Deposito"]
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, mode: str | None = None):
         super().__init__(parent)
-        self.setWindowTitle("Cuentas - Nuevo")
+        self._mode = mode
+        titles = {
+            "credito": "Cuentas - Nuevo Crédito",
+            "debito": "Cuentas - Nuevo Débito",
+        }
+        self.setWindowTitle(titles.get(mode, "Cuentas - Nuevo"))
         self.setMinimumWidth(440)
         layout = QVBoxLayout(self)
         form = QFormLayout()
@@ -111,6 +116,19 @@ class NuevoCuentaDialog(QDialog):
         form.addRow("Fecha:", self.fecha)
         form.addRow("Numero Factura:", self.factura)
         layout.addLayout(form)
+
+        if self._mode == "credito":
+            form.setRowVisible(self.debito, False)
+            self.aclaracion_select.blockSignals(True)
+            self.aclaracion_select.clear()
+            self.aclaracion_select.addItems(self.CREDITO_ACLARACIONES)
+            self.aclaracion_select.setCurrentIndex(-1)
+            self.aclaracion_select.blockSignals(False)
+        elif self._mode == "debito":
+            form.setRowVisible(creditor_row, False)
+            form.setRowVisible(self.creditor, False)
+            form.setRowVisible(self.credito, False)
+            form.setRowVisible(self.factura, False)
 
         self._refresh_current_id_buttons()
         self._sync_alumno_nombre()
@@ -308,10 +326,11 @@ class EditCuentaDialog(QDialog):
     DEBITO_ACLARACIONES = ["Pension", "Comedor", "Insumos"]
     CREDITO_ACLARACIONES = ["Efectivo", "Deposito"]
 
-    def __init__(self, record_id: int, parent=None, is_admin: bool = False):
+    def __init__(self, record_id: int, parent=None, is_admin: bool = False, mode: str | None = None):
         super().__init__(parent)
         self._id = record_id
         self._is_admin = is_admin
+        self._mode = mode
         self.setWindowTitle("Cuentas - Editar")
         self.setMinimumWidth(440)
         layout = QVBoxLayout(self)
@@ -391,6 +410,14 @@ class EditCuentaDialog(QDialog):
             if aclaracion_idx >= 0:
                 self.aclaracion_select.setCurrentIndex(aclaracion_idx)
 
+        if self._mode is None:
+            self._mode = "credito" if self.credito.value() > 0 else "debito"
+        titles = {
+            "credito": "Cuentas - Editar Crédito",
+            "debito": "Cuentas - Editar Débito",
+        }
+        self.setWindowTitle(titles.get(self._mode, "Cuentas - Editar"))
+
         form.addRow("ID Alumno *:", alumno_row)
         form.addRow("Alumno:", self.alumno)
         form.addRow("ID Creditor:", creditor_row)
@@ -401,6 +428,14 @@ class EditCuentaDialog(QDialog):
         form.addRow("Fecha:", self.fecha)
         form.addRow("Numero Factura:", self.factura)
         layout.addLayout(form)
+
+        if self._mode == "credito":
+            form.setRowVisible(self.debito, False)
+        elif self._mode == "debito":
+            form.setRowVisible(creditor_row, False)
+            form.setRowVisible(self.creditor, False)
+            form.setRowVisible(self.credito, False)
+            form.setRowVisible(self.factura, False)
 
         self._refresh_current_id_buttons()
         self._sync_alumno_nombre()

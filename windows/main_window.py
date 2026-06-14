@@ -339,9 +339,12 @@ class MainWindow(QMainWindow):
 
         # Cuentas menu
         self.cuentas_menu = menu_bar.addMenu("&Cuentas")
-        cuentas_nuevo_action = QAction("&Nuevo", self)
-        cuentas_nuevo_action.triggered.connect(self.on_cuentas_nuevo)
-        self.cuentas_menu.addAction(cuentas_nuevo_action)
+        cuentas_nuevo_credito_action = QAction("Nuevo &Crédito", self)
+        cuentas_nuevo_credito_action.triggered.connect(self.on_cuentas_nuevo_credito)
+        self.cuentas_menu.addAction(cuentas_nuevo_credito_action)
+        cuentas_nuevo_debito_action = QAction("Nuevo &Débito", self)
+        cuentas_nuevo_debito_action.triggered.connect(self.on_cuentas_nuevo_debito)
+        self.cuentas_menu.addAction(cuentas_nuevo_debito_action)
         cuentas_buscar_action = QAction("&Buscar", self)
         cuentas_buscar_action.triggered.connect(self.on_cuentas_buscar)
         self.cuentas_menu.addAction(cuentas_buscar_action)
@@ -578,10 +581,17 @@ class MainWindow(QMainWindow):
         log.info("Menú: Parientes > Reportes")
         QMessageBox.information(self, "Reportes de Parientes", "Reportes de parientes próximamente.")
 
-    def on_cuentas_nuevo(self):
-        """Handle the Cuentas > Nuevo menu action."""
-        log.info("Menú: Cuentas > Nuevo")
-        NuevoCuentaDialog(self).exec()
+    def on_cuentas_nuevo_credito(self):
+        """Handle the Cuentas > Nuevo Crédito menu action."""
+        log.info("Menú: Cuentas > Nuevo Crédito")
+        NuevoCuentaDialog(self, mode="credito").exec()
+        self._refresh_current_alumno_id_label()
+        self._refresh_current_adulto_id_label()
+
+    def on_cuentas_nuevo_debito(self):
+        """Handle the Cuentas > Nuevo Débito menu action."""
+        log.info("Menú: Cuentas > Nuevo Débito")
+        NuevoCuentaDialog(self, mode="debito").exec()
         self._refresh_current_alumno_id_label()
         self._refresh_current_adulto_id_label()
 
