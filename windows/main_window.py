@@ -107,6 +107,7 @@ class MainWindow(QMainWindow):
         self._handling_close_flow = False
         self._apply_window_title()
         self.resize(800, 600)
+        self.setStyleSheet("font-size: 14px;")
         self._build_menu_bar()
         self._build_central()
         self._configure_session_database(self._username)

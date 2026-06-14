@@ -27,6 +27,7 @@ class LoginDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(f"{PROJECT_NAME} - Versión: {VERSION}")
         self.setFixedSize(500, 190)
+        self.setStyleSheet("font-size: 14px;")
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout(self)
