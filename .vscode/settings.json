@@ -1,11 +1,9 @@
 {
-  "python.defaultInterpreterPath": "C:\\Users\\tw\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\python.exe",
-  "python.terminal.activateEnvironment": true
-}{
+    "python.defaultInterpreterPath": "C:\\Users\\sv\\AppData\\Local\\Python\\bin\\python.exe",
+    "python.terminal.activateEnvironment": true,
     "git.confirmSync": false,
     "git.enableSmartCommit": true,
     "git.postCommitCommand": "none",
-    "python.defaultInterpreterPath": "C:\\Users\\tw\\AppData\\Local\\Microsoft\\WindowsApps\\python3.14.exe",
     "github.copilot.chat.askAgent.additionalTools": [
         "apply_patch"
     ]
