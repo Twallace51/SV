@@ -65,6 +65,11 @@ def _normalize_related_adulto_id(value):
 class _AlumnoFormDialog(QDialog):
     """Shared widgets and behaviour for the Nuevo/Editar alumno forms."""
 
+    # Label prefix for the "Adulto Actual" buttons and whether those buttons
+    # are placed after the lookup field (last widget in their row).
+    _ADULTO_BUTTON_PREFIX = "Adulto Actual"
+    _ADULTO_BUTTON_LAST = False
+
     # --- Widget construction ---------------------------------------------
 
     def _create_common_fields(self):
@@ -85,7 +90,7 @@ class _AlumnoFormDialog(QDialog):
         self.id_padre.setPlaceholderText("ID")
         self.id_padre.setValidator(QIntValidator(1, 999999999, self))
         self.id_padre.setMaximumWidth(100)
-        self.current_padre_btn = QPushButton("Adulto Actual")
+        self.current_padre_btn = QPushButton(self._ADULTO_BUTTON_PREFIX)
         self.current_padre_btn.clicked.connect(self._apply_current_adulto_to_padre)
         self.padre_lookup = QLineEdit()
         self.padre_lookup.setReadOnly(True)
@@ -96,7 +101,7 @@ class _AlumnoFormDialog(QDialog):
         self.id_madre.setPlaceholderText("ID")
         self.id_madre.setValidator(QIntValidator(1, 999999999, self))
         self.id_madre.setMaximumWidth(100)
-        self.current_madre_btn = QPushButton("Adulto Actual")
+        self.current_madre_btn = QPushButton(self._ADULTO_BUTTON_PREFIX)
         self.current_madre_btn.clicked.connect(self._apply_current_adulto_to_madre)
         self.madre_lookup = QLineEdit()
         self.madre_lookup.setReadOnly(True)
@@ -119,21 +124,21 @@ class _AlumnoFormDialog(QDialog):
         form.addRow("RUDE:", self.rude)
         form.addRow("Carnet:", self.carnet)
 
-        padre_row = QWidget(self)
-        padre_layout = QHBoxLayout(padre_row)
-        padre_layout.setContentsMargins(0, 0, 0, 0)
-        padre_layout.addWidget(self.id_padre)
-        padre_layout.addWidget(self.current_padre_btn)
-        padre_layout.addWidget(self.padre_lookup, 1)
-        form.addRow("ID Padre:", padre_row)
-
-        madre_row = QWidget(self)
-        madre_layout = QHBoxLayout(madre_row)
-        madre_layout.setContentsMargins(0, 0, 0, 0)
-        madre_layout.addWidget(self.id_madre)
-        madre_layout.addWidget(self.current_madre_btn)
-        madre_layout.addWidget(self.madre_lookup, 1)
-        form.addRow("ID Madre:", madre_row)
+        for label, id_field, button, lookup in (
+            ("ID Padre:", self.id_padre, self.current_padre_btn, self.padre_lookup),
+            ("ID Madre:", self.id_madre, self.current_madre_btn, self.madre_lookup),
+        ):
+            row = QWidget(self)
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.addWidget(id_field)
+            if self._ADULTO_BUTTON_LAST:
+                row_layout.addWidget(lookup, 1)
+                row_layout.addWidget(button)
+            else:
+                row_layout.addWidget(button)
+                row_layout.addWidget(lookup, 1)
+            form.addRow(label, row)
 
         form.addRow("Grado:", self.grado)
         form.addRow("Pensión:", self.pension)
@@ -146,7 +151,7 @@ class _AlumnoFormDialog(QDialog):
             parts.append(str(parientes_dialogs.current_adulto_id))
         if parientes_dialogs.current_adulto_name:
             parts.append(str(parientes_dialogs.current_adulto_name))
-        text = f"Adulto Actual: {' - '.join(parts)}" if parts else "Adulto Actual: -"
+        text = f"{self._ADULTO_BUTTON_PREFIX}: {' - '.join(parts)}" if parts else f"{self._ADULTO_BUTTON_PREFIX}: -"
         self.current_padre_btn.setText(text)
         self.current_madre_btn.setText(text)
 
@@ -231,6 +236,9 @@ class _AlumnoFormDialog(QDialog):
 class NuevoAlumnoDialog(_AlumnoFormDialog):
     """Form dialog to insert a new alumno into SV.db."""
 
+    _ADULTO_BUTTON_PREFIX = "<< Adulto Actual"
+    _ADULTO_BUTTON_LAST = True
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Alumnos - Nuevo")
@@ -277,6 +285,9 @@ class NuevoAlumnoDialog(_AlumnoFormDialog):
 
 class EditAlumnoDialog(_AlumnoFormDialog):
     """Edit form pre-populated with an existing alumno record."""
+
+    _ADULTO_BUTTON_PREFIX = "<< Adulto Actual"
+    _ADULTO_BUTTON_LAST = True
 
     def __init__(self, record_id: int, parent=None, is_admin: bool = False):
         super().__init__(parent)
