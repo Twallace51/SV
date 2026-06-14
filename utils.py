@@ -7,6 +7,7 @@ import os
 import json
 import logging
 import logging.handlers
+import re
 from pathlib import Path
 from importlib import metadata
 from urllib.error import URLError
@@ -154,6 +155,54 @@ def build_whatsapp_url(phone: str, message: str = "", country_code: str = BOLIVI
     url = f"https://wa.me/{number}"
     if message:
         url += f"?text={quote(message)}"
+    return url
+
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def normalize_email(raw: str) -> str | None:
+    """Return a trimmed, lower-cased email address, or ``None`` if invalid."""
+    candidate = str(raw or "").strip()
+    if not candidate:
+        return None
+    return candidate.lower() if _EMAIL_RE.match(candidate) else None
+
+
+def build_mailto_url(
+    recipients: "str | list[str] | tuple[str, ...]",
+    subject: str = "",
+    body: str = "",
+    use_bcc: bool = False,
+) -> str | None:
+    """Return a ``mailto:`` URL, or ``None`` when no valid recipient is given.
+
+    ``recipients`` may be a single address or an iterable of addresses; invalid
+    ones are dropped. When ``use_bcc`` is True the recipients are placed in the
+    ``bcc`` field (keeping addresses private for a group send) and the primary
+    ``to`` is left empty.
+    """
+    from urllib.parse import quote, urlencode
+
+    if isinstance(recipients, str):
+        recipients = [recipients]
+    valid = [email for email in (normalize_email(r) for r in recipients) if email]
+    if not valid:
+        return None
+
+    params = {}
+    if use_bcc:
+        url = "mailto:"
+        params["bcc"] = ",".join(valid)
+    else:
+        url = "mailto:" + ",".join(valid)
+    if subject:
+        params["subject"] = subject
+    if body:
+        params["body"] = body
+
+    if params:
+        url += "?" + urlencode(params, quote_via=quote)
     return url
 
 

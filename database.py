@@ -190,6 +190,24 @@ def list_adultos_con_celular() -> list[tuple]:
         return []
 
 
+def list_adultos_con_email() -> list[tuple]:
+    """Return ``(id, a_nombres, a_paterno, a_materno, email)`` rows for every
+    adulto that has a non-empty email address."""
+    try:
+        conn = connect()
+        try:
+            return conn.execute(
+                "SELECT id, a_nombres, a_paterno, a_materno, email"
+                " FROM adultos"
+                " WHERE COALESCE(TRIM(email), '') <> ''"
+                " ORDER BY a_paterno, a_nombres",
+            ).fetchall()
+        finally:
+            conn.close()
+    except Exception:
+        return []
+
+
 
 # --- Alumnos lookups ------------------------------------------------------
 

@@ -45,6 +45,7 @@ try:
         )
     from dialogs.reportes_adultos import ReporteAdultosConAlumnosDialog
     from dialogs.whatsapp import EnviarWhatsAppDialog
+    from dialogs.email import EnviarEmailDialog
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
     from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog, ReporteCuentasDetallesDialog
@@ -80,6 +81,7 @@ except (ModuleNotFoundError, ImportError):
         )
     from dialogs.reportes_adultos import ReporteAdultosConAlumnosDialog
     from dialogs.whatsapp import EnviarWhatsAppDialog
+    from dialogs.email import EnviarEmailDialog
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
     from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog, ReporteCuentasDetallesDialog
@@ -367,6 +369,9 @@ class MainWindow(QMainWindow):
         self.adultos_whatsapp_action = QAction("Enviar &WhatsApp", self)
         self.adultos_whatsapp_action.triggered.connect(self.on_adultos_whatsapp)
         self.adultos_menu.addAction(self.adultos_whatsapp_action)
+        self.adultos_email_action = QAction("Enviar &Email", self)
+        self.adultos_email_action.triggered.connect(self.on_adultos_email)
+        self.adultos_menu.addAction(self.adultos_email_action)
 
         # Cuentas menu
         self.cuentas_menu = menu_bar.addMenu("&Cuentas")
@@ -623,6 +628,11 @@ class MainWindow(QMainWindow):
         """Handle the Adultos > Enviar WhatsApp menu action."""
         log.info("Menú: Adultos > Enviar WhatsApp")
         EnviarWhatsAppDialog(self).exec()
+
+    def on_adultos_email(self):
+        """Handle the Adultos > Enviar Email menu action."""
+        log.info("Menú: Adultos > Enviar Email")
+        EnviarEmailDialog(self).exec()
 
     def on_cuentas_nuevo_credito(self):
         """Handle the Cuentas > Nuevo Crédito menu action."""

@@ -159,6 +159,12 @@ class TestMainWindowMenuBar:
         ]
         assert "Enviar WhatsApp" in action_texts
 
+    def test_adultos_menu_has_email_action(self, window):
+        action_texts = [
+            action.text().replace("&", "") for action in window.adultos_menu.actions()
+        ]
+        assert "Enviar Email" in action_texts
+
     def test_cuentas_total_action_calls_handler(self, window, monkeypatch):
         calls = []
         window.cuentas_total_action.triggered.disconnect()

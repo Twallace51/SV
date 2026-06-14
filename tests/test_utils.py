@@ -15,6 +15,8 @@ from utils import (
     warn_if_not_running_from_project_venv,
     normalize_bolivia_phone,
     build_whatsapp_url,
+    normalize_email,
+    build_mailto_url,
 )
 # endregion
 
@@ -128,3 +130,44 @@ class TestWhatsAppHelpers:
 
     def test_build_whatsapp_url_invalid_number(self):
         assert build_whatsapp_url("") is None
+
+
+class TestEmailHelpers:
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            ("user@example.com", "user@example.com"),
+            ("  User@Example.COM  ", "user@example.com"),
+            ("a.b-c@sub.example.co", "a.b-c@sub.example.co"),
+            ("", None),
+            ("   ", None),
+            ("not-an-email", None),
+            ("missing@domain", None),
+            ("@example.com", None),
+            ("two@@example.com", None),
+        ],
+    )
+    def test_normalize_email(self, raw, expected):
+        assert normalize_email(raw) == expected
+
+    def test_build_mailto_single_recipient(self):
+        assert build_mailto_url("user@example.com") == "mailto:user@example.com"
+
+    def test_build_mailto_multiple_to(self):
+        url = build_mailto_url(["a@example.com", "b@example.com"])
+        assert url == "mailto:a@example.com,b@example.com"
+
+    def test_build_mailto_bcc(self):
+        url = build_mailto_url(["a@example.com", "b@example.com"], use_bcc=True)
+        assert url == "mailto:?bcc=a%40example.com%2Cb%40example.com"
+
+    def test_build_mailto_with_subject_and_body(self):
+        url = build_mailto_url("user@example.com", subject="Hola", body="Buen dia")
+        assert url == "mailto:user@example.com?subject=Hola&body=Buen%20dia"
+
+    def test_build_mailto_drops_invalid_recipients(self):
+        url = build_mailto_url(["bad", "good@example.com"])
+        assert url == "mailto:good@example.com"
+
+    def test_build_mailto_all_invalid(self):
+        assert build_mailto_url(["bad", "also-bad"]) is None
