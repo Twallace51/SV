@@ -236,7 +236,7 @@ class NuevoAlumnoDialog(_AlumnoFormDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Alumnos - Nuevo")
-        self.setMinimumWidth(800)
+        self.setMinimumWidth(600)
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
@@ -287,7 +287,7 @@ class EditAlumnoDialog(_AlumnoFormDialog):
         self._id = record_id
         self._is_admin = is_admin
         self.setWindowTitle("Alumnos - Editar")
-        self.setMinimumWidth(800)
+        self.setMinimumWidth(600)
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
