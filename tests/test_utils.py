@@ -66,7 +66,7 @@ class TestProjectVenvWarning:
     def test_detects_project_venv(self, monkeypatch):
         monkeypatch.setattr(
             "utils.sys.executable",
-            r"G:\SendasVida\SV-1.3\.venv\Scripts\python.exe",
+            r"G:\SendasVida\SV-1.5\.venv\Scripts\python.exe",
             raising=False,
         )
         assert is_running_from_project_venv() is True
@@ -94,7 +94,7 @@ class TestProjectVenvWarning:
     def test_does_not_warn_when_running_from_project_venv(self, monkeypatch):
         monkeypatch.setattr(
             "utils.sys.executable",
-            r"G:\SendasVida\SV-1.3\.venv\Scripts\python.exe",
+            r"G:\SendasVida\SV-1.5\.venv\Scripts\python.exe",
             raising=False,
         )
         warnings = []

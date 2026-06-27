@@ -3,9 +3,9 @@
 from pathlib import Path
 
 PROJECT_NAME = "Sendas de Vida Menu"
-VERSION = "1.4"
+VERSION = "1.5"
 
-DB_PATH = Path(__file__).parent / "SV-1.3.db"
+DB_PATH = Path(__file__).parent / F"SV-{VERSION}.db"
 _ACTIVE_DB_PATH = DB_PATH
 
 

@@ -673,11 +673,11 @@ class MainWindow(QMainWindow):
     def on_about(self):
         """Display application About information."""
         log.info("Menú: Ayuda > Acerca de")
-        about_path = Path(__file__).parent.parent / "About.md"
+        about_path = Path(__file__).parent.parent / "md" / "About.md"
         about_text = (
             about_path.read_text(encoding="utf-8")
             if about_path.exists()
-            else "# Acerca de\n\nNo se encontró About.md."
+            else "# Acerca de\n\nNo se encontró md/About.md."
         )
 
         dialog = QDialog(self)
