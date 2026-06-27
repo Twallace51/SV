@@ -249,7 +249,7 @@ def list_alumnos_para_whatsapp(only_pending: bool = False) -> list[tuple]:
 
             query = (
                 "SELECT a.id, "
-                "TRIM(COALESCE(a.paterno, '') || ' ' || COALESCE(a.nombres, '') || "
+                "TRIM(COALESCE(a.nombres, '') || ' ' || COALESCE(a.paterno, '') || "
                 "CASE WHEN COALESCE(a.materno, '') <> '' THEN ' ' || a.materno ELSE '' END), "
                 f"{grade_expr} "
                 "FROM alumnos a"

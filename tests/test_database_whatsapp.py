@@ -42,6 +42,8 @@ def test_list_alumnos_para_whatsapp_only_returns_valid_id_grado(tmp_path):
         rows = database.list_alumnos_para_whatsapp()
         ids = [row[0] for row in rows]
         assert ids == [1, 7]
+        assert rows[0][1] == "Ana Lopez Rios"
+        assert rows[1][1] == "Gina Arce"
     finally:
         reset_active_db_path()
 
