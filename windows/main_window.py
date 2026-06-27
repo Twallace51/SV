@@ -94,6 +94,8 @@ class MainWindow(QMainWindow):
     """Primary application window shown after successful login."""
 
     _INACTIVITY_TIMEOUT_MS = config.INACTIVITY_TIMEOUT_MS
+    _AUTO_BACKUP_INTERVAL_DAYS = 7
+    _MAX_BACKUP_FILES = 7
     _USER_ACTIVITY_EVENTS = {
         QEvent.Type.MouseMove,
         QEvent.Type.MouseButtonPress,
@@ -113,6 +115,7 @@ class MainWindow(QMainWindow):
         self._trainee_temp_db_path: Path | None = None
         self._allow_close = False
         self._handling_close_flow = False
+        self._automatic_backup_checked = False
         self._apply_window_title()
         self.resize(800, 600)
         self._build_menu_bar()
@@ -122,6 +125,74 @@ class MainWindow(QMainWindow):
         self._setup_inactivity_timer()
         self._apply_window_title()
         self._apply_session_theme()
+
+    def _backup_directory_for(self, db_path: Path) -> Path:
+        """Return the folder used to store database backups."""
+        return db_path.parent / "Backups"
+
+    def _backup_glob_for(self, db_path: Path) -> str:
+        """Return the filename pattern used for backups of a database."""
+        return f"{db_path.stem}_backup_*{db_path.suffix}"
+
+    def _list_backup_files(self, db_path: Path) -> list[Path]:
+        """List existing backups sorted from oldest to newest."""
+        backup_dir = self._backup_directory_for(db_path)
+        if not backup_dir.exists():
+            return []
+        return sorted(
+            backup_dir.glob(self._backup_glob_for(db_path)),
+            key=lambda path: path.stat().st_mtime,
+        )
+
+    def _prune_old_backups(self, db_path: Path):
+        """Keep at most the configured number of backup files."""
+        backup_files = self._list_backup_files(db_path)
+        excess_files = len(backup_files) - self._MAX_BACKUP_FILES
+        for backup_file in backup_files[:max(excess_files, 0)]:
+            try:
+                backup_file.unlink()
+            except OSError:
+                log.exception("Error al eliminar backup antiguo: %s", backup_file)
+
+    def _create_database_backup(self, db_path: Path) -> Path:
+        """Create a timestamped database backup and enforce retention."""
+        backup_dir = self._backup_directory_for(db_path)
+        backup_dir.mkdir(exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_file = backup_dir / f"{db_path.stem}_backup_{timestamp}{db_path.suffix}"
+
+        shutil.copy2(db_path, backup_file)
+        self._prune_old_backups(db_path)
+        return backup_file
+
+    def _should_run_weekly_backup(self, db_path: Path, now: datetime | None = None) -> bool:
+        """Return True when the latest backup is at least one week old."""
+        backup_files = self._list_backup_files(db_path)
+        if not backup_files:
+            return True
+
+        current_time = now or datetime.now()
+        latest_mtime = datetime.fromtimestamp(backup_files[-1].stat().st_mtime)
+        return (current_time - latest_mtime).days >= self._AUTO_BACKUP_INTERVAL_DAYS
+
+    def _run_weekly_database_backup(self):
+        """Create a silent weekly backup of the production database when due."""
+        db_path = Path(DB_PATH)
+        if not db_path.exists():
+            log.warning("No se encontró la base de datos para backup automático: %s", db_path)
+            return
+
+        if not self._should_run_weekly_backup(db_path):
+            return
+
+        try:
+            backup_file = self._create_database_backup(db_path)
+        except OSError:
+            log.exception("Error al crear backup automático de base de datos")
+            return
+
+        log.info("Backup automático semanal creado: %s", backup_file)
 
     def _setup_inactivity_timer(self):
         """Initialize and start inactivity tracking for automatic logout."""
@@ -216,6 +287,9 @@ class MainWindow(QMainWindow):
     def showEvent(self, event: QShowEvent):
         """Reapply title on show to keep native title bar in sync."""
         self._apply_window_title()
+        if not self._automatic_backup_checked:
+            self._automatic_backup_checked = True
+            self._run_weekly_database_backup()
         self._restart_inactivity_timer()
         super().showEvent(event)
 
@@ -532,14 +606,8 @@ class MainWindow(QMainWindow):
             )
             return
 
-        backup_dir = db_path.parent / "backups"
-        backup_dir.mkdir(exist_ok=True)
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_file = backup_dir / f"{db_path.stem}_backup_{timestamp}{db_path.suffix}"
-
         try:
-            shutil.copy2(db_path, backup_file)
+            backup_file = self._create_database_backup(db_path)
         except OSError as exc:
             log.exception("Error al crear backup de base de datos")
             QMessageBox.critical(

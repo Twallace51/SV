@@ -1,11 +1,12 @@
 """Tests for MainWindow."""
 
 # region - imports
+import os
 import runpy
 import sqlite3
 import sys
 import types
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -447,6 +448,52 @@ class TestTraineeDatabaseSession:
         finally:
             win.close()
             reset_active_db_path()
+
+
+class TestDatabaseBackups:
+    def test_should_run_weekly_backup_only_when_last_backup_is_older_than_seven_days(self, qapp, tmp_path):
+        db_path = tmp_path / "SV.db"
+        db_path.write_text("db", encoding="utf-8")
+
+        win = MainWindow("user")
+        try:
+            backup_dir = win._backup_directory_for(db_path)
+            backup_dir.mkdir()
+            backup_file = backup_dir / "SV_backup_20260620_090000.db"
+            backup_file.write_text("backup", encoding="utf-8")
+
+            recent_time = datetime(2026, 6, 20, 9, 0, 0).timestamp()
+            os.utime(backup_file, (recent_time, recent_time))
+
+            assert win._should_run_weekly_backup(db_path, datetime(2026, 6, 26, 8, 0, 0)) is False
+            assert win._should_run_weekly_backup(db_path, datetime(2026, 6, 27, 9, 0, 0)) is True
+        finally:
+            win.close()
+
+    def test_prune_old_backups_keeps_only_seven_files(self, qapp, tmp_path):
+        db_path = tmp_path / "SV.db"
+        db_path.write_text("db", encoding="utf-8")
+
+        win = MainWindow("user")
+        try:
+            backup_dir = win._backup_directory_for(db_path)
+            backup_dir.mkdir()
+
+            for index in range(8):
+                backup_file = backup_dir / f"SV_backup_202606{index + 1:02d}_090000.db"
+                backup_file.write_text(f"backup-{index}", encoding="utf-8")
+                file_time = (datetime(2026, 6, 1, 9, 0, 0) + timedelta(days=index)).timestamp()
+                os.utime(backup_file, (file_time, file_time))
+
+            win._prune_old_backups(db_path)
+
+            remaining = [path.name for path in win._list_backup_files(db_path)]
+
+            assert len(remaining) == 7
+            assert "SV_backup_20260601_090000.db" not in remaining
+            assert remaining[0] == "SV_backup_20260602_090000.db"
+        finally:
+            win.close()
 
 
 class TestMainWindowBootstrap:
