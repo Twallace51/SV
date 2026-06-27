@@ -55,14 +55,15 @@ def main() -> int:
         return 0
 
     window = MainWindow(login.logged_in_username or "unknown")
-    window.run_startup_backup_check()
     window.show()
     if login.logged_in_username.strip().lower() == "trainee":
         window.training_mode_notice = show_training_mode_notice(window)
 
     # endregion
 
-    return app.exec()
+    exit_code = app.exec()
+    window.run_shutdown_backup_check()
+    return exit_code
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -212,8 +212,8 @@ class MainWindow(QMainWindow):
 
         log.info("Backup automático semanal creado: %s", backup_file)
 
-    def run_startup_backup_check(self):
-        """Check backup age at session start and create one only when due."""
+    def run_shutdown_backup_check(self):
+        """Check backup age at app shutdown and create one only when due."""
         self._run_weekly_database_backup()
 
     def _setup_inactivity_timer(self):
@@ -581,7 +581,6 @@ class MainWindow(QMainWindow):
         """Apply session state for a newly authenticated user."""
         self._username = username or "unknown"
         self._configure_session_database(self._username)
-        self.run_startup_backup_check()
         self._refresh_backup_action_state()
         self._apply_window_title()
         self._apply_session_theme()
