@@ -44,6 +44,9 @@ class TestLoginDialogInit:
     def test_has_training_mode_button(self, dialog):
         assert dialog.training_mode_btn.text() == "Modo Entrenamiento"
 
+    def test_has_admin_mode_button(self, dialog):
+        assert dialog.admin_mode_btn.text() == "Modo Admin"
+
     def test_has_normal_user_mode_button(self, dialog):
         assert dialog.normal_user_mode_btn.text() == "Modo Usuario Normal"
 
@@ -84,6 +87,62 @@ class TestNormalUserModeButton:
         assert dialog.logged_in_username == "user"
         assert dialog.username_edit.text() == "user"
         assert dialog.password_edit.text() == "user"
+
+
+class TestAdminModeButton:
+    def test_admin_mode_button_logs_in_as_admin_with_valid_password(self, dialog, monkeypatch):
+        monkeypatch.setattr(
+            "dialogs.login.QInputDialog.getText",
+            lambda *args, **kwargs: ("admin", True),
+        )
+
+        accepted = []
+        original_accept = dialog.accept
+        dialog.accept = lambda: accepted.append(True) or original_accept()
+
+        dialog.admin_mode_btn.click()
+
+        assert accepted == [True]
+        assert dialog.logged_in_username == "admin"
+        assert dialog.username_edit.text() == "admin"
+        assert dialog.password_edit.text() == "admin"
+
+    def test_admin_mode_button_invalid_password_shows_error(self, dialog, monkeypatch):
+        monkeypatch.setattr(
+            "dialogs.login.QInputDialog.getText",
+            lambda *args, **kwargs: ("wrong", True),
+        )
+
+        warning_calls = []
+        monkeypatch.setattr(
+            "dialogs.login.QMessageBox.warning",
+            lambda *args, **kwargs: warning_calls.append((args, kwargs)),
+        )
+
+        accepted = []
+        original_accept = dialog.accept
+        dialog.accept = lambda: accepted.append(True) or original_accept()
+
+        dialog.admin_mode_btn.click()
+
+        assert accepted == []
+        assert dialog.logged_in_username == ""
+        assert len(warning_calls) == 1
+
+    def test_admin_mode_button_cancel_does_nothing(self, dialog, monkeypatch):
+        monkeypatch.setattr(
+            "dialogs.login.QInputDialog.getText",
+            lambda *args, **kwargs: ("", False),
+        )
+
+        accepted = []
+        original_accept = dialog.accept
+        dialog.accept = lambda: accepted.append(True) or original_accept()
+
+        dialog.admin_mode_btn.click()
+
+        assert accepted == []
+        assert dialog.logged_in_username == ""
 
 class TestPasswordToggle:
     def test_toggle_show(self, dialog):

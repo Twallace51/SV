@@ -6,7 +6,7 @@ import logging
 
 from PySide6.QtWidgets import (
     QDialog, QLabel, QLineEdit, QPushButton,
-    QVBoxLayout, QFormLayout, QMessageBox, QHBoxLayout,
+    QVBoxLayout, QFormLayout, QMessageBox, QHBoxLayout, QInputDialog,
 )
 from PySide6.QtGui import QMouseEvent, QWheelEvent
 from PySide6.QtCore import Qt
@@ -47,9 +47,12 @@ class LoginDialog(QDialog):
         self.normal_user_mode_btn.clicked.connect(self.login_as_user)
         self.training_mode_btn = QPushButton("Modo Entrenamiento")
         self.training_mode_btn.clicked.connect(self.login_as_trainee)
+        self.admin_mode_btn = QPushButton("Modo Admin")
+        self.admin_mode_btn.clicked.connect(self.login_as_admin)
 
         quick_login_layout = QVBoxLayout()
         quick_login_layout.setContentsMargins(0, 0, 0, 0)
+        quick_login_layout.addWidget(self.admin_mode_btn)
         quick_login_layout.addWidget(self.training_mode_btn)
         quick_login_layout.addWidget(self.normal_user_mode_btn)
         layout.addLayout(quick_login_layout)
@@ -132,6 +135,23 @@ class LoginDialog(QDialog):
     def login_as_user(self):
         """Quick-login shortcut for normal user mode."""
         self._quick_login_as("user")
+
+    def login_as_admin(self):
+        """Prompt for admin password and login as admin when valid."""
+        password, accepted = QInputDialog.getText(
+            self,
+            "Modo Admin",
+            "Ingrese contraseña admin:",
+            QLineEdit.Password,
+        )
+        if not accepted:
+            return
+
+        if password == config.LOGIN_CREDENTIALS.get("admin"):
+            self._quick_login_as("admin")
+            return
+
+        QMessageBox.warning(self, "Error de acceso", "Contraseña admin incorrecta.")
 
     def _quick_login_as(self, username: str):
         """Fill credentials for a built-in user and accept the dialog."""
