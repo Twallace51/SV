@@ -209,8 +209,12 @@ def list_adultos_con_email() -> list[tuple]:
         return []
 
 
-def list_alumnos_para_whatsapp() -> list[tuple]:
-    """Return ``(id, nombre_completo, grado)`` rows ordered by surname/name."""
+def list_alumnos_para_whatsapp(only_pending: bool = False) -> list[tuple]:
+    """Return ``(id, nombre_completo, grado)`` rows for enrolled alumnos.
+
+    When ``only_pending`` is True, return only alumnos whose balance is below
+    zero (creditos minus debitos), meaning they still have a pending account.
+    """
     try:
         conn = connect()
         try:
@@ -234,19 +238,34 @@ def list_alumnos_para_whatsapp() -> list[tuple]:
                     " END"
                 )
 
-            return conn.execute(
+            balance_join = ""
+            balance_expr = "0"
+            if only_pending and "ctas" in tables:
+                balance_expr = (
+                    "COALESCE(SUM(COALESCE(c.credito, 0)), 0) - "
+                    "COALESCE(SUM(COALESCE(c.debito, 0)), 0)"
+                )
+                balance_join = " LEFT JOIN ctas c ON c.id_alumno = a.id"
+
+            query = (
                 "SELECT a.id, "
                 "TRIM(COALESCE(a.paterno, '') || ' ' || COALESCE(a.nombres, '') || "
                 "CASE WHEN COALESCE(a.materno, '') <> '' THEN ' ' || a.materno ELSE '' END), "
                 f"{grade_expr} "
                 "FROM alumnos a"
                 f"{grade_join}"
+                f"{balance_join}"
                 " WHERE a.id_grado IS NOT NULL"
                 " AND TRIM(CAST(a.id_grado AS TEXT)) <> ''"
                 " AND LOWER(TRIM(CAST(a.id_grado AS TEXT))) NOT IN ('null', 'none')"
                 " AND CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER) > 0"
-                " ORDER BY CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER), a.nombres"
-            ).fetchall()
+            )
+            if only_pending:
+                if "ctas" not in tables:
+                    return []
+                query += f" GROUP BY a.id HAVING {balance_expr} < 0"
+            query += " ORDER BY CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER), a.nombres"
+            return conn.execute(query).fetchall()
         finally:
             conn.close()
     except Exception:

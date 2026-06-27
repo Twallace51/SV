@@ -14,7 +14,7 @@ class TestEnviarWhatsAppDialogStudentFlow:
     def test_loads_linked_parents_for_selected_student(self, qapp, monkeypatch):
         monkeypatch.setattr(
             "dialogs.whatsapp.database.list_alumnos_para_whatsapp",
-            lambda: [(1, "Lopez Ana Rios", "Primero")],
+            lambda only_pending=False: [(1, "Lopez Ana Rios", "Primero")],
         )
         monkeypatch.setattr(
             "dialogs.whatsapp.database.get_whatsapp_targets_for_alumno",
@@ -45,7 +45,7 @@ class TestEnviarWhatsAppDialogStudentFlow:
     def test_renders_placeholders_before_opening_chat(self, qapp, monkeypatch):
         monkeypatch.setattr(
             "dialogs.whatsapp.database.list_alumnos_para_whatsapp",
-            lambda: [(1, "Lopez Ana Rios", "Primero")],
+            lambda only_pending=False: [(1, "Lopez Ana Rios", "Primero")],
         )
         monkeypatch.setattr(
             "dialogs.whatsapp.database.get_whatsapp_targets_for_alumno",
@@ -91,7 +91,7 @@ class TestEnviarWhatsAppDialogStudentFlow:
     def test_shows_empty_state_when_student_has_no_parent_phones(self, qapp, monkeypatch):
         monkeypatch.setattr(
             "dialogs.whatsapp.database.list_alumnos_para_whatsapp",
-            lambda: [(1, "Lopez Ana Rios", "Primero")],
+            lambda only_pending=False: [(1, "Lopez Ana Rios", "Primero")],
         )
         monkeypatch.setattr(
             "dialogs.whatsapp.database.get_whatsapp_targets_for_alumno",
@@ -111,5 +111,35 @@ class TestEnviarWhatsAppDialogStudentFlow:
         try:
             assert dlg.table.rowCount() == 0
             assert "no tiene padres vinculados" in dlg.status_label.text().lower()
+        finally:
+            dlg.close()
+
+    def test_switching_filter_updates_default_template(self, qapp, monkeypatch):
+        monkeypatch.setattr(
+            "dialogs.whatsapp.database.list_alumnos_para_whatsapp",
+            lambda only_pending=False: [(1, "Lopez Ana Rios", "Primero")],
+        )
+        monkeypatch.setattr(
+            "dialogs.whatsapp.database.get_whatsapp_targets_for_alumno",
+            lambda alumno_id: (
+                {
+                    "student_name": "Lopez Ana Rios",
+                    "grade": "Primero",
+                    "balance": "-150",
+                    "alumno_id": "1",
+                    "date": "2026-06-27",
+                },
+                [("Perez Juan", "70123456")],
+            ),
+        )
+
+        dlg = EnviarWhatsAppDialog()
+        try:
+            assert "cuenta por {student_name}" in dlg.message_edit.toPlainText()
+
+            dlg.filter_combo.setCurrentIndex(1)
+
+            assert "cuenta pendiente" in dlg.message_edit.toPlainText()
+            assert "Balance pendiente" in dlg.message_edit.toPlainText()
         finally:
             dlg.close()

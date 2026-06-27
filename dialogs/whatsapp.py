@@ -23,18 +23,28 @@ from modules.utils import build_whatsapp_url, normalize_bolivia_phone
 # endregion
 
 log = logging.getLogger("app")
-#logger.setLevel(logging.DEBUG)
-logger.setLevel(logging.INFO)
+
 
 class EnviarWhatsAppDialog(QDialog):
     """Pick recipients from the adultos list and open one WhatsApp chat at a time."""
 
     _HEADERS = ["", "Nombre", "Celular"]
-    _DEFAULT_TEMPLATE = (
-        "Hola {parent_name}        Fecha: {date}.\n"
-        "Le escribimos respecto la cuenta por {student_name} ({grade}).\n"
-        "Balance actual: {balance}."
-    )
+    _FILTER_OPTIONS = [
+        ("Todos inscritos", False),
+        ("Solo con cuentas pendientes", True),
+    ]
+    _TEMPLATES = {
+        False: (
+            "Hola {parent_name}        Fecha: {date}.\n"
+            "Le escribimos respecto la cuenta por {student_name} ({grade}).\n"
+            "Balance actual: {balance}."
+        ),
+        True: (
+            "Hola {parent_name}        Fecha: {date}.\n"
+            "Le escribimos respecto la cuenta pendiente de {student_name} ({grade}).\n"
+            "Balance pendiente: {balance}."
+        ),
+    }
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -54,6 +64,17 @@ class EnviarWhatsAppDialog(QDialog):
             "alumno_id": "",
             "date": "",
         }
+        self._current_filter_pending = False
+
+        filter_row = QHBoxLayout()
+        filter_row.addWidget(QLabel("Filtro:"))
+        self.filter_combo = QComboBox(self)
+        for label, is_pending in self._FILTER_OPTIONS:
+            self.filter_combo.addItem(label, is_pending)
+        self.filter_combo.currentIndexChanged.connect(self._on_filter_changed)
+        filter_row.addWidget(self.filter_combo)
+        filter_row.addStretch()
+        layout.addLayout(filter_row)
 
         student_row = QHBoxLayout()
         student_row.addWidget(QLabel("Selecionar Alumno >"))
@@ -69,7 +90,7 @@ class EnviarWhatsAppDialog(QDialog):
         self.message_edit = QPlainTextEdit()
         self.message_edit.setPlaceholderText("Escriba el mensaje a enviar…")
         self.message_edit.setFixedHeight(90)
-        self.message_edit.setPlainText(self._DEFAULT_TEMPLATE)
+        self.message_edit.setPlainText(self._TEMPLATES[False])
         layout.addWidget(self.message_edit)
 
         select_row = QHBoxLayout()
@@ -111,8 +132,21 @@ class EnviarWhatsAppDialog(QDialog):
 
         self._load_students()
 
+    def _selected_filter_pending(self) -> bool:
+        value = self.filter_combo.currentData()
+        return bool(value)
+
+    def _default_template_for_filter(self, only_pending: bool) -> str:
+        return self._TEMPLATES[only_pending]
+
+    def _on_filter_changed(self, *_args):
+        only_pending = self._selected_filter_pending()
+        self._current_filter_pending = only_pending
+        self.message_edit.setPlainText(self._default_template_for_filter(only_pending))
+        self._load_students()
+
     def _load_students(self):
-        rows = database.list_alumnos_para_whatsapp()
+        rows = database.list_alumnos_para_whatsapp(self._selected_filter_pending())
         self.student_combo.blockSignals(True)
         self.student_combo.clear()
         for alumno_id, alumno_name, grade in rows:
@@ -123,7 +157,10 @@ class EnviarWhatsAppDialog(QDialog):
 
         if self.student_combo.count() == 0:
             self._load_recipients([])
-            self.status_label.setText("No hay alumnos disponibles.")
+            if self._selected_filter_pending():
+                self.status_label.setText("No hay alumnos con cuentas pendientes.")
+            else:
+                self.status_label.setText("No hay alumnos disponibles.")
             return
 
         self.student_combo.setCurrentIndex(0)
