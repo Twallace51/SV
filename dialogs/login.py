@@ -6,7 +6,7 @@ import logging
 
 from PySide6.QtWidgets import (
     QDialog, QLabel, QLineEdit, QPushButton,
-    QVBoxLayout, QFormLayout, QMessageBox, QHBoxLayout, QInputDialog,
+    QVBoxLayout, QMessageBox, QHBoxLayout, QInputDialog,
 )
 from PySide6.QtGui import QMouseEvent, QWheelEvent
 from PySide6.QtCore import Qt
@@ -39,10 +39,6 @@ class LoginDialog(QDialog):
         self.title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.title_label)
 
-        form = QFormLayout()
-
-        self.username_edit = QLineEdit()
-        self.username_edit.setPlaceholderText("Ingrese: admin, user o trainee")
         self.normal_user_mode_btn = QPushButton("Modo Usuario Normal")
         self.normal_user_mode_btn.clicked.connect(self.login_as_user)
         self.training_mode_btn = QPushButton("Modo Entrenamiento")
@@ -57,30 +53,7 @@ class LoginDialog(QDialog):
         quick_login_layout.addWidget(self.normal_user_mode_btn)
         layout.addLayout(quick_login_layout)
 
-        self.password_edit = QLineEdit()
-        self.password_edit.setPlaceholderText("Ingrese contraseña")
-        self.password_edit.setEchoMode(QLineEdit.Password)
-
-        self.password_toggle_btn = QPushButton("Mostrar")
-        self.password_toggle_btn.setCheckable(True)
-        self.password_toggle_btn.setFixedWidth(60)
-        self.password_toggle_btn.clicked.connect(self.toggle_password_visibility)
-
-        password_layout = QHBoxLayout()
-        password_layout.setContentsMargins(0, 0, 0, 0)
-        password_layout.addWidget(self.password_edit)
-        password_layout.addWidget(self.password_toggle_btn)
-
-        form.addRow("Usuario:", self.username_edit)
-        form.addRow("Contraseña:", password_layout)
-        layout.addLayout(form)
-
         button_layout = QHBoxLayout()
-
-        self.login_btn = QPushButton("Ingresar")
-        self.login_btn.setDefault(True)
-        self.login_btn.clicked.connect(self.handle_login)
-        button_layout.addWidget(self.login_btn)
 
         self.quit_btn = QPushButton("Salir")
         self.quit_btn.clicked.connect(self.reject)
@@ -111,23 +84,6 @@ class LoginDialog(QDialog):
             return
         super().wheelEvent(event)
 
-    def handle_login(self):
-        """Validate entered credentials and accept or reject login attempt."""
-        username = self.username_edit.text().strip()
-        password = self.password_edit.text()
-
-        # Replace this with real authentication logic
-        if config.LOGIN_CREDENTIALS.get(username) == password:
-            self.logged_in_username = username
-            self.accept()
-        else:
-            message = "Usuario o contraseña incorrectos."
-            if username.lower() == "trainee":
-                message += "\nRecuerda: usa 'trainee' como contraseña."
-            QMessageBox.warning(self, "Error de acceso", message)
-            self.password_edit.clear()
-            self.password_edit.setFocus()
-
     def login_as_trainee(self):
         """Quick-login shortcut for training mode user."""
         self._quick_login_as("trainee")
@@ -154,17 +110,6 @@ class LoginDialog(QDialog):
         QMessageBox.warning(self, "Error de acceso", "Contraseña admin incorrecta.")
 
     def _quick_login_as(self, username: str):
-        """Fill credentials for a built-in user and accept the dialog."""
-        self.username_edit.setText(username)
-        self.password_edit.setText(username)
+        """Login as a built-in user and accept the dialog."""
         self.logged_in_username = username
         self.accept()
-
-    def toggle_password_visibility(self, checked: bool):
-        """Toggle password field visibility between masked and plain text."""
-        if checked:
-            self.password_edit.setEchoMode(QLineEdit.Normal)
-            self.password_toggle_btn.setText("Ocultar")
-        else:
-            self.password_edit.setEchoMode(QLineEdit.Password)
-            self.password_toggle_btn.setText("Mostrar")

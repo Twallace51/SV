@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 
 import pytest
-from PySide6.QtWidgets import QLineEdit
 from PySide6.QtCore import Qt
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -31,9 +30,6 @@ class TestLoginDialogInit:
     def test_fixed_size(self, dialog):
         assert dialog.width() == 500
         assert dialog.height() == 190
-
-    def test_password_echo_mode_default(self, dialog):
-        assert dialog.password_edit.echoMode() == QLineEdit.Password
 
     def test_logged_in_username_initially_empty(self, dialog):
         assert dialog.logged_in_username == ""
@@ -71,8 +67,6 @@ class TestTrainingModeButton:
 
         assert accepted == [True]
         assert dialog.logged_in_username == "trainee"
-        assert dialog.username_edit.text() == "trainee"
-        assert dialog.password_edit.text() == "trainee"
 
 
 class TestNormalUserModeButton:
@@ -85,8 +79,6 @@ class TestNormalUserModeButton:
 
         assert accepted == [True]
         assert dialog.logged_in_username == "user"
-        assert dialog.username_edit.text() == "user"
-        assert dialog.password_edit.text() == "user"
 
 
 class TestAdminModeButton:
@@ -104,8 +96,6 @@ class TestAdminModeButton:
 
         assert accepted == [True]
         assert dialog.logged_in_username == "admin"
-        assert dialog.username_edit.text() == "admin"
-        assert dialog.password_edit.text() == "admin"
 
     def test_admin_mode_button_invalid_password_shows_error(self, dialog, monkeypatch):
         monkeypatch.setattr(
@@ -143,79 +133,6 @@ class TestAdminModeButton:
 
         assert accepted == []
         assert dialog.logged_in_username == ""
-
-class TestPasswordToggle:
-    def test_toggle_show(self, dialog):
-        dialog.toggle_password_visibility(True)
-        assert dialog.password_edit.echoMode() == QLineEdit.Normal
-        assert dialog.password_toggle_btn.text() == "Ocultar"
-
-    def test_toggle_hide(self, dialog):
-        dialog.toggle_password_visibility(True)
-        dialog.toggle_password_visibility(False)
-        assert dialog.password_edit.echoMode() == QLineEdit.Password
-        assert dialog.password_toggle_btn.text() == "Mostrar"
-
-class TestHandleLogin:
-    @pytest.mark.parametrize("username,password", [
-        ("admin", "admin"),
-        ("user", "user"),
-        ("trainee", "trainee"),
-        ])
-
-    def test_valid_credentials_set_username(self, dialog, username, password):
-        dialog.username_edit.setText(username)
-        dialog.password_edit.setText(password)
-        # Intercept accept so the dialog doesn't actually close during the test
-        accepted = []
-        original_accept = dialog.accept
-        dialog.accept = lambda: accepted.append(True) or original_accept()
-        dialog.handle_login()
-        assert dialog.logged_in_username == username
-
-    def test_invalid_credentials_clear_password(self, qapp, monkeypatch):
-        # Suppress the QMessageBox warning during the test
-        monkeypatch.setattr(
-            "__main__.QMessageBox.warning",
-            lambda *args, **kwargs: None,
-            )
-        dlg = LoginDialog()
-        dlg.username_edit.setText("admin")
-        dlg.password_edit.setText("wrong")
-        dlg.handle_login()
-        assert dlg.password_edit.text() == ""
-        assert dlg.logged_in_username == ""
-        dlg.close()
-
-    def test_invalid_trainee_credentials_show_password_reminder(self, dialog, monkeypatch):
-        warning_calls = []
-        monkeypatch.setattr(
-            "dialogs.login.QMessageBox.warning",
-            lambda *args, **kwargs: warning_calls.append((args, kwargs)),
-            )
-
-        dialog.username_edit.setText("trainee")
-        dialog.password_edit.setText("wrong")
-        dialog.handle_login()
-
-        assert len(warning_calls) == 1
-        args, _ = warning_calls[0]
-        assert args[1] == "Error de acceso"
-        assert "trainee" in args[2]
-        assert dialog.password_edit.text() == ""
-
-    def test_username_stripped_of_whitespace(self, dialog, monkeypatch):
-        monkeypatch.setattr(
-            "dialogs.login.QMessageBox.warning",
-            lambda *args, **kwargs: None,
-            )
-        dialog.username_edit.setText("  admin  ")
-        dialog.password_edit.setText("admin")
-        accepted = []
-        original_accept = dialog.accept
-        dialog.accept = lambda: accepted.append(True) or original_accept()
-        dialog.handle_login()
-        assert dialog.logged_in_username == "admin"
 
 class TestRightClickScrollShortcut:
     def test_right_btn_held_flag_set_on_press(self, dialog):
