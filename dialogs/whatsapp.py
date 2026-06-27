@@ -43,8 +43,8 @@ class EnviarWhatsAppDialog(QDialog):
         ),
         False: (
             "Hola {parent_name}        Fecha: {date}.\n"
-            "Le escribimos respecto su hij(a/o) {student_name} ({grade}).\n"
-            "QR comedor: {qr_comedor_url}"
+            "Le escribimos respecto su hij(a/o) {student_name} ({grade}).\n\n"
+            "Nota: puede cancelar al comedor con: \n{qr_comedor_url}"
         ),
     }
 
