@@ -48,10 +48,10 @@ class LoginDialog(QDialog):
         self.training_mode_btn = QPushButton("Modo Entrenamiento")
         self.training_mode_btn.clicked.connect(self.login_as_trainee)
 
-        quick_login_layout = QHBoxLayout()
+        quick_login_layout = QVBoxLayout()
         quick_login_layout.setContentsMargins(0, 0, 0, 0)
-        quick_login_layout.addWidget(self.normal_user_mode_btn)
         quick_login_layout.addWidget(self.training_mode_btn)
+        quick_login_layout.addWidget(self.normal_user_mode_btn)
         layout.addLayout(quick_login_layout)
 
         self.password_edit = QLineEdit()

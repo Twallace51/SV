@@ -1,9 +1,9 @@
 """Package metadata for this application."""
 
-from pathlib import Path
-
 PROJECT_NAME = "Sendas de Vida Menu"
 VERSION = "1.5"
+
+from pathlib import Path
 
 DB_PATH = Path(__file__).parent / F"SV-{VERSION}.db"
 _ACTIVE_DB_PATH = DB_PATH

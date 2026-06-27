@@ -102,7 +102,8 @@ class TestHandleLogin:
         ("admin", "admin"),
         ("user", "user"),
         ("trainee", "trainee"),
-    ])
+        ])
+
     def test_valid_credentials_set_username(self, dialog, username, password):
         dialog.username_edit.setText(username)
         dialog.password_edit.setText(password)
@@ -116,9 +117,9 @@ class TestHandleLogin:
     def test_invalid_credentials_clear_password(self, qapp, monkeypatch):
         # Suppress the QMessageBox warning during the test
         monkeypatch.setattr(
-            "main.QMessageBox.warning",
+            "__main__.QMessageBox.warning",
             lambda *args, **kwargs: None,
-        )
+            )
         dlg = LoginDialog()
         dlg.username_edit.setText("admin")
         dlg.password_edit.setText("wrong")
@@ -132,7 +133,7 @@ class TestHandleLogin:
         monkeypatch.setattr(
             "dialogs.login.QMessageBox.warning",
             lambda *args, **kwargs: warning_calls.append((args, kwargs)),
-        )
+            )
 
         dialog.username_edit.setText("trainee")
         dialog.password_edit.setText("wrong")
@@ -148,7 +149,7 @@ class TestHandleLogin:
         monkeypatch.setattr(
             "dialogs.login.QMessageBox.warning",
             lambda *args, **kwargs: None,
-        )
+            )
         dialog.username_edit.setText("  admin  ")
         dialog.password_edit.setText("admin")
         accepted = []
