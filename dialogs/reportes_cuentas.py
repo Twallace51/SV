@@ -172,8 +172,9 @@ class ReporteCuentasAlumnosDialog(QDialog):
             "<tr><th>ID</th><th>Alumno</th><th>Balance</th></tr>"
         )
         for alumno_id, nombre, balance in self._rows:
+            row_style = " style='background:#eeeeee;'" if balance > 0 else ""
             sections.append(
-                "<tr>"
+                f"<tr{row_style}>"
                 f"<td>{html.escape(str(alumno_id))}</td>"
                 f"<td>{html.escape(nombre)}</td>"
                 f"<td align='right'>{html.escape(self._fmt(balance))}</td>"

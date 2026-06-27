@@ -178,7 +178,8 @@ class TestReporteCuentasAlumnos:
             assert "-150" in html
             assert "Beto" not in html
             assert "font-size:16px" in html
-            assert "background:" not in html
+            assert "background:#eeeeee" in html
+            assert html.count("background:#eeeeee") == 1
         finally:
             reset_active_db_path()
 
