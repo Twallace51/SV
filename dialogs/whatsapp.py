@@ -31,20 +31,20 @@ class EnviarWhatsAppDialog(QDialog):
 
     _HEADERS = ["", "Nombre", "Celular"]
     _FILTER_OPTIONS = [
-        ("Todos inscritos", False),
-        ("Solo con cuentas pendientes", True),
+        (" >> Todos alumnos inscritos", False),
+        (" >> Solo con cuentas pendientes", True),
     ]
     _TEMPLATES = {
         False: (
             "Hola {parent_name}        Fecha: {date}.\n"
             "Le escribimos respecto la cuenta por {student_name} ({grade}).\n"
             "Balance actual: {balance}.\n"
-            "{qr_payment_line}"
+            "{qr_sv_line}"
         ),
         True: (
             "Hola {parent_name}        Fecha: {date}.\n"
             "Le escribimos respecto su hij(a/o) {student_name} ({grade}).\n"
-            "{qr_payment_line}"
+            "{qr_sv_line}"
         ),
     }
 
@@ -77,6 +77,10 @@ class EnviarWhatsAppDialog(QDialog):
         filter_row.addWidget(self.filter_combo)
         filter_row.addStretch()
         layout.addLayout(filter_row)
+
+        self.filter_status_label = QLabel("")
+        self.filter_status_label.setStyleSheet("font-weight: 700; font-size: 14px;")
+        layout.addWidget(self.filter_status_label)
 
         student_row = QHBoxLayout()
         student_row.addWidget(QLabel("Selecionar Alumno >"))
@@ -133,28 +137,38 @@ class EnviarWhatsAppDialog(QDialog):
         layout.addWidget(buttons)
 
         self._load_students()
+        self._update_filter_status_label()
 
     def _selected_filter_pending(self) -> bool:
         value = self.filter_combo.currentData()
         return bool(value)
 
-    def _qr_payment_line(self) -> str:
-        qr_url = str(config.WHATSAPP_QR_PAYMENT_URL or "").strip()
+    def _qr_sv_line(self) -> str:
+        qr_url = str(config.QR_SV_URL or "").strip()
         if qr_url:
             return f"Puede realizar el pago aqui (QR): {qr_url}"
         return "Puede realizar el pago escaneando el QR de pagos de la institucion."
 
     def _default_template_for_filter(self, only_pending: bool) -> str:
         return self._TEMPLATES[only_pending].replace(
-            "{qr_payment_line}",
-            self._qr_payment_line(),
-        )
+            "{qr_sv_line}",
+            self._qr_sv_line(),
+            )
 
     def _on_filter_changed(self, *_args):
         only_pending = self._selected_filter_pending()
         self._current_filter_pending = only_pending
         self.message_edit.setPlainText(self._default_template_for_filter(only_pending))
+        self._update_filter_status_label()
         self._load_students()
+
+    def _update_filter_status_label(self):
+        status_text = (
+            "Alumnos con cuentas pendientes"
+            if self._selected_filter_pending()
+            else "Todos alumnos"
+        )
+        self.filter_status_label.setText(status_text)
 
     def _load_students(self):
         rows = database.list_alumnos_para_whatsapp(self._selected_filter_pending())
@@ -251,7 +265,7 @@ class EnviarWhatsAppDialog(QDialog):
             "balance": self._template_context.get("balance", "+0"),
             "alumno_id": self._template_context.get("alumno_id", ""),
             "date": self._template_context.get("date", ""),
-            "qr_payment_line": self._qr_payment_line(),
+            "qr_sv_line": self._qr_sv_line(),
         }
         message = template
         for key, value in values.items():

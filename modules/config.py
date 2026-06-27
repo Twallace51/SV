@@ -28,7 +28,8 @@ CREDITO_ACLARACIONES = ["Efectivo", "Deposito"]
 
 # Optional public URL for the payment QR image. When set, WhatsApp templates
 # include this link so recipients can open the QR directly.
-WHATSAPP_QR_PAYMENT_URL = ""
+QR_SV_URL = "https://raw.githubusercontent.com/Twallace51/SV/main/QR_SV.png"
+QR_comedor_URL = "https://raw.githubusercontent.com/Twallace51/SV/main/QR_comedor.png"
 
 # Spanish month names, indexed 0 (enero) .. 11 (diciembre).
 MONTH_NAMES_ES = [
