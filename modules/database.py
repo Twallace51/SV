@@ -216,7 +216,10 @@ def list_alumnos_para_whatsapp() -> list[tuple]:
         try:
             tables = _table_names(conn)
             alumnos_columns = table_columns(conn, "alumnos")
-            has_grados = "grados" in tables and "id_grado" in alumnos_columns
+            if "id_grado" not in alumnos_columns:
+                return []
+
+            has_grados = "grados" in tables
 
             grade_expr = "''"
             grade_join = ""
@@ -238,6 +241,10 @@ def list_alumnos_para_whatsapp() -> list[tuple]:
                 f"{grade_expr} "
                 "FROM alumnos a"
                 f"{grade_join}"
+                " WHERE a.id_grado IS NOT NULL"
+                " AND TRIM(CAST(a.id_grado AS TEXT)) <> ''"
+                " AND LOWER(TRIM(CAST(a.id_grado AS TEXT))) NOT IN ('null', 'none')"
+                " AND CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER) > 0"
                 " ORDER BY a.paterno, a.nombres"
             ).fetchall()
         finally:
