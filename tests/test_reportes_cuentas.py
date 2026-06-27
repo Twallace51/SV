@@ -303,6 +303,7 @@ class TestReporteCuentasDetalles:
             assert "pago" in html
             assert "+150" in html
             assert "Balance" in html
+            assert "font-size:14pt" in html
         finally:
             reset_active_db_path()
 

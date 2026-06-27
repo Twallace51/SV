@@ -541,6 +541,12 @@ class ReporteCuentasDetallesDialog(QDialog):
     def _build_html(self) -> str:
         title = f"{self._REPORT_TITLE} - {date.today():%Y-%m-%d}"
         sections = [
+            "<style>"
+            "body{font-size:14pt;}"
+            "h2{font-size:20pt;margin-bottom:12pt;}"
+            "table{font-size:14pt;border-collapse:collapse;}"
+            "th,td{padding:6pt;}"
+            "</style>",
             f"<h2>{html.escape(title)}</h2>",
             f"<p>Alumno ID: {self._alumno_id}",
         ]
