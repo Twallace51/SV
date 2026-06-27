@@ -21,7 +21,7 @@ from PySide6.QtGui import QAction, QShowEvent, QCloseEvent, QColor, QPalette
 from PySide6.QtCore import Qt, QEvent, QTimer, QCoreApplication
 
 try:
-    import config
+    from modules import config
     from __init__ import (
         PROJECT_NAME,
         VERSION,
@@ -30,7 +30,7 @@ try:
         set_active_db_path,
         reset_active_db_path,
     )
-    from utils import show_training_mode_notice
+    from modules.utils import show_training_mode_notice
     from dialogs.login import LoginDialog
     import dialogs.alumnos as alumnos_dialogs
     import dialogs.parientes as parientes_dialogs
@@ -57,7 +57,7 @@ except (ModuleNotFoundError, ImportError):
     # A first failed import can cache windows/__init__.py as "__init__".
     # Remove it so the fallback import resolves against project_root.
     sys.modules.pop("__init__", None)
-    import config
+    from modules import config
     from __init__ import (
         PROJECT_NAME,
         VERSION,
@@ -66,7 +66,7 @@ except (ModuleNotFoundError, ImportError):
         set_active_db_path,
         reset_active_db_path,
         )
-    from utils import show_training_mode_notice
+    from modules.utils import show_training_mode_notice
     from dialogs.login import LoginDialog
     import dialogs.alumnos as alumnos_dialogs
     import dialogs.parientes as parientes_dialogs
@@ -121,6 +121,7 @@ class MainWindow(QMainWindow):
         self._build_menu_bar()
         self._build_central()
         self._configure_session_database(self._username)
+        self._refresh_backup_action_state()
         self._ensure_monthly_pension_records()
         self._setup_inactivity_timer()
         self._apply_window_title()
@@ -129,6 +130,15 @@ class MainWindow(QMainWindow):
     def _backup_directory_for(self, db_path: Path) -> Path:
         """Return the folder used to store database backups."""
         return db_path.parent / "Backups"
+
+    def _is_training_mode(self) -> bool:
+        """Return True when the current session is running in training mode."""
+        return self._username.strip().lower() == "trainee"
+
+    def _refresh_backup_action_state(self):
+        """Enable manual backups only for non-training sessions."""
+        if hasattr(self, "backup_action"):
+            self.backup_action.setEnabled(not self._is_training_mode())
 
     def _backup_glob_for(self, db_path: Path) -> str:
         """Return the filename pattern used for backups of a database."""
@@ -178,6 +188,10 @@ class MainWindow(QMainWindow):
 
     def _run_weekly_database_backup(self):
         """Create a silent weekly backup of the production database when due."""
+        if self._is_training_mode():
+            log.info("Backup automático omitido en modo entrenamiento")
+            return
+
         db_path = Path(DB_PATH)
         if not db_path.exists():
             log.warning("No se encontró la base de datos para backup automático: %s", db_path)
@@ -395,9 +409,9 @@ class MainWindow(QMainWindow):
 
         # Archivo menu
         self.file_menu = menu_bar.addMenu("&Archivo")
-        backup_action = QAction("Crear &Backup de Base de Datos", self)
-        backup_action.triggered.connect(self.on_backup_database)
-        self.file_menu.addAction(backup_action)
+        self.backup_action = QAction("Crear &Backup de Base de Datos", self)
+        self.backup_action.triggered.connect(self.on_backup_database)
+        self.file_menu.addAction(self.backup_action)
 
         # Alumnos menu
         self.alumnos_menu = menu_bar.addMenu("&Alumnos")
@@ -561,7 +575,9 @@ class MainWindow(QMainWindow):
     def _start_user_session(self, username: str):
         """Apply session state for a newly authenticated user."""
         self._username = username or "unknown"
+        self._automatic_backup_checked = False
         self._configure_session_database(self._username)
+        self._refresh_backup_action_state()
         self._apply_window_title()
         self._apply_session_theme()
         self._restart_inactivity_timer()
@@ -597,6 +613,14 @@ class MainWindow(QMainWindow):
 
     def on_backup_database(self):
         """Handle the Archivo > Crear Backup de Base de Datos action."""
+        if self._is_training_mode():
+            QMessageBox.information(
+                self,
+                "Backup",
+                "Los backups están deshabilitados en modo entrenamiento.",
+            )
+            return
+
         db_path = Path(DB_PATH)
         if not db_path.exists():
             QMessageBox.warning(

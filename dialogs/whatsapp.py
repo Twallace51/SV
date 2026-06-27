@@ -16,8 +16,8 @@ from PySide6.QtWidgets import (
     QDialogButtonBox, QMessageBox, QAbstractItemView,
 )
 
-import database
-from utils import build_whatsapp_url, normalize_bolivia_phone
+from modules import database
+from modules.utils import build_whatsapp_url, normalize_bolivia_phone
 
 log = logging.getLogger("app")
 

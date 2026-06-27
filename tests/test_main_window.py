@@ -22,6 +22,7 @@ def window(qapp):
     win = MainWindow("testuser")
     yield win
     win.close()
+
 class TestMainWindowInit:
     def test_window_title_contains_version(self, window):
         assert VERSION in window.windowTitle()
@@ -83,6 +84,7 @@ class TestMainWindowInit:
             assert logout_calls == [True]
         finally:
             win.close()
+
 class TestMainWindowMenuBar:
     def test_menu_bar_exists(self, window):
         assert window.menuBar() is not None
@@ -384,6 +386,7 @@ class TestMainWindowMenuBar:
         window.on_logout()
 
         assert created_parents == [None]
+
 class TestMainWindowTitleUpdate:
     def test_title_reflects_constructor_username(self, qapp):
         win = MainWindow("alice")
@@ -400,7 +403,6 @@ class TestMainWindowTitleUpdate:
         finally:
             win1.close()
             win2.close()
-
 
 class TestTraineeDatabaseSession:
     def test_trainee_login_creates_and_uses_temp_database(self, qapp, tmp_path, monkeypatch):
@@ -449,7 +451,6 @@ class TestTraineeDatabaseSession:
             win.close()
             reset_active_db_path()
 
-
 class TestDatabaseBackups:
     def test_should_run_weekly_backup_only_when_last_backup_is_older_than_seven_days(self, qapp, tmp_path):
         db_path = tmp_path / "SV.db"
@@ -495,6 +496,63 @@ class TestDatabaseBackups:
         finally:
             win.close()
 
+    def test_backup_action_is_disabled_in_training_mode(self, qapp, tmp_path, monkeypatch):
+        source_db = tmp_path / "SV.db"
+        source_db.write_text("db", encoding="utf-8")
+
+        monkeypatch.setattr("windows.main_window.DB_PATH", source_db)
+
+        win = MainWindow("trainee")
+        try:
+            assert win.backup_action.isEnabled() is False
+        finally:
+            win.close()
+
+    def test_manual_backup_is_blocked_in_training_mode(self, qapp, tmp_path, monkeypatch):
+        source_db = tmp_path / "SV.db"
+        source_db.write_text("db", encoding="utf-8")
+        created = []
+        messages = []
+
+        monkeypatch.setattr("windows.main_window.DB_PATH", source_db)
+        monkeypatch.setattr(
+            MainWindow,
+            "_create_database_backup",
+            lambda self, db_path: created.append(db_path),
+        )
+        monkeypatch.setattr(
+            "windows.main_window.QMessageBox.information",
+            lambda *args: messages.append(args[2]),
+        )
+
+        win = MainWindow("trainee")
+        try:
+            win.on_backup_database()
+
+            assert created == []
+            assert messages == ["Los backups están deshabilitados en modo entrenamiento."]
+        finally:
+            win.close()
+
+    def test_automatic_backup_is_skipped_in_training_mode(self, qapp, tmp_path, monkeypatch):
+        source_db = tmp_path / "SV.db"
+        source_db.write_text("db", encoding="utf-8")
+        created = []
+
+        monkeypatch.setattr("windows.main_window.DB_PATH", source_db)
+        monkeypatch.setattr(
+            MainWindow,
+            "_create_database_backup",
+            lambda self, db_path: created.append(db_path),
+        )
+
+        win = MainWindow("trainee")
+        try:
+            win._run_weekly_database_backup()
+
+            assert created == []
+        finally:
+            win.close()
 
 class TestMainWindowBootstrap:
     def test_running_main_window_as_main_delegates_to_main_main(self, monkeypatch):
@@ -512,7 +570,6 @@ class TestMainWindowBootstrap:
         runpy.run_path(str(main_window_path), run_name="__main__")
 
         assert called == [True]
-
 
 class TestMonthlyPensionSync:
     def _create_schema(self, db_path: Path):

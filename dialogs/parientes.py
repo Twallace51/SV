@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox, QTableWidget, QTableWidgetItem, QHeaderView,
 )
 
-import database
+from modules import database
 from dialogs.widgets import NumericTableWidgetItem
 
 # endregion

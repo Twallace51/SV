@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import QDate
 from PySide6.QtGui import QIntValidator
 
-import database
+from modules import database
 from dialogs.widgets import NumericTableWidgetItem, SORT_ROLE
 from dialogs import parientes as parientes_dialogs
 

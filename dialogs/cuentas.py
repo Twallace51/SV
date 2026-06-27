@@ -19,8 +19,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import QDate, Qt
 
-import config
-import database
+from modules import config
+from modules import database
 from dialogs.widgets import NumericTableWidgetItem
 from dialogs import alumnos as alumnos_dialogs
 from dialogs import parientes as parientes_dialogs

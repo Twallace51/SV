@@ -25,7 +25,7 @@ log = logging.getLogger("app")
 
 def setup_logging() -> logging.Logger:
     """Configure and return the application logger."""
-    log_dir = Path(__file__).parent / "logs"
+    log_dir = Path(__file__).resolve().parent.parent / "logs"
     log_dir.mkdir(exist_ok=True)
 
     logger = logging.getLogger("app")

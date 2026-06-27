@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils import (
+from modules.utils import (
     setup_logging,
     acquire_single_instance_lock,
     is_running_from_project_venv,
@@ -65,7 +65,7 @@ class TestAcquireSingleInstanceLock:
 class TestProjectVenvWarning:
     def test_detects_project_venv(self, monkeypatch):
         monkeypatch.setattr(
-            "utils.sys.executable",
+            "modules.utils.sys.executable",
             r"G:\SendasVida\SV-1.5\.venv\Scripts\python.exe",
             raising=False,
         )
@@ -73,7 +73,7 @@ class TestProjectVenvWarning:
 
     def test_detects_non_project_venv(self, monkeypatch):
         monkeypatch.setattr(
-            "utils.sys.executable",
+            "modules.utils.sys.executable",
             r"C:\Python313\python.exe",
             raising=False,
         )
@@ -81,24 +81,24 @@ class TestProjectVenvWarning:
 
     def test_warns_when_not_running_from_project_venv(self, monkeypatch):
         monkeypatch.setattr(
-            "utils.sys.executable",
+            "modules.utils.sys.executable",
             r"C:\Python313\python.exe",
             raising=False,
         )
         warnings = []
-        monkeypatch.setattr("utils.QMessageBox.warning", lambda *args: warnings.append(args))
+        monkeypatch.setattr("modules.utils.QMessageBox.warning", lambda *args: warnings.append(args))
 
         assert warn_if_not_running_from_project_venv() is True
         assert warnings
 
     def test_does_not_warn_when_running_from_project_venv(self, monkeypatch):
         monkeypatch.setattr(
-            "utils.sys.executable",
+            "modules.utils.sys.executable",
             r"G:\SendasVida\SV-1.5\.venv\Scripts\python.exe",
             raising=False,
         )
         warnings = []
-        monkeypatch.setattr("utils.QMessageBox.warning", lambda *args: warnings.append(args))
+        monkeypatch.setattr("modules.utils.QMessageBox.warning", lambda *args: warnings.append(args))
 
         assert warn_if_not_running_from_project_venv() is False
         assert not warnings
