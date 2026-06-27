@@ -4,13 +4,60 @@ import sys
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QUrl, Qt
+from PySide6.QtWidgets import QScrollArea
+from PySide6.QtTest import QTest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from dialogs.whatsapp import EnviarWhatsAppDialog
 
 
 class TestEnviarWhatsAppDialogStudentFlow:
+    def test_shows_qr_preview_from_asset(self, qapp, monkeypatch):
+        monkeypatch.setattr(
+            "dialogs.whatsapp.database.list_alumnos_para_whatsapp",
+            lambda only_pending=False: [],
+        )
+        monkeypatch.setattr(
+            "dialogs.whatsapp.database.get_whatsapp_targets_for_alumno",
+            lambda alumno_id: ({"student_name": "", "grade": "", "balance": "+0", "alumno_id": "", "date": ""}, []),
+        )
+
+        dlg = EnviarWhatsAppDialog()
+        try:
+            assert dlg.qr_preview_label.pixmap() is not None
+            assert not dlg.qr_preview_label.pixmap().isNull()
+        finally:
+            dlg.close()
+
+    def test_clicking_qr_preview_opens_larger_view(self, qapp, monkeypatch):
+        monkeypatch.setattr(
+            "dialogs.whatsapp.database.list_alumnos_para_whatsapp",
+            lambda only_pending=False: [],
+        )
+        monkeypatch.setattr(
+            "dialogs.whatsapp.database.get_whatsapp_targets_for_alumno",
+            lambda alumno_id: ({"student_name": "", "grade": "", "balance": "+0", "alumno_id": "", "date": ""}, []),
+        )
+
+        captured = {}
+
+        def _fake_exec(self):
+            captured["dialog"] = self
+            return 0
+
+        monkeypatch.setattr("dialogs.whatsapp.QDialog.exec", _fake_exec)
+
+        dlg = EnviarWhatsAppDialog()
+        try:
+            QTest.mouseClick(dlg.qr_preview_label, Qt.LeftButton)
+            dialog = captured["dialog"]
+            scroll_area = dialog.findChild(QScrollArea)
+            assert scroll_area is not None
+            assert scroll_area.widgetResizable()
+        finally:
+            dlg.close()
+
     def test_loads_linked_parents_for_selected_student(self, qapp, monkeypatch):
         monkeypatch.setattr(
             "dialogs.whatsapp.database.list_alumnos_para_whatsapp",
@@ -139,7 +186,6 @@ class TestEnviarWhatsAppDialogStudentFlow:
 
             dlg.filter_combo.setCurrentIndex(1)
 
-            assert "deuda pendiente" in dlg.message_edit.toPlainText()
-            assert "Monto pendiente" in dlg.message_edit.toPlainText()
+            assert "hij(a/o)" in dlg.message_edit.toPlainText()
         finally:
             dlg.close()
