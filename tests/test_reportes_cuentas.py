@@ -177,6 +177,8 @@ class TestReporteCuentasAlumnos:
             assert "Celia Vega Mora" in html
             assert "-150" in html
             assert "Beto" not in html
+            assert "font-size:16px" in html
+            assert "background:" not in html
         finally:
             reset_active_db_path()
 

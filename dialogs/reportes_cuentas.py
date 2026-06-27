@@ -155,7 +155,14 @@ class ReporteCuentasAlumnosDialog(QDialog):
 
     def _build_html(self) -> str:
         title = f"{self._REPORT_TITLE} - {date.today():%Y-%m-%d}"
-        sections = [f"<h2>{html.escape(title)}</h2>"]
+        sections = [
+            "<style>"
+            "body{font-size:16px;}"
+            "table{font-size:16px;border-collapse:collapse;}"
+            "th,td{padding:6px;}"
+            "</style>",
+            f"<h2>{html.escape(title)}</h2>",
+        ]
         if not self._rows:
             sections.append("<p>No hay saldos pendientes.</p>")
             return "".join(sections)
@@ -165,9 +172,8 @@ class ReporteCuentasAlumnosDialog(QDialog):
             "<tr><th>ID</th><th>Alumno</th><th>Balance</th></tr>"
         )
         for alumno_id, nombre, balance in self._rows:
-            color = "#d4edda" if balance >= 0 else "#f8d7da"
             sections.append(
-                f"<tr style='background:{color}'>"
+                "<tr>"
                 f"<td>{html.escape(str(alumno_id))}</td>"
                 f"<td>{html.escape(nombre)}</td>"
                 f"<td align='right'>{html.escape(self._fmt(balance))}</td>"
