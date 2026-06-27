@@ -17,6 +17,8 @@ from __init__ import PROJECT_NAME, VERSION
 # endregion
 
 log = logging.getLogger("app")
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 class LoginDialog(QDialog):

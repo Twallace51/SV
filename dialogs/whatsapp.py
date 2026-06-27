@@ -1,11 +1,12 @@
 """WhatsApp click-to-chat dialog.
 
-Lists adultos that have a mobile number and lets the operator open a pre-filled
-WhatsApp chat for each selected recipient, one at a time. Opening a ``wa.me``
-link only *prepares* the message in WhatsApp; a human still presses send, so
-this stays within WhatsApp's terms of service (no automated bulk delivery).
-"""
+    Lists adultos that have a mobile number and lets the operator open a pre-filled
+    WhatsApp chat for each selected recipient, one at a time. Opening a ``wa.me``
+    link only *prepares* the message in WhatsApp; a human still presses send, so
+    this stays within WhatsApp's terms of service (no automated bulk delivery).
+    """
 
+# region - imports
 import logging
 
 from PySide6.QtCore import Qt, QUrl
@@ -19,8 +20,11 @@ from PySide6.QtWidgets import (
 from modules import database
 from modules.utils import build_whatsapp_url, normalize_bolivia_phone
 
-log = logging.getLogger("app")
+# endregion
 
+log = logging.getLogger("app")
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 class EnviarWhatsAppDialog(QDialog):
     """Pick recipients from the adultos list and open one WhatsApp chat at a time."""

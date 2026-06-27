@@ -1,15 +1,15 @@
 """Data-access layer.
 
-All SQLite access for the application lives here so the dialog code can stay
-focused on the user interface. Each function opens a short-lived connection to
-the database that is currently active for the session (see
-``get_active_db_path``).
+    All SQLite access for the application lives here so the dialog code can stay
+    focused on the user interface. Each function opens a short-lived connection to
+    the database that is currently active for the session (see
+    ``get_active_db_path``).
 
-Read helpers swallow database errors and return a sensible empty default,
-mirroring the resilient "best effort" behaviour the dialogs relied on before.
-Write helpers (insert/update/delete) let exceptions propagate so the calling
-dialog can show an error message to the user.
-"""
+    Read helpers swallow database errors and return a sensible empty default,
+    mirroring the resilient "best effort" behaviour the dialogs relied on before.
+    Write helpers (insert/update/delete) let exceptions propagate so the calling
+    dialog can show an error message to the user.
+    """
 
 import sqlite3
 from datetime import date

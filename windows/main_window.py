@@ -49,6 +49,7 @@ try:
     from dialogs.parientes import NuevoParienteDialog, BuscarParienteDialog
     from dialogs.cuentas import NuevoCuentaDialog, BuscarCuentaDialog
     from dialogs.reportes_cuentas import ReporteCuentasTotalDialog, ReporteCuentasAlumnosDialog, ReporteCuentasDetallesDialog
+
 except (ModuleNotFoundError, ImportError):
     # Support running this file directly from the windows/ directory.
     project_root = Path(__file__).resolve().parent.parent
@@ -89,6 +90,8 @@ except (ModuleNotFoundError, ImportError):
 # endregion
 
 log = logging.getLogger("app")
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 class MainWindow(QMainWindow):
     """Primary application window shown after successful login."""

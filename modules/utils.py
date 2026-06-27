@@ -21,6 +21,8 @@ from __init__ import PROJECT_NAME
 # endregion
 
 log = logging.getLogger("app")
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def setup_logging() -> logging.Logger:
