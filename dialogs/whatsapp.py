@@ -8,15 +8,13 @@
 
 # region - imports
 import logging
-from pathlib import Path
 
-from PySide6.QtCore import Qt, QUrl, Signal
-from PySide6.QtGui import QDesktopServices, QPixmap
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPlainTextEdit,
     QTableWidget, QTableWidgetItem, QHeaderView, QPushButton,
     QDialogButtonBox, QMessageBox, QAbstractItemView, QComboBox,
-    QScrollArea,
 )
 
 from modules import database
@@ -26,15 +24,6 @@ from modules.utils import build_whatsapp_url, normalize_bolivia_phone
 
 log = logging.getLogger("app")
 log.setLevel(logging.INFO)
-
-
-class ClickableLabel(QLabel):
-    clicked = Signal()
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.clicked.emit()
-        super().mousePressEvent(event)
 
 
 class EnviarWhatsAppDialog(QDialog):
@@ -49,11 +38,13 @@ class EnviarWhatsAppDialog(QDialog):
         False: (
             "Hola {parent_name}        Fecha: {date}.\n"
             "Le escribimos respecto la cuenta por {student_name} ({grade}).\n"
-            "Balance actual: {balance}."
+            "Balance actual: {balance}.\n"
+            "Puede realizar el pago escaneando el QR de pagos de la institucion."
         ),
         True: (
             "Hola {parent_name}        Fecha: {date}.\n"
-            "Le escribimos respecto su hij(a/o) {student_name} ({grade})."
+            "Le escribimos respecto su hij(a/o) {student_name} ({grade}).\n"
+            "Puede realizar el pago escaneando el QR de pagos de la institucion."
         ),
     }
 
@@ -104,13 +95,6 @@ class EnviarWhatsAppDialog(QDialog):
         self.message_edit.setPlainText(self._TEMPLATES[False])
         layout.addWidget(self.message_edit)
 
-        self.qr_preview_label = ClickableLabel("QR de pago", self)
-        self.qr_preview_label.setAlignment(Qt.AlignCenter)
-        self.qr_preview_label.setCursor(Qt.PointingHandCursor)
-        self.qr_preview_label.clicked.connect(self._show_qr_preview)
-        layout.addWidget(self.qr_preview_label)
-        self._load_qr_preview()
-
         select_row = QHBoxLayout()
         self.select_all_btn = QPushButton("Seleccionar todos")
         self.select_all_btn.clicked.connect(lambda: self._set_all_checked(True))
@@ -156,49 +140,6 @@ class EnviarWhatsAppDialog(QDialog):
 
     def _default_template_for_filter(self, only_pending: bool) -> str:
         return self._TEMPLATES[only_pending]
-
-    def _load_qr_preview(self):
-        qr_path = Path(__file__).resolve().parent.parent / "QR_SV.png"
-        pixmap = QPixmap(str(qr_path))
-        if pixmap.isNull():
-            self.qr_preview_label.setText("QR de pago no disponible")
-            return
-
-        scaled = pixmap.scaledToWidth(220, Qt.SmoothTransformation)
-        self.qr_preview_label.setPixmap(scaled)
-
-    def _show_qr_preview(self):
-        qr_path = Path(__file__).resolve().parent.parent / "QR_SV.png"
-        pixmap = QPixmap(str(qr_path))
-        if pixmap.isNull():
-            QMessageBox.warning(self, "QR de pago", "No se pudo abrir la imagen del QR.")
-            return
-
-        dialog = QDialog(self)
-        dialog.setWindowTitle("QR de pago")
-        dialog.resize(620, 720)
-        dialog.setMinimumSize(360, 420)
-        dialog.setSizeGripEnabled(True)
-
-        layout = QVBoxLayout(dialog)
-        scroll_area = QScrollArea(dialog)
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-
-        image_label = QLabel()
-        image_label.setAlignment(Qt.AlignCenter)
-        image_label.setPixmap(pixmap)
-        scroll_area.setWidget(image_label)
-        layout.addWidget(scroll_area)
-
-        close_btn = QPushButton("Cerrar", dialog)
-        close_btn.clicked.connect(dialog.accept)
-        layout.addWidget(close_btn)
-
-        self._qr_preview_dialog = dialog
-        dialog.exec()
-        self._qr_preview_dialog = None
 
     def _on_filter_changed(self, *_args):
         only_pending = self._selected_filter_pending()
