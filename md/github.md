@@ -1,4 +1,30 @@
-# how to clone SVremote to a new computer
+# Github notes
+
+## how did I set SVremote?
+
+I’ll check your current Git remote configuration so I can tell you exactly how SVremote was set and the command pattern to reproduce it.
+
+From your current repo config, SVremote is set as a named remote pointing to:
+
+https://github.com/Twallace51/SV.git
+
+So the way you set it was most likely:
+
+git remote add SVremote https://github.com/Twallace51/SV.git
+
+If the remote already existed and you changed it, then it would have been:
+
+git remote set-url SVremote https://github.com/Twallace51/SV.git
+
+Your repo currently has both remotes configured:
+
+SVremote → https://github.com/Twallace51/SV.git
+origin → https://github.com/Twallace51/SV
+To verify anytime:
+git remote -v
+
+
+## how do I clone SVremote to a new computer?
 
 On the new computer, do this in order:
 
