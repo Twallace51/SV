@@ -51,7 +51,7 @@ class EnviarWhatsAppDialog(QDialog):
         }
 
         student_row = QHBoxLayout()
-        student_row.addWidget(QLabel("Alumno:"))
+        student_row.addWidget(QLabel("Selecionar Alumno >"))
         self.student_combo = QComboBox(self)
         self.student_combo.currentIndexChanged.connect(self._on_student_changed)
         student_row.addWidget(self.student_combo)
@@ -103,7 +103,7 @@ class EnviarWhatsAppDialog(QDialog):
         layout.addWidget(self.status_label)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
-        self.next_btn = buttons.addButton("Abrir siguiente chat", QDialogButtonBox.ActionRole)
+        self.next_btn = buttons.addButton("Abrir Whatsapp  >", QDialogButtonBox.ActionRole)
         self.next_btn.clicked.connect(self._open_next)
         self.restart_btn = buttons.addButton("Reiniciar", QDialogButtonBox.ResetRole)
         self.restart_btn.clicked.connect(self._reset_run)
@@ -217,7 +217,7 @@ class EnviarWhatsAppDialog(QDialog):
         self._total_count = 0
         self.table.clearSelection()
         self.status_label.setText("")
-        self.next_btn.setText("Abrir siguiente chat")
+        self.next_btn.setText("Abrir Whatsapp  >")
         self.restart_btn.setEnabled(False)
         self._update_count()
 
@@ -262,7 +262,7 @@ class EnviarWhatsAppDialog(QDialog):
             + (f" Quedan {remaining}." if remaining else " Completado.")
         )
         if remaining:
-            self.next_btn.setText(f"Abrir siguiente chat ({remaining})")
+            self.next_btn.setText(f"Abrir Whatsapp  > ({remaining})")
         else:
             self.next_btn.setText("Finalizado")
             self.next_btn.setEnabled(False)
