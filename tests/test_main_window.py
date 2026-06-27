@@ -496,6 +496,25 @@ class TestDatabaseBackups:
         finally:
             win.close()
 
+    def test_created_backup_uses_current_mtime_not_source_db_mtime(self, qapp, tmp_path):
+        db_path = tmp_path / "SV.db"
+        db_path.write_text("db", encoding="utf-8")
+        old_db_time = datetime(2026, 6, 1, 9, 0, 0).timestamp()
+        os.utime(db_path, (old_db_time, old_db_time))
+
+        win = MainWindow("user")
+        try:
+            before_backup = datetime.now()
+            backup_path = win._create_database_backup(db_path)
+
+            # If backup mtime stayed old (copied from DB), weekly check would
+            # run again immediately. It should be recent after backup creation.
+            backup_mtime = datetime.fromtimestamp(backup_path.stat().st_mtime)
+            assert backup_mtime >= before_backup - timedelta(seconds=2)
+            assert win._should_run_weekly_backup(db_path, datetime.now()) is False
+        finally:
+            win.close()
+
     def test_backup_action_is_disabled_in_training_mode(self, qapp, tmp_path, monkeypatch):
         source_db = tmp_path / "SV.db"
         source_db.write_text("db", encoding="utf-8")

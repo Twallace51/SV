@@ -174,6 +174,9 @@ class MainWindow(QMainWindow):
         backup_file = backup_dir / f"{db_path.stem}_backup_{timestamp}{db_path.suffix}"
 
         shutil.copy2(db_path, backup_file)
+        # copy2 preserves source timestamps; force backup mtime to now so
+        # weekly backup checks use backup creation time, not DB file age.
+        backup_file.touch(exist_ok=True)
         self._prune_old_backups(db_path)
         return backup_file
 

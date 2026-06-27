@@ -39,12 +39,12 @@ class EnviarWhatsAppDialog(QDialog):
             "Hola {parent_name}        Fecha: {date}.\n"
             "Le escribimos respecto la cuenta por {student_name} ({grade}).\n"
             "Balance actual: {balance}.\n"
-            "{qr_sv_line}"
+            "Pueda cancelarlo con QR: \n{qr_sv_line}"
         ),
         False: (
             "Hola {parent_name}        Fecha: {date}.\n"
             "Le escribimos respecto su hij(a/o) {student_name} ({grade}).\n\n"
-            "Nota: puede cancelar al comedor con: \n{qr_comedor_url}"
+            "Nota: pueda cancelar al comedor con QR: \n{qr_comedor_url}"
         ),
     }
 
