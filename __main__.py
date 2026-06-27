@@ -24,7 +24,7 @@ from windows.main_window import MainWindow
 def main() -> int:
     """Run application startup, login flow, and event loop."""
 
-    # region - stratup checks
+    # region - startup checks
 
     clear_terminal()
     #warn_if_not_running_from_project_venv()
