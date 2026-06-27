@@ -42,8 +42,9 @@ def _create_alumnos_cuentas_db(path: Path):
     with sqlite3.connect(path) as conn:
         conn.execute(
             "CREATE TABLE alumnos "
-            "(id INTEGER PRIMARY KEY, nombres TEXT, paterno TEXT, materno TEXT)"
+            "(id INTEGER PRIMARY KEY, nombres TEXT, paterno TEXT, materno TEXT, id_grado TEXT)"
         )
+        conn.execute("CREATE TABLE grados (id INTEGER PRIMARY KEY, grado TEXT)")
         conn.execute(
             "CREATE TABLE ctas ("
             "id INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -51,11 +52,18 @@ def _create_alumnos_cuentas_db(path: Path):
             "aclaracion TEXT, fecha TEXT, factura TEXT)"
         )
         conn.executemany(
-            "INSERT INTO alumnos (id, nombres, paterno, materno) VALUES (?, ?, ?, ?)",
+            "INSERT INTO grados (id, grado) VALUES (?, ?)",
             [
-                (1, "Ana",   "Lopez", "Rios"),
-                (2, "Beto",  "Perez", ""),
-                (3, "Celia", "Vega",  "Mora"),
+                (1, "Primero"),
+                (2, "Segundo"),
+            ],
+        )
+        conn.executemany(
+            "INSERT INTO alumnos (id, nombres, paterno, materno, id_grado) VALUES (?, ?, ?, ?, ?)",
+            [
+                (1, "Ana",   "Lopez", "Rios", "1"),
+                (2, "Beto",  "Perez", "", "2"),
+                (3, "Celia", "Vega",  "Mora", "2"),
             ],
         )
         conn.executemany(
@@ -148,7 +156,7 @@ class TestReporteCuentasAlumnos:
         set_active_db_path(db)
         try:
             dlg = ReporteCuentasAlumnosDialog()
-            by_id = {row[0]: row[2] for row in dlg._rows}
+            by_id = {row[0]: row[3] for row in dlg._rows}
             assert by_id[1] == 150.0
             assert by_id[3] == -150.0
         finally:
@@ -173,11 +181,13 @@ class TestReporteCuentasAlumnos:
             dlg = ReporteCuentasAlumnosDialog()
             html = dlg._build_html()
             assert "Ana Lopez Rios" in html
+            assert "Primero" in html
             assert "+150" in html
             assert "Celia Vega Mora" in html
+            assert "Segundo" in html
             assert "-150" in html
             assert "Beto" not in html
-            assert "font-size:16px" in html
+            assert "font-size:14pt" in html
             assert "background:#eeeeee" in html
             assert html.count("background:#eeeeee") == 1
         finally:
@@ -191,9 +201,11 @@ class TestReporteCuentasAlumnos:
             dlg = ReporteCuentasAlumnosDialog()
             md = dlg._build_markdown()
             assert "# Cuentas - Balance por alumno" in md
-            assert "| ID | Alumno | Balance |" in md
+            assert "| ID | Alumno | Grado | Balance |" in md
             assert "Ana Lopez Rios" in md
+            assert "Primero" in md
             assert "+150" in md
+            assert "Segundo" in md
             assert "-150" in md
         finally:
             reset_active_db_path()
@@ -211,8 +223,9 @@ class TestReporteCuentasAlumnos:
                 writer.writerow(dlg._HEADERS)
                 writer.writerows(dlg._rows)
             content = csv_path.read_text(encoding="utf-8-sig")
-            assert "ID,Alumno,Balance" in content
+            assert "ID,Alumno,Grado,Balance" in content
             assert "Ana Lopez Rios" in content
+            assert "Primero" in content
         finally:
             reset_active_db_path()
 

@@ -80,7 +80,7 @@ class ReporteCuentasAlumnosDialog(QDialog):
     _REPORT_TITLE = "Cuentas - Balance por alumno"
     _PREVIEW_TITLE = "Vista previa - Cuentas balance por alumno"
     _DEFAULT_FILENAME = "cuentas_balance_por_alumno"
-    _HEADERS = ("ID", "Alumno", "Balance")
+    _HEADERS = ("ID", "Alumno", "Grado", "Balance")
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -126,22 +126,49 @@ class ReporteCuentasAlumnosDialog(QDialog):
         layout.addWidget(close_buttons)
 
     def _load_rows(self) -> list[tuple]:
-        """Return [(alumno_id, nombre_completo, balance), ...] sorted by nombre, total != 0."""
-        query = (
-            "SELECT c.id_alumno, "
-            "COALESCE(a.nombres, '') || ' ' || COALESCE(a.paterno, '') || "
-            "CASE WHEN COALESCE(a.materno, '') != '' THEN ' ' || a.materno ELSE '' END, "
-            "COALESCE(SUM(COALESCE(c.credito, 0)), 0) - COALESCE(SUM(COALESCE(c.debito, 0)), 0) "
-            "FROM ctas c "
-            "LEFT JOIN alumnos a ON a.id = c.id_alumno "
-            "GROUP BY c.id_alumno "
-            "HAVING COALESCE(SUM(COALESCE(c.credito, 0)), 0) - "
-            "COALESCE(SUM(COALESCE(c.debito, 0)), 0) != 0 "
-            "ORDER BY 2"
-        )
+        """Return [(alumno_id, nombre_completo, grado, balance), ...] sorted by nombre, total != 0."""
         try:
             with sqlite3.connect(get_active_db_path()) as conn:
-                return [(row[0], row[1].strip(), float(row[2])) for row in conn.execute(query).fetchall()]
+                alumnos_columns = {
+                    row[1] for row in conn.execute("PRAGMA table_info(alumnos)").fetchall()
+                }
+                has_id_grado = "id_grado" in alumnos_columns
+                has_grados_table = conn.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='grados'"
+                ).fetchone() is not None
+
+                grade_expr = "''"
+                grade_join = ""
+                if has_id_grado and has_grados_table:
+                    grade_expr = "COALESCE(g.grado, '')"
+                    grade_join = (
+                        " LEFT JOIN grados g ON g.id = CASE"
+                        "   WHEN a.id_grado IS NULL THEN NULL"
+                        "   WHEN TRIM(CAST(a.id_grado AS TEXT)) = '' THEN NULL"
+                        "   WHEN LOWER(TRIM(CAST(a.id_grado AS TEXT))) IN ('null', 'none') THEN NULL"
+                        "   ELSE CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER)"
+                        " END"
+                    )
+
+                query = (
+                    "SELECT c.id_alumno, "
+                    "COALESCE(a.nombres, '') || ' ' || COALESCE(a.paterno, '') || "
+                    "CASE WHEN COALESCE(a.materno, '') != '' THEN ' ' || a.materno ELSE '' END, "
+                    f"{grade_expr}, "
+                    "COALESCE(SUM(COALESCE(c.credito, 0)), 0) - COALESCE(SUM(COALESCE(c.debito, 0)), 0) "
+                    "FROM ctas c "
+                    "LEFT JOIN alumnos a ON a.id = c.id_alumno "
+                    f"{grade_join} "
+                    "GROUP BY c.id_alumno "
+                    "HAVING COALESCE(SUM(COALESCE(c.credito, 0)), 0) - "
+                    "COALESCE(SUM(COALESCE(c.debito, 0)), 0) != 0 "
+                    "ORDER BY 2"
+                )
+
+                return [
+                    (row[0], row[1].strip(), (row[2] or "").strip(), float(row[3]))
+                    for row in conn.execute(query).fetchall()
+                ]
         except sqlite3.Error as exc:
             QMessageBox.critical(None, self._WINDOW_TITLE, f"No se pudo cargar el reporte:\n{exc}")
             return []
@@ -157,9 +184,10 @@ class ReporteCuentasAlumnosDialog(QDialog):
         title = f"{self._REPORT_TITLE} - {date.today():%Y-%m-%d}"
         sections = [
             "<style>"
-            "body{font-size:16px;}"
-            "table{font-size:16px;border-collapse:collapse;}"
-            "th,td{padding:6px;}"
+            "body{font-size:14pt;}"
+            "h2{font-size:20pt;margin-bottom:12pt;}"
+            "table{font-size:14pt;border-collapse:collapse;}"
+            "th,td{padding:6pt;}"
             "</style>",
             f"<h2>{html.escape(title)}</h2>",
         ]
@@ -169,14 +197,15 @@ class ReporteCuentasAlumnosDialog(QDialog):
 
         sections.append(
             "<table border='1' cellspacing='0' cellpadding='4'>"
-            "<tr><th>ID</th><th>Alumno</th><th>Balance</th></tr>"
+            "<tr><th>ID</th><th>Alumno</th><th>Grado</th><th>Balance</th></tr>"
         )
-        for alumno_id, nombre, balance in self._rows:
+        for alumno_id, nombre, grado, balance in self._rows:
             row_style = " style='background:#eeeeee;'" if balance > 0 else ""
             sections.append(
                 f"<tr{row_style}>"
                 f"<td>{html.escape(str(alumno_id))}</td>"
                 f"<td>{html.escape(nombre)}</td>"
+                f"<td>{html.escape(grado)}</td>"
                 f"<td align='right'>{html.escape(self._fmt(balance))}</td>"
                 "</tr>"
             )
@@ -193,10 +222,11 @@ class ReporteCuentasAlumnosDialog(QDialog):
 
         lines.append("| " + " | ".join(self._HEADERS) + " |")
         lines.append("| " + " | ".join("---" for _header in self._HEADERS) + " |")
-        for alumno_id, nombre, balance in self._rows:
+        for alumno_id, nombre, grado, balance in self._rows:
             values = [
                 str(alumno_id),
                 nombre.replace("|", "\\|").replace("\n", " "),
+                grado.replace("|", "\\|").replace("\n", " "),
                 self._fmt(balance),
             ]
             lines.append("| " + " | ".join(values) + " |")
