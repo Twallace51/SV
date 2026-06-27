@@ -33,17 +33,17 @@ class LoginDialog(QDialog):
         layout = QVBoxLayout(self)
 
         self.title_label = QLabel(
-            f"{PROJECT_NAME} - Versión: {VERSION}\nIniciar Sesión",
+            f"{PROJECT_NAME} - Versión: {VERSION}\nIniciar Session Modo:",
             self,
         )
         self.title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.title_label)
 
-        self.normal_user_mode_btn = QPushButton("Modo Usuario Normal")
+        self.normal_user_mode_btn = QPushButton("Usuario Normal")
         self.normal_user_mode_btn.clicked.connect(self.login_as_user)
-        self.training_mode_btn = QPushButton("Modo Entrenamiento")
+        self.training_mode_btn = QPushButton("Entrenamiento")
         self.training_mode_btn.clicked.connect(self.login_as_trainee)
-        self.admin_mode_btn = QPushButton("Modo Admin")
+        self.admin_mode_btn = QPushButton("Admin")
         self.admin_mode_btn.clicked.connect(self.login_as_admin)
 
         quick_login_layout = QVBoxLayout()

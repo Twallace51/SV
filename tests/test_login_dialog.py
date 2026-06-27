@@ -25,7 +25,7 @@ class TestLoginDialogInit:
         assert dialog.windowTitle() == f"{PROJECT_NAME} - Versión: {VERSION}"
 
     def test_title_label(self, dialog):
-        assert dialog.title_label.text() == f"{PROJECT_NAME} - Versión: {VERSION}\nIniciar Sesión"
+        assert dialog.title_label.text() == f"{PROJECT_NAME} - Versión: {VERSION}\nIniciar Session Modo:"
 
     def test_fixed_size(self, dialog):
         assert dialog.width() == 500
@@ -38,13 +38,13 @@ class TestLoginDialogInit:
         assert dialog.quit_btn.text() == "Salir"
 
     def test_has_training_mode_button(self, dialog):
-        assert dialog.training_mode_btn.text() == "Modo Entrenamiento"
+        assert dialog.training_mode_btn.text() == "Entrenamiento"
 
     def test_has_admin_mode_button(self, dialog):
-        assert dialog.admin_mode_btn.text() == "Modo Admin"
+        assert dialog.admin_mode_btn.text() == "Admin"
 
     def test_has_normal_user_mode_button(self, dialog):
-        assert dialog.normal_user_mode_btn.text() == "Modo Usuario Normal"
+        assert dialog.normal_user_mode_btn.text() == "Usuario Normal"
 
 class TestQuitButton:
     def test_quit_button_rejects_dialog(self, dialog):
