@@ -55,6 +55,7 @@ def main() -> int:
         return 0
 
     window = MainWindow(login.logged_in_username or "unknown")
+    window.run_startup_backup_check()
     window.show()
     if login.logged_in_username.strip().lower() == "trainee":
         window.training_mode_notice = show_training_mode_notice(window)

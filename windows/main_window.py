@@ -117,7 +117,6 @@ class MainWindow(QMainWindow):
         self._trainee_temp_db_path: Path | None = None
         self._allow_close = False
         self._handling_close_flow = False
-        self._automatic_backup_checked = False
         self._apply_window_title()
         self.resize(800, 600)
         self._build_menu_bar()
@@ -209,6 +208,10 @@ class MainWindow(QMainWindow):
             return
 
         log.info("Backup automático semanal creado: %s", backup_file)
+
+    def run_startup_backup_check(self):
+        """Check backup age at session start and create one only when due."""
+        self._run_weekly_database_backup()
 
     def _setup_inactivity_timer(self):
         """Initialize and start inactivity tracking for automatic logout."""
@@ -303,9 +306,6 @@ class MainWindow(QMainWindow):
     def showEvent(self, event: QShowEvent):
         """Reapply title on show to keep native title bar in sync."""
         self._apply_window_title()
-        if not self._automatic_backup_checked:
-            self._automatic_backup_checked = True
-            self._run_weekly_database_backup()
         self._restart_inactivity_timer()
         super().showEvent(event)
 
@@ -577,8 +577,8 @@ class MainWindow(QMainWindow):
     def _start_user_session(self, username: str):
         """Apply session state for a newly authenticated user."""
         self._username = username or "unknown"
-        self._automatic_backup_checked = False
         self._configure_session_database(self._username)
+        self.run_startup_backup_check()
         self._refresh_backup_action_state()
         self._apply_window_title()
         self._apply_session_theme()
