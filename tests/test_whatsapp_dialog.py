@@ -139,7 +139,7 @@ class TestEnviarWhatsAppDialogStudentFlow:
 
             dlg.filter_combo.setCurrentIndex(1)
 
-            assert "cuenta pendiente" in dlg.message_edit.toPlainText()
-            assert "Balance pendiente" in dlg.message_edit.toPlainText()
+            assert "deuda pendiente" in dlg.message_edit.toPlainText()
+            assert "Monto pendiente" in dlg.message_edit.toPlainText()
         finally:
             dlg.close()

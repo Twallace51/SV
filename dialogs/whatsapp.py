@@ -41,8 +41,8 @@ class EnviarWhatsAppDialog(QDialog):
         ),
         True: (
             "Hola {parent_name}        Fecha: {date}.\n"
-            "Le escribimos respecto la cuenta pendiente de {student_name} ({grade}).\n"
-            "Balance pendiente: {balance}."
+            "Le escribimos por la deuda pendiente de {student_name} ({grade}).\n"
+            "Monto pendiente: {balance}."
         ),
     }
 
