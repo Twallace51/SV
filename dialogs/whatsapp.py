@@ -60,14 +60,7 @@ class EnviarWhatsAppDialog(QDialog):
         student_row.addWidget(self.reload_student_btn)
         layout.addLayout(student_row)
 
-        self.placeholder_label = QLabel(
-            "Plantilla: {parent_name}, {student_name}, {grade}, {balance}, {alumno_id}, {date}",
-            self,
-        )
-        self.placeholder_label.setWordWrap(True)
-        layout.addWidget(self.placeholder_label)
-
-        layout.addWidget(QLabel("Mensaje (se rellena en cada chat; usted presiona Enviar):"))
+        layout.addWidget(QLabel("Mensaje basico - puede actualizarlo aqui para todos, y individualmente en Whatsapp"))
         self.message_edit = QPlainTextEdit()
         self.message_edit.setPlaceholderText("Escriba el mensaje a enviar…")
         self.message_edit.setFixedHeight(90)
