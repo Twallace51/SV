@@ -13,7 +13,7 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPlainTextEdit,
     QTableWidget, QTableWidgetItem, QHeaderView, QPushButton,
-    QDialogButtonBox, QMessageBox, QAbstractItemView,
+    QDialogButtonBox, QMessageBox, QAbstractItemView, QComboBox,
 )
 
 from modules import database
@@ -26,6 +26,10 @@ class EnviarWhatsAppDialog(QDialog):
     """Pick recipients from the adultos list and open one WhatsApp chat at a time."""
 
     _HEADERS = ["", "Nombre", "Celular"]
+    _DEFAULT_TEMPLATE = (
+        "Hola {parent_name}, le escribimos por {student_name} ({grade}). "
+        "Balance actual: {balance}. Fecha: {date}."
+    )
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -38,11 +42,36 @@ class EnviarWhatsAppDialog(QDialog):
         self._queue: list[int] = []
         self._sent_count = 0
         self._total_count = 0
+        self._template_context = {
+            "student_name": "",
+            "grade": "",
+            "balance": "+0",
+            "alumno_id": "",
+            "date": "",
+        }
+
+        student_row = QHBoxLayout()
+        student_row.addWidget(QLabel("Alumno:"))
+        self.student_combo = QComboBox(self)
+        self.student_combo.currentIndexChanged.connect(self._on_student_changed)
+        student_row.addWidget(self.student_combo)
+        self.reload_student_btn = QPushButton("Recargar", self)
+        self.reload_student_btn.clicked.connect(self._load_students)
+        student_row.addWidget(self.reload_student_btn)
+        layout.addLayout(student_row)
+
+        self.placeholder_label = QLabel(
+            "Plantilla: {parent_name}, {student_name}, {grade}, {balance}, {alumno_id}, {date}",
+            self,
+        )
+        self.placeholder_label.setWordWrap(True)
+        layout.addWidget(self.placeholder_label)
 
         layout.addWidget(QLabel("Mensaje (se rellena en cada chat; usted presiona Enviar):"))
         self.message_edit = QPlainTextEdit()
         self.message_edit.setPlaceholderText("Escriba el mensaje a enviar…")
         self.message_edit.setFixedHeight(90)
+        self.message_edit.setPlainText(self._DEFAULT_TEMPLATE)
         layout.addWidget(self.message_edit)
 
         select_row = QHBoxLayout()
@@ -82,23 +111,51 @@ class EnviarWhatsAppDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-        self._load()
+        self._load_students()
 
-    def _load(self):
-        rows = database.list_adultos_con_celular()
+    def _load_students(self):
+        rows = database.list_alumnos_para_whatsapp()
+        self.student_combo.blockSignals(True)
+        self.student_combo.clear()
+        for alumno_id, alumno_name, grade in rows:
+            grade_text = str(grade or "").strip()
+            label = f"{alumno_name} ({grade_text})" if grade_text else str(alumno_name)
+            self.student_combo.addItem(label, int(alumno_id))
+        self.student_combo.blockSignals(False)
+
+        if self.student_combo.count() == 0:
+            self._load_recipients([])
+            self.status_label.setText("No hay alumnos disponibles.")
+            return
+
+        self.student_combo.setCurrentIndex(0)
+        self._on_student_changed(0)
+
+    def _on_student_changed(self, index: int):
+        if index < 0:
+            self._load_recipients([])
+            self.status_label.setText("Seleccione un alumno.")
+            return
+
+        alumno_id = self.student_combo.itemData(index)
+        if alumno_id is None:
+            self._load_recipients([])
+            self.status_label.setText("Seleccione un alumno.")
+            return
+
+        self._template_context, rows = database.get_whatsapp_targets_for_alumno(int(alumno_id))
+        self._load_recipients(rows)
+        if not rows:
+            self.status_label.setText("El alumno seleccionado no tiene padres vinculados con celular.")
+        else:
+            self.status_label.setText("")
+
+    def _load_recipients(self, rows):
         recipients = []
-        for adulto_id, nombres, paterno, materno, cell1, cell2 in rows:
-            name = " ".join(
-                part for part in (
-                    str(paterno or "").strip(),
-                    str(nombres or "").strip(),
-                    str(materno or "").strip(),
-                ) if part
-            )
-            for phone in (cell1, cell2):
-                normalized = normalize_bolivia_phone(phone)
-                if normalized is not None:
-                    recipients.append((name, str(phone).strip(), normalized))
+        for name, phone in rows:
+            normalized = normalize_bolivia_phone(phone)
+            if normalized is not None:
+                recipients.append((name, str(phone).strip(), normalized))
 
         self.table.blockSignals(True)
         self.table.setRowCount(len(recipients))
@@ -107,11 +164,12 @@ class EnviarWhatsAppDialog(QDialog):
             check_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
             check_item.setCheckState(Qt.Checked)
             check_item.setData(Qt.UserRole, phone_display)
+            check_item.setData(Qt.UserRole + 1, name)
             self.table.setItem(r, 0, check_item)
             self.table.setItem(r, 1, QTableWidgetItem(name))
             self.table.setItem(r, 2, QTableWidgetItem(phone_display))
         self.table.blockSignals(False)
-        self._update_count()
+        self._reset_run()
 
     def _set_all_checked(self, checked: bool):
         state = Qt.Checked if checked else Qt.Unchecked
@@ -137,6 +195,21 @@ class EnviarWhatsAppDialog(QDialog):
 
     def _update_count(self, *_args):
         self.count_label.setText(f"Seleccionados: {len(self._checked_rows())}")
+
+    def _render_template_message(self, parent_name: str) -> str:
+        template = self.message_edit.toPlainText().strip() or self._DEFAULT_TEMPLATE
+        values = {
+            "parent_name": parent_name,
+            "student_name": self._template_context.get("student_name", ""),
+            "grade": self._template_context.get("grade", ""),
+            "balance": self._template_context.get("balance", "+0"),
+            "alumno_id": self._template_context.get("alumno_id", ""),
+            "date": self._template_context.get("date", ""),
+        }
+        message = template
+        for key, value in values.items():
+            message = message.replace("{" + key + "}", str(value))
+        return message
 
     def _reset_run(self, *_args):
         self._queue = []
@@ -167,12 +240,11 @@ class EnviarWhatsAppDialog(QDialog):
             self._reset_run()
             return
 
-        message = self.message_edit.toPlainText().strip()
         row = self._queue.pop(0)
         check_item = self.table.item(row, 0)
         phone = check_item.data(Qt.UserRole) if check_item is not None else None
-        name_item = self.table.item(row, 1)
-        name = name_item.text() if name_item is not None else ""
+        name = check_item.data(Qt.UserRole + 1) if check_item is not None else ""
+        message = self._render_template_message(str(name or ""))
 
         url = build_whatsapp_url(phone, message)
         if url is None or not QDesktopServices.openUrl(QUrl(url)):

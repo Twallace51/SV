@@ -12,6 +12,7 @@ dialog can show an error message to the user.
 """
 
 import sqlite3
+from datetime import date
 
 from __init__ import get_active_db_path
 
@@ -206,6 +207,165 @@ def list_adultos_con_email() -> list[tuple]:
             conn.close()
     except Exception:
         return []
+
+
+def list_alumnos_para_whatsapp() -> list[tuple]:
+    """Return ``(id, nombre_completo, grado)`` rows ordered by surname/name."""
+    try:
+        conn = connect()
+        try:
+            tables = _table_names(conn)
+            alumnos_columns = table_columns(conn, "alumnos")
+            has_grados = "grados" in tables and "id_grado" in alumnos_columns
+
+            grade_expr = "''"
+            grade_join = ""
+            if has_grados:
+                grade_expr = "COALESCE(g.grado, '')"
+                grade_join = (
+                    " LEFT JOIN grados g ON g.id = CASE"
+                    "   WHEN a.id_grado IS NULL THEN NULL"
+                    "   WHEN TRIM(CAST(a.id_grado AS TEXT)) = '' THEN NULL"
+                    "   WHEN LOWER(TRIM(CAST(a.id_grado AS TEXT))) IN ('null', 'none') THEN NULL"
+                    "   ELSE CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER)"
+                    " END"
+                )
+
+            return conn.execute(
+                "SELECT a.id, "
+                "TRIM(COALESCE(a.paterno, '') || ' ' || COALESCE(a.nombres, '') || "
+                "CASE WHEN COALESCE(a.materno, '') <> '' THEN ' ' || a.materno ELSE '' END), "
+                f"{grade_expr} "
+                "FROM alumnos a"
+                f"{grade_join}"
+                " ORDER BY a.paterno, a.nombres"
+            ).fetchall()
+        finally:
+            conn.close()
+    except Exception:
+        return []
+
+
+def get_whatsapp_targets_for_alumno(alumno_id: int) -> tuple[dict, list[tuple]]:
+    """Return (context, recipients) for a student's linked parents.
+
+    ``context`` keys: ``student_name``, ``grade``, ``balance``, ``alumno_id``, ``date``.
+    ``recipients`` items: ``(parent_name, phone_display)``.
+    """
+    context = {
+        "student_name": "",
+        "grade": "",
+        "balance": "+0",
+        "alumno_id": str(alumno_id),
+        "date": f"{date.today():%Y-%m-%d}",
+    }
+    recipients: list[tuple] = []
+
+    try:
+        conn = connect()
+        try:
+            tables = _table_names(conn)
+            alumnos_columns = table_columns(conn, "alumnos")
+            has_padre = "id_padre" in alumnos_columns
+            has_madre = "id_madre" in alumnos_columns
+
+            select_parts = [
+                "TRIM(COALESCE(paterno, '') || ' ' || COALESCE(nombres, '') || "
+                "CASE WHEN COALESCE(materno, '') <> '' THEN ' ' || materno ELSE '' END)",
+            ]
+            if has_padre:
+                select_parts.append("id_padre")
+            if has_madre:
+                select_parts.append("id_madre")
+            if "id_grado" in alumnos_columns:
+                select_parts.append("id_grado")
+
+            alumno_row = conn.execute(
+                f"SELECT {', '.join(select_parts)} FROM alumnos WHERE id = ?",
+                (alumno_id,),
+            ).fetchone()
+            if alumno_row is None:
+                return context, recipients
+
+            idx = 0
+            context["student_name"] = str(alumno_row[idx] or "").strip()
+            idx += 1
+
+            parent_ids = []
+            if has_padre:
+                parent_ids.append(alumno_row[idx])
+                idx += 1
+            if has_madre:
+                parent_ids.append(alumno_row[idx])
+                idx += 1
+
+            grade_id = None
+            if "id_grado" in alumnos_columns:
+                grade_id = alumno_row[idx]
+                idx += 1
+
+            if "ctas" in tables:
+                balance_row = conn.execute(
+                    "SELECT COALESCE(SUM(COALESCE(credito, 0)), 0) - "
+                    "COALESCE(SUM(COALESCE(debito, 0)), 0) "
+                    "FROM ctas WHERE id_alumno = ?",
+                    (alumno_id,),
+                ).fetchone()
+                balance_value = float(balance_row[0]) if balance_row and balance_row[0] is not None else 0.0
+                sign = "+" if balance_value >= 0 else ""
+                context["balance"] = f"{sign}{balance_value:,.0f}"
+
+            if "grados" in tables and grade_id not in (None, "", "null", "none"):
+                try:
+                    normalized_grade_id = int(str(grade_id).strip())
+                except ValueError:
+                    normalized_grade_id = None
+                if normalized_grade_id is not None:
+                    grade_row = conn.execute(
+                        "SELECT grado FROM grados WHERE id = ?",
+                        (normalized_grade_id,),
+                    ).fetchone()
+                    if grade_row and grade_row[0] is not None:
+                        context["grade"] = str(grade_row[0]).strip()
+
+            if "adultos" not in tables:
+                return context, recipients
+
+            parent_ids = [parent_id for parent_id in parent_ids if parent_id not in (None, "")]
+            seen_ids = set()
+            unique_parent_ids = []
+            for parent_id in parent_ids:
+                if parent_id in seen_ids:
+                    continue
+                seen_ids.add(parent_id)
+                unique_parent_ids.append(parent_id)
+
+            for parent_id in unique_parent_ids:
+                adulto_row = conn.execute(
+                    "SELECT a_nombres, a_paterno, a_materno, cell1, cell2 "
+                    "FROM adultos WHERE id = ?",
+                    (parent_id,),
+                ).fetchone()
+                if not adulto_row:
+                    continue
+
+                parent_name = " ".join(
+                    part for part in (
+                        str(adulto_row[1] or "").strip(),
+                        str(adulto_row[0] or "").strip(),
+                        str(adulto_row[2] or "").strip(),
+                    ) if part
+                )
+                for phone in (adulto_row[3], adulto_row[4]):
+                    phone_text = str(phone or "").strip()
+                    if phone_text:
+                        recipients.append((parent_name, phone_text))
+
+            return context, recipients
+        finally:
+            conn.close()
+    except Exception:
+        return context, recipients
 
 
 
