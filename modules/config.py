@@ -26,6 +26,10 @@ CREDITO_ACLARACIONES = ["Efectivo", "Deposito"]
 
 # --- Monthly pension automation -------------------------------------------
 
+# Optional public URL for the payment QR image. When set, WhatsApp templates
+# include this link so recipients can open the QR directly.
+WHATSAPP_QR_PAYMENT_URL = ""
+
 # Spanish month names, indexed 0 (enero) .. 11 (diciembre).
 MONTH_NAMES_ES = [
     "enero", "febrero", "marzo", "abril", "mayo", "junio",

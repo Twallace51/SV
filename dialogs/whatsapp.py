@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox, QMessageBox, QAbstractItemView, QComboBox,
 )
 
-from modules import database
+from modules import config, database
 from modules.utils import build_whatsapp_url, normalize_bolivia_phone
 
 # endregion
@@ -39,12 +39,12 @@ class EnviarWhatsAppDialog(QDialog):
             "Hola {parent_name}        Fecha: {date}.\n"
             "Le escribimos respecto la cuenta por {student_name} ({grade}).\n"
             "Balance actual: {balance}.\n"
-            "Puede realizar el pago escaneando el QR de pagos de la institucion."
+            "{qr_payment_line}"
         ),
         True: (
             "Hola {parent_name}        Fecha: {date}.\n"
             "Le escribimos respecto su hij(a/o) {student_name} ({grade}).\n"
-            "Puede realizar el pago escaneando el QR de pagos de la institucion."
+            "{qr_payment_line}"
         ),
     }
 
@@ -92,7 +92,7 @@ class EnviarWhatsAppDialog(QDialog):
         self.message_edit = QPlainTextEdit()
         self.message_edit.setPlaceholderText("Escriba el mensaje a enviar…")
         self.message_edit.setFixedHeight(90)
-        self.message_edit.setPlainText(self._TEMPLATES[False])
+        self.message_edit.setPlainText(self._default_template_for_filter(False))
         layout.addWidget(self.message_edit)
 
         select_row = QHBoxLayout()
@@ -138,8 +138,17 @@ class EnviarWhatsAppDialog(QDialog):
         value = self.filter_combo.currentData()
         return bool(value)
 
+    def _qr_payment_line(self) -> str:
+        qr_url = str(config.WHATSAPP_QR_PAYMENT_URL or "").strip()
+        if qr_url:
+            return f"Puede realizar el pago aqui (QR): {qr_url}"
+        return "Puede realizar el pago escaneando el QR de pagos de la institucion."
+
     def _default_template_for_filter(self, only_pending: bool) -> str:
-        return self._TEMPLATES[only_pending]
+        return self._TEMPLATES[only_pending].replace(
+            "{qr_payment_line}",
+            self._qr_payment_line(),
+        )
 
     def _on_filter_changed(self, *_args):
         only_pending = self._selected_filter_pending()
@@ -242,6 +251,7 @@ class EnviarWhatsAppDialog(QDialog):
             "balance": self._template_context.get("balance", "+0"),
             "alumno_id": self._template_context.get("alumno_id", ""),
             "date": self._template_context.get("date", ""),
+            "qr_payment_line": self._qr_payment_line(),
         }
         message = template
         for key, value in values.items():

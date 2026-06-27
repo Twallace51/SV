@@ -11,6 +11,37 @@ from dialogs.whatsapp import EnviarWhatsAppDialog
 
 
 class TestEnviarWhatsAppDialogStudentFlow:
+    def test_configured_qr_link_is_inserted_in_both_templates(self, qapp, monkeypatch):
+        monkeypatch.setattr(
+            "dialogs.whatsapp.database.list_alumnos_para_whatsapp",
+            lambda only_pending=False: [(1, "Lopez Ana Rios", "Primero")],
+        )
+        monkeypatch.setattr(
+            "dialogs.whatsapp.database.get_whatsapp_targets_for_alumno",
+            lambda alumno_id: (
+                {
+                    "student_name": "Lopez Ana Rios",
+                    "grade": "Primero",
+                    "balance": "+150",
+                    "alumno_id": "1",
+                    "date": "2026-06-27",
+                },
+                [("Perez Juan", "70123456")],
+            ),
+        )
+        qr_url = "https://example.org/QR_SV.png"
+        monkeypatch.setattr("dialogs.whatsapp.config.WHATSAPP_QR_PAYMENT_URL", qr_url)
+
+        dlg = EnviarWhatsAppDialog()
+        try:
+            assert qr_url in dlg.message_edit.toPlainText()
+
+            dlg.filter_combo.setCurrentIndex(1)
+
+            assert qr_url in dlg.message_edit.toPlainText()
+        finally:
+            dlg.close()
+
     def test_loads_linked_parents_for_selected_student(self, qapp, monkeypatch):
         monkeypatch.setattr(
             "dialogs.whatsapp.database.list_alumnos_para_whatsapp",
