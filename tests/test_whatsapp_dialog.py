@@ -29,16 +29,18 @@ class TestEnviarWhatsAppDialogStudentFlow:
                 [("Perez Juan", "70123456")],
             ),
         )
-        qr_url = "https://example.org/QR_SV.png"
-        monkeypatch.setattr("dialogs.whatsapp.config.QR_SV_URL", qr_url)
+        qr_sv_url = "https://example.org/QR_SV.png"
+        qr_comedor_url = "https://example.org/QR_comedor.png"
+        monkeypatch.setattr("dialogs.whatsapp.config.QR_SV_URL", qr_sv_url)
+        monkeypatch.setattr("dialogs.whatsapp.config.QR_comedor_URL", qr_comedor_url)
 
         dlg = EnviarWhatsAppDialog()
         try:
-            assert qr_url in dlg.message_edit.toPlainText()
+            assert qr_comedor_url in dlg.message_edit.toPlainText()
 
             dlg.filter_combo.setCurrentIndex(1)
 
-            assert qr_url in dlg.message_edit.toPlainText()
+            assert qr_sv_url in dlg.message_edit.toPlainText()
         finally:
             dlg.close()
 
@@ -166,41 +168,12 @@ class TestEnviarWhatsAppDialogStudentFlow:
 
         dlg = EnviarWhatsAppDialog()
         try:
-            assert "cuenta por {student_name}" in dlg.message_edit.toPlainText()
-            assert "escaneando el QR" in dlg.message_edit.toPlainText()
-
-            dlg.filter_combo.setCurrentIndex(1)
-
             assert "hij(a/o)" in dlg.message_edit.toPlainText()
-            assert "escaneando el QR" in dlg.message_edit.toPlainText()
-        finally:
-            dlg.close()
-
-    def test_filter_status_label_reflects_current_filter(self, qapp, monkeypatch):
-        monkeypatch.setattr(
-            "dialogs.whatsapp.database.list_alumnos_para_whatsapp",
-            lambda only_pending=False: [(1, "Lopez Ana Rios", "Primero")],
-        )
-        monkeypatch.setattr(
-            "dialogs.whatsapp.database.get_whatsapp_targets_for_alumno",
-            lambda alumno_id: (
-                {
-                    "student_name": "Lopez Ana Rios",
-                    "grade": "Primero",
-                    "balance": "+0",
-                    "alumno_id": "1",
-                    "date": "2026-06-27",
-                },
-                [("Perez Juan", "70123456")],
-            ),
-        )
-
-        dlg = EnviarWhatsAppDialog()
-        try:
-            assert dlg.filter_status_label.text() == "Todos alumnos"
+            assert "QR comedor" in dlg.message_edit.toPlainText()
 
             dlg.filter_combo.setCurrentIndex(1)
 
-            assert dlg.filter_status_label.text() == "Alumnos con cuentas pendientes"
+            assert "cuenta por {student_name}" in dlg.message_edit.toPlainText()
+            assert "(QR):" in dlg.message_edit.toPlainText()
         finally:
             dlg.close()

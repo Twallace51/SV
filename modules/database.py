@@ -296,7 +296,7 @@ def get_whatsapp_targets_for_alumno(alumno_id: int) -> tuple[dict, list[tuple]]:
             has_madre = "id_madre" in alumnos_columns
 
             select_parts = [
-                "TRIM(COALESCE(paterno, '') || ' ' || COALESCE(nombres, '') || "
+                "TRIM(COALESCE(nombres, '') || ' ' || COALESCE(paterno, '') || "
                 "CASE WHEN COALESCE(materno, '') <> '' THEN ' ' || materno ELSE '' END)",
             ]
             if has_padre:
@@ -309,7 +309,7 @@ def get_whatsapp_targets_for_alumno(alumno_id: int) -> tuple[dict, list[tuple]]:
             alumno_row = conn.execute(
                 f"SELECT {', '.join(select_parts)} FROM alumnos WHERE id = ?",
                 (alumno_id,),
-            ).fetchone()
+                ).fetchone()
             if alumno_row is None:
                 return context, recipients
 
