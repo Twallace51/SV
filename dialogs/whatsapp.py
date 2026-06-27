@@ -27,8 +27,9 @@ class EnviarWhatsAppDialog(QDialog):
 
     _HEADERS = ["", "Nombre", "Celular"]
     _DEFAULT_TEMPLATE = (
-        "Hola {parent_name}, le escribimos por {student_name} ({grade}). "
-        "Balance actual: {balance}. Fecha: {date}."
+        "Hola {parent_name}        Fecha: {date}.\n"
+        "Le escribimos respecto la cuenta por {student_name} ({grade}).\n"
+        "Balance actual: {balance}."
     )
 
     def __init__(self, parent=None):
@@ -60,7 +61,7 @@ class EnviarWhatsAppDialog(QDialog):
         student_row.addWidget(self.reload_student_btn)
         layout.addLayout(student_row)
 
-        layout.addWidget(QLabel("Mensaje basico - puede actualizarlo aqui para todos, y individualmente en Whatsapp"))
+        layout.addWidget(QLabel("Mensaje basico - puede actualizarlo aqui para todos, y luego individualmente en Whatsapp"))
         self.message_edit = QPlainTextEdit()
         self.message_edit.setPlaceholderText("Escriba el mensaje a enviar…")
         self.message_edit.setFixedHeight(90)
