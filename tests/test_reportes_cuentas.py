@@ -304,6 +304,9 @@ class TestReporteCuentasDetalles:
             assert "+150" in html
             assert "Balance" in html
             assert "font-size:14pt" in html
+            assert "th{font-size:14pt;}" in html
+            assert "font-size:20pt; font-weight:bold; line-height:1.1;" in html
+            assert "p.meta{font-size:18pt;}" in html
         finally:
             reset_active_db_path()
 

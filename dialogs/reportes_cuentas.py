@@ -543,12 +543,13 @@ class ReporteCuentasDetallesDialog(QDialog):
         sections = [
             "<style>"
             "body{font-size:14pt;}"
-            "h2{font-size:20pt;margin-bottom:12pt;}"
             "table{font-size:14pt;border-collapse:collapse;}"
+            "th{font-size:14pt;}"
+            "p.meta{font-size:18pt;}"
             "th,td{padding:6pt;}"
             "</style>",
-            f"<h2>{html.escape(title)}</h2>",
-            f"<p>Alumno ID: {self._alumno_id}",
+            f"<div style='font-size:20pt; font-weight:bold; line-height:1.1;'>{html.escape(title)}</div>",
+            f"<p class='meta'>Alumno ID: {self._alumno_id}",
         ]
         if self._alumno_nombre:
             sections.append(f" - {html.escape(self._alumno_nombre)}")
@@ -578,7 +579,7 @@ class ReporteCuentasDetallesDialog(QDialog):
         balance_sign = "+" if self._balance >= 0 else ""
         balance_color = "#d4edda" if self._balance >= 0 else "#f8d7da"
         sections.append(
-            f"<p style='background:{balance_color}; padding: 8px; margin-top: 12px;'>"
+            f"<p style='background:{balance_color}; padding: 8px; margin-top: 12px; font-size:16pt;'>"
             f"<strong>Balance (Créditos − Débitos): {balance_sign}{self._balance:,.0f}</strong>"
             "</p>"
         )
