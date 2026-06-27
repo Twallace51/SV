@@ -245,7 +245,7 @@ def list_alumnos_para_whatsapp() -> list[tuple]:
                 " AND TRIM(CAST(a.id_grado AS TEXT)) <> ''"
                 " AND LOWER(TRIM(CAST(a.id_grado AS TEXT))) NOT IN ('null', 'none')"
                 " AND CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER) > 0"
-                " ORDER BY a.paterno, a.nombres"
+                " ORDER BY CAST(TRIM(CAST(a.id_grado AS TEXT)) AS INTEGER), a.nombres"
             ).fetchall()
         finally:
             conn.close()
