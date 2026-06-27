@@ -23,7 +23,7 @@ from modules.utils import build_whatsapp_url, normalize_bolivia_phone
 # endregion
 
 log = logging.getLogger("app")
-
+log.setLevel(logging.INFO)
 
 class EnviarWhatsAppDialog(QDialog):
     """Pick recipients from the adultos list and open one WhatsApp chat at a time."""

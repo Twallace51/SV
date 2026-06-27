@@ -2,6 +2,7 @@
 
 import csv
 import html
+import logging
 import sqlite3
 from datetime import date
 
@@ -10,6 +11,8 @@ from PySide6.QtWidgets import QMessageBox
 from __init__ import get_active_db_path
 from dialogs.reportes_alumnos import ReporteAlumnosParientesDialog
 
+log = logging.getLogger("app")
+log.setLevel(logging.INFO)
 
 class ReporteAdultosConAlumnosDialog(ReporteAlumnosParientesDialog):
     """List adultos linked to alumnos as padre or madre.

@@ -2,6 +2,7 @@
 
 import csv
 import html
+import logging
 import re
 import sqlite3
 from collections import defaultdict
@@ -25,6 +26,8 @@ from PySide6.QtWidgets import (
 
 from __init__ import get_active_db_path
 
+log = logging.getLogger("app")
+log.setLevel(logging.INFO)
 
 class ReporteAlumnosPorGradoDialog(QDialog):
     """Display and export enrolled alumnos grouped by grade."""

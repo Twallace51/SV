@@ -21,8 +21,7 @@ from dialogs import parientes as parientes_dialogs
 # endregion
 
 log = logging.getLogger("app")
-#logger.setLevel(logging.DEBUG)
-logger.setLevel(logging.INFO)
+log.setLevel(logging.INFO)
 
 # Current-record global – updated on every successful INSERT/UPDATE;
 # set to None when the corresponding record is deleted.

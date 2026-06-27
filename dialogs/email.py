@@ -21,8 +21,7 @@ from modules import database
 from modules.utils import build_mailto_url, normalize_email
 
 log = logging.getLogger("app")
-#logger.setLevel(logging.DEBUG)
-logger.setLevel(logging.INFO)
+log.setLevel(logging.INFO)
 
 
 class EnviarEmailDialog(QDialog):

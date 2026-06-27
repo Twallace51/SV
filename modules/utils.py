@@ -21,27 +21,41 @@ from __init__ import PROJECT_NAME
 # endregion
 
 log = logging.getLogger("app")
-#logger.setLevel(logging.DEBUG)
 log.setLevel(logging.INFO)
 
 
 def setup_logging() -> logging.Logger:
-    """Configure and return the application logger."""
+    """Configure and return the application logger.
+
+    In this project:
+
+        logging.INFO is the level constant.
+        log.info(...) is the method you call to write an info message.
+        log.setLevel(logging.INFO) is how you set the logger’s level.
+
+    So the pattern is:
+
+        log = logging.getLogger("app")
+        log.setLevel(logging.INFO)
+        log.info("Something happened")
+
+
+    """
     log_dir = Path(__file__).resolve().parent.parent / "logs"
     log_dir.mkdir(exist_ok=True)
 
-    logger = logging.getLogger("app")
-    logger.setLevel(logging.DEBUG)
+    _log = logging.getLogger("app")
+    _log.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter(
         fmt="%(asctime)s [%(levelname)-8s] %(module)s:%(lineno)d\n  %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-    )
+        )
 
     # Rotating file handler – keeps last 5 × 1 MB log files
     file_handler = logging.handlers.RotatingFileHandler(
         log_dir / "app.log", maxBytes=1_000_000, backupCount=5, encoding="utf-8"
-    )
+        )
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
 
@@ -50,9 +64,9 @@ def setup_logging() -> logging.Logger:
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(formatter)
 
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
-    return logger
+    _log.addHandler(file_handler)
+    _log.addHandler(console_handler)
+    return _log
 
 
 def check_latest_pip_available() -> None:

@@ -90,8 +90,7 @@ except (ModuleNotFoundError, ImportError):
 # endregion
 
 log = logging.getLogger("app")
-#logger.setLevel(logging.DEBUG)
-logger.setLevel(logging.INFO)
+log.setLevel(logging.INFO)
 
 class MainWindow(QMainWindow):
     """Primary application window shown after successful login."""
